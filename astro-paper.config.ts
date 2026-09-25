@@ -29,8 +29,8 @@ export default defineAstroPaperConfig({
     search: "pagefind",
   },
   socials: [
-    { name: "github",   url: "https://github.com/satnaing/astro-paper" },
-    { name: "x",        url: "https://x.com/username" },
+    { name: "github",   url: "https://github.com/Ethergray2007" },
+    { name: "x",        url: "https://x.com/Ethergray2007" },
     { name: "linkedin", url: "https://www.linkedin.com/in/username/" },
     { name: "mail",     url: "mailto:yourmail@gmail.com" },
   ],
