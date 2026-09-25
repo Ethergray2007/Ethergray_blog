@@ -1,7 +1,7 @@
 ---
 title: "我的第一篇博客"
 description: "记录一下博客搭建过程"
-pubDatetime: 2026-09-25T10:00:00Z
+pubDatetime: 2026-09-25T10:00:00+08:00
 tags:
   - 随笔
   - Astro

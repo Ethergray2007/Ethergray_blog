@@ -1,7 +1,7 @@
 ---
 title: "开始搭建 EtherGray Blog"
 description: "记录这个博客从 AstroPaper 开始搭建的过程。"
-pubDatetime: 2026-09-25T10:00:00Z
+pubDatetime: 2026-09-25T10:00:00+08:00
 tags:
   - Astro
   - Blog
