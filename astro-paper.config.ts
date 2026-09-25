@@ -2,13 +2,13 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://astro-paper.pages.dev/",
-    title: "AstroPaper",
-    description: "A minimal, responsive and SEO-friendly Astro blog theme.",
-    author: "Sat Naing",
+    url: "https://ethergray.netlify.app/",
+    title: "Ethergray Blog",
+    description: "Ethergray 的个人博客",
+    author: "Ethergray",
     profile: "https://satna.ing",
     ogImage: "default-og.jpg",
-    lang: "en",
+    lang: "zh",
     timezone: "Asia/Bangkok",
     dir: "ltr",
   },
@@ -24,7 +24,7 @@ export default defineAstroPaperConfig({
     showBackButton: true,
     editPost: {
       enabled: true,
-      url: "https://github.com/satnaing/astro-paper/edit/main/",
+      url: "https://github.com/Ethergray2007/Ethergray_blog/edit/main/",
     },
     search: "pagefind",
   },
