@@ -1,0 +1,1928 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Socials from "@/components/Socials.astro";
+import config from "@/config";
+
+const xUrl =
+  config.socials.find(item => item.name === "x")?.url ?? "#";
+
+const emailUrl =
+  config.socials.find(item => item.name === "mail")?.url ?? "#";
+
+const projects = [
+  {
+    id: "blog",
+    number: "01",
+    title: "Ethergray 博客",
+    short: "个人知识库与技术实验场。",
+    description:
+      "基于 Astro 构建的个人博客，用于记录算法、编程实验、图形学学习过程以及值得长期保留的技术内容。",
+    tags: ["Astro", "TypeScript", "Tailwind"],
+    status: "进行中",
+    badgeClass: "badge-primary badge-soft",
+    href: "https://github.com/Ethergray2007/Ethergray_blog",
+    filters: ["all", "web"],
+  },
+  {
+    id: "renderer",
+    number: "02",
+    title: "软件渲染器",
+    short: "从底层理解图形学渲染管线。",
+    description:
+      "通过变换、投影、光栅化等基础环节理解实时图形背后的数学与渲染流程。",
+    tags: ["C++", "Rendering", "3D Math"],
+    status: "学习中",
+    badgeClass: "badge-secondary badge-soft",
+    href: "#",
+    filters: ["all", "graphics"],
+  },
+  {
+    id: "graphics",
+    number: "03",
+    title: "图形学实验室",
+    short: "OpenGL 与 Shader 的实验集合。",
+    description:
+      "围绕 OpenGL、GLSL、相机系统、光照、材质和实时渲染技术进行小型实验。",
+    tags: ["OpenGL", "GLSL", "Graphics"],
+    status: "探索中",
+    badgeClass: "badge-accent badge-soft",
+    href: "#",
+    filters: ["all", "graphics"],
+  },
+];
+---
+
+<Layout
+  title={`Ethergray — 个人主页 | ${config.site.title}`}
+  description="Ethergray 的个人主页"
+>
+  <Header />
+
+  <main
+    id="main-content"
+    class="mx-auto w-full max-w-[1440px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pt-8"
+  >
+    <!-- ========================================================= -->
+    <!-- 顶部栏 -->
+    <!-- ========================================================= -->
+
+    <div
+      class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <div
+          class="text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+        >
+          PERSONAL / 2026
+        </div>
+
+        <h1 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+          个人主页
+        </h1>
+      </div>
+
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <div
+          class="tooltip tooltip-bottom"
+          data-tip="当前状态"
+        >
+          <div class="badge badge-info badge-soft gap-2">
+            <span class="status status-info status-xs"></span>
+            学习中
+          </div>
+        </div>
+
+        <details
+          id="more-menu"
+          class="dropdown dropdown-end"
+        >
+          <summary class="btn btn-ghost border border-base-300">
+            更多
+
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="size-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="m6 9 6 6 6-6"
+              />
+            </svg>
+          </summary>
+
+          <ul
+            class="menu dropdown-content z-40 mt-2 w-52 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl"
+          >
+            <li>
+              <a href="#projects">项目</a>
+            </li>
+
+            <li>
+              <a href="#stack">技术栈</a>
+            </li>
+
+            <li>
+              <a href="#faq">常见问题</a>
+            </li>
+
+            <li>
+              <button
+                type="button"
+                data-modal-target="contact-modal"
+              >
+                联系我
+              </button>
+            </li>
+          </ul>
+        </details>
+      </div>
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- 主布局 -->
+    <!-- ========================================================= -->
+
+    <div
+      class="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-7"
+    >
+
+      <!-- ======================================================= -->
+      <!-- 左侧 -->
+      <!-- ======================================================= -->
+
+      <aside
+        class="space-y-5 lg:sticky lg:top-6 lg:self-start"
+      >
+
+        <!-- 个人卡片 -->
+        <section
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-6 sm:p-7">
+
+            <div class="flex items-start justify-between gap-4">
+
+              <div class="avatar">
+                <div
+                  class="w-20 rounded-2xl ring-1 ring-base-300 sm:w-24"
+                >
+                  <img
+                    src="https://github.com/Ethergray2007.png"
+                    alt="Ethergray avatar"
+                  />
+                </div>
+              </div>
+
+              <div
+                class="tooltip tooltip-left"
+                data-tip="当前在线"
+              >
+                <div class="badge badge-info badge-soft gap-2">
+                  <span class="status status-info status-xs"></span>
+                  在线
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="mt-5">
+
+              <h2
+                class="text-3xl font-black tracking-tight"
+              >
+                Ethergray
+              </h2>
+
+              <p
+                class="mt-1 font-mono text-sm text-primary"
+              >
+                @Ethergray2007
+              </p>
+
+              <p
+                class="mt-4 text-sm leading-7 text-base-content/60"
+              >
+                正在探索计算机图形学、渲染、人机交互与智能系统，
+                通过持续实践和构建项目寻找自己的方向。
+              </p>
+
+            </div>
+
+
+            <div class="divider"></div>
+
+
+            <dl class="space-y-4 text-sm">
+
+              <div
+                class="flex items-start justify-between gap-4"
+              >
+                <dt class="text-base-content/45">
+                  身份
+                </dt>
+
+                <dd class="text-right font-medium">
+                  计算机科学学生
+                </dd>
+              </div>
+
+
+              <div
+                class="flex items-start justify-between gap-4"
+              >
+                <dt class="text-base-content/45">
+                  方向
+                </dt>
+
+                <dd>
+                  <span class="badge badge-primary badge-sm">
+                    图形学
+                  </span>
+                </dd>
+              </div>
+
+
+              <div
+                class="flex items-start justify-between gap-4"
+              >
+                <dt class="text-base-content/45">
+                  所在地
+                </dt>
+
+                <dd class="font-medium">
+                  中国
+                </dd>
+              </div>
+
+            </dl>
+
+
+            <div
+              class="mt-6 grid grid-cols-2 gap-2"
+            >
+              <a
+                href={config.site.profile}
+                target="_blank"
+                rel="noreferrer"
+                class="btn btn-primary"
+              >
+                GitHub
+              </a>
+
+              <button
+                type="button"
+                class="btn btn-outline"
+                data-modal-target="contact-modal"
+              >
+                联系我
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- 交流状态 -->
+        <section
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-5 sm:p-6">
+
+            <div
+              class="flex items-center justify-between gap-4"
+            >
+
+              <div>
+                <h3 class="font-semibold">
+                  交流状态
+                </h3>
+
+                <p
+                  class="mt-1 text-xs text-base-content/45"
+                >
+                  当前合作状态
+                </p>
+              </div>
+
+              <input
+                id="availability-toggle"
+                type="checkbox"
+                class="toggle toggle-info"
+                checked
+              />
+
+            </div>
+
+
+            <div
+              id="availability-text"
+              class="alert alert-info alert-soft mt-4 text-sm"
+            >
+              <span class="status status-info"></span>
+
+              <span>
+                欢迎交流有趣的项目
+              </span>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- 兴趣 -->
+        <section
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-5 sm:p-6">
+
+            <h3 class="font-semibold">
+              兴趣方向
+            </h3>
+
+            <div
+              class="mt-4 flex flex-wrap gap-2"
+            >
+              <span class="badge badge-outline py-3">
+                计算机图形学
+              </span>
+
+              <span class="badge badge-outline py-3">
+                实时渲染
+              </span>
+
+              <span class="badge badge-outline py-3">
+                AI
+              </span>
+
+              <span class="badge badge-outline py-3">
+                HCI
+              </span>
+
+              <span class="badge badge-outline py-3">
+                XR / VR
+              </span>
+
+              <span class="badge badge-outline py-3">
+                数字人
+              </span>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- 社交 -->
+        <section
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-5">
+
+            <p
+              class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/40"
+            >
+              社交链接
+            </p>
+
+            <Socials />
+
+          </div>
+        </section>
+
+      </aside>
+
+
+      <!-- ======================================================= -->
+      <!-- 右侧主体 -->
+      <!-- ======================================================= -->
+
+      <section class="min-w-0 space-y-6">
+
+
+        <!-- ===================================================== -->
+        <!-- Hero -->
+        <!-- ===================================================== -->
+
+        <section
+          class="card overflow-hidden border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-6 sm:p-8 lg:p-10">
+
+            <div
+              class="grid grid-cols-1 items-center gap-8 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-10"
+            >
+
+              <div class="min-w-0">
+
+                <div
+                  class="flex flex-wrap items-center gap-2"
+                >
+                  <span class="badge badge-primary">
+                    开发者
+                  </span>
+
+                  <span class="badge badge-outline">
+                    学生
+                  </span>
+
+                  <span class="badge badge-outline">
+                    创作者
+                  </span>
+                </div>
+
+
+                <h2
+                  class="mt-6 max-w-3xl text-4xl font-black leading-[1.03] tracking-[-0.04em] sm:text-5xl lg:text-6xl"
+                >
+                  学习。
+                  <br />
+
+                  实践。
+                  <br />
+
+                  <span class="text-primary">
+                    理解。
+                  </span>
+                </h2>
+
+
+                <p
+                  class="mt-6 max-w-2xl text-sm leading-7 text-base-content/60 sm:text-base sm:leading-8"
+                >
+                  这里不是一份简历，而是记录目前正在学习、
+                  构建和探索的东西。
+                </p>
+
+
+                <div
+                  class="mt-7 flex flex-wrap items-center gap-2"
+                >
+                  <a
+                    href="#projects"
+                    class="btn btn-primary"
+                  >
+                    查看项目
+                  </a>
+
+
+                  <details class="dropdown">
+                    <summary class="btn btn-ghost">
+                      快速链接
+                    </summary>
+
+                    <ul
+                      class="menu dropdown-content z-30 mt-2 w-52 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl"
+                    >
+                      <li>
+                        <a href="/posts">
+                          博客
+                        </a>
+                      </li>
+
+                      <li>
+                        <a href="/archives">
+                          归档
+                        </a>
+                      </li>
+
+                      <li>
+                        <a
+                          href={config.site.profile}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          GitHub
+                        </a>
+                      </li>
+                    </ul>
+                  </details>
+                </div>
+
+              </div>
+
+
+              <!-- Terminal -->
+              <div
+                class="mockup-code w-full overflow-x-auto shadow-xl"
+              >
+                <pre data-prefix="$"><code>whoami</code></pre>
+
+                <pre data-prefix=">">
+                  <code>ethergray</code>
+                </pre>
+
+                <pre data-prefix="$">
+                  <code>focus --current</code>
+                </pre>
+
+                <pre
+                  data-prefix=">"
+                  class="text-primary"
+                >
+                  <code>graphics</code>
+                </pre>
+
+                <pre data-prefix="$">
+                  <code>status</code>
+                </pre>
+
+                <pre
+                  data-prefix=">"
+                  class="text-info"
+                >
+                  <code>learning...</code>
+                </pre>
+
+                <pre data-prefix="$">
+                  <code>next --step</code>
+                </pre>
+
+                <pre
+                  data-prefix=">"
+                  class="text-warning"
+                >
+                  <code>build</code>
+                </pre>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ===================================================== -->
+        <!-- Tab -->
+        <!-- ===================================================== -->
+
+        <section id="stack">
+
+          <div
+            class="tabs tabs-box w-full flex-wrap"
+          >
+
+            <!-- Overview -->
+            <input
+              type="radio"
+              name="profile-tabs"
+              class="tab"
+              aria-label="概览"
+              checked
+            />
+
+            <div
+              class="tab-content w-full rounded-box border border-base-300 bg-base-100 p-5 sm:p-7"
+            >
+
+              <div
+                class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+              >
+
+                <div>
+
+                  <p
+                    class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+                  >
+                    OVERVIEW
+                  </p>
+
+                  <h2
+                    class="mt-2 text-2xl font-bold"
+                  >
+                    现在正在关注什么
+                  </h2>
+
+                </div>
+
+                <div
+                  class="badge badge-info badge-soft"
+                >
+                  进行中
+                </div>
+
+              </div>
+
+
+              <div
+                class="grid grid-cols-1 gap-3 md:grid-cols-3"
+              >
+
+                <div
+                  class="stat rounded-box bg-base-200"
+                >
+                  <div class="stat-title">
+                    主要方向
+                  </div>
+
+                  <div
+                    class="stat-value text-2xl"
+                  >
+                    图形学
+                  </div>
+
+                  <div class="stat-desc">
+                    渲染 / 3D
+                  </div>
+                </div>
+
+
+                <div
+                  class="stat rounded-box bg-base-200"
+                >
+                  <div class="stat-title">
+                    主要语言
+                  </div>
+
+                  <div
+                    class="stat-value text-2xl"
+                  >
+                    C++
+                  </div>
+
+                  <div class="stat-desc">
+                    核心编程
+                  </div>
+                </div>
+
+
+                <div
+                  class="stat rounded-box bg-base-200"
+                >
+                  <div class="stat-title">
+                    正在探索
+                  </div>
+
+                  <div
+                    class="stat-value text-2xl"
+                  >
+                    AI
+                  </div>
+
+                  <div class="stat-desc">
+                    HCI / XR
+                  </div>
+                </div>
+
+              </div>
+
+
+              <div
+                class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
+              >
+
+                <div
+                  class="card border border-base-300 bg-base-100"
+                >
+                  <div class="card-body p-5">
+
+                    <h3 class="card-title text-base">
+                      当前方向
+                    </h3>
+
+                    <p
+                      class="text-sm leading-7 text-base-content/60"
+                    >
+                      夯实计算机基础，同时持续构建图形学、
+                      渲染与交互方向的小型项目。
+                    </p>
+
+                    <div class="card-actions mt-1">
+
+                      <span
+                        class="badge badge-primary badge-soft"
+                      >
+                        学习
+                      </span>
+
+                      <span
+                        class="badge badge-secondary badge-soft"
+                      >
+                        构建
+                      </span>
+
+                      <span
+                        class="badge badge-accent badge-soft"
+                      >
+                        迭代
+                      </span>
+
+                    </div>
+
+                  </div>
+                </div>
+
+
+                <div
+                  class="card border border-base-300 bg-base-100"
+                >
+                  <div class="card-body p-5">
+
+                    <h3 class="card-title text-base">
+                      学习方式
+                    </h3>
+
+                    <p
+                      class="text-sm leading-7 text-base-content/60"
+                    >
+                      从基础理解系统，再把概念真正做成
+                      能够运行的东西。
+                    </p>
+
+                    <div class="join mt-1 w-full sm:w-auto">
+
+                      <button
+                        class="btn btn-sm join-item btn-primary flex-1 sm:flex-none"
+                      >
+                        深入
+                      </button>
+
+                      <button
+                        class="btn btn-sm join-item flex-1 sm:flex-none"
+                      >
+                        构建
+                      </button>
+
+                      <button
+                        class="btn btn-sm join-item flex-1 sm:flex-none"
+                      >
+                        迭代
+                      </button>
+
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Tech Stack -->
+            <input
+              type="radio"
+              name="profile-tabs"
+              class="tab"
+              aria-label="技术栈"
+            />
+
+            <div
+              class="tab-content w-full rounded-box border border-base-300 bg-base-100 p-5 sm:p-7"
+            >
+
+              <div class="mb-6">
+
+                <p
+                  class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+                >
+                  TOOLKIT
+                </p>
+
+                <h2
+                  class="mt-2 text-2xl font-bold"
+                >
+                  技术栈
+                </h2>
+
+              </div>
+
+
+              <div
+                class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+              >
+
+                <div
+                  class="card border border-base-300"
+                >
+                  <div class="card-body p-5">
+
+                    <div
+                      class="flex items-center justify-between gap-3"
+                    >
+                      <h3 class="font-bold">
+                        C++
+                      </h3>
+
+                      <span class="badge badge-outline badge-sm">
+                        核心
+                      </span>
+                    </div>
+
+                    <p
+                      class="mt-2 text-sm text-base-content/55"
+                    >
+                      主要编程语言
+                    </p>
+
+                  </div>
+                </div>
+
+
+                <div
+                  class="card border border-base-300"
+                >
+                  <div class="card-body p-5">
+
+                    <div
+                      class="flex items-center justify-between gap-3"
+                    >
+                      <h3 class="font-bold">
+                        Python
+                      </h3>
+
+                      <span class="badge badge-outline badge-sm">
+                        使用中
+                      </span>
+                    </div>
+
+                    <p
+                      class="mt-2 text-sm text-base-content/55"
+                    >
+                      算法 / AI
+                    </p>
+
+                  </div>
+                </div>
+
+
+                <div
+                  class="card border border-base-300"
+                >
+                  <div class="card-body p-5">
+
+                    <div
+                      class="flex items-center justify-between gap-3"
+                    >
+                      <h3 class="font-bold">
+                        OpenGL
+                      </h3>
+
+                      <span class="badge badge-outline badge-sm">
+                        学习中
+                      </span>
+                    </div>
+
+                    <p
+                      class="mt-2 text-sm text-base-content/55"
+                    >
+                      实时图形
+                    </p>
+
+                  </div>
+                </div>
+
+
+                <div
+                  class="card border border-base-300"
+                >
+                  <div class="card-body p-5">
+
+                    <div
+                      class="flex items-center justify-between gap-3"
+                    >
+                      <h3 class="font-bold">
+                        Astro
+                      </h3>
+
+                      <span class="badge badge-outline badge-sm">
+                        使用中
+                      </span>
+                    </div>
+
+                    <p
+                      class="mt-2 text-sm text-base-content/55"
+                    >
+                      本站技术栈
+                    </p>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Roadmap -->
+            <input
+              type="radio"
+              name="profile-tabs"
+              class="tab"
+              aria-label="学习路线"
+            />
+
+            <div
+              class="tab-content w-full rounded-box border border-base-300 bg-base-100 p-5 sm:p-7"
+            >
+
+              <div class="mb-7">
+
+                <p
+                  class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+                >
+                  ROADMAP
+                </p>
+
+                <h2
+                  class="mt-2 text-2xl font-bold"
+                >
+                  学习路线
+                </h2>
+
+              </div>
+
+
+              <ul
+                class="steps steps-vertical w-full"
+              >
+
+                <li class="step step-primary">
+                  计算机基础
+                </li>
+
+                <li class="step step-primary">
+                  图形学与渲染
+                </li>
+
+                <li class="step">
+                  AI / HCI / XR
+                </li>
+
+                <li class="step">
+                  智能交互系统
+                </li>
+
+              </ul>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===================================================== -->
+        <!-- Projects -->
+        <!-- ===================================================== -->
+
+        <section id="projects">
+
+          <div
+            class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+          >
+
+            <div>
+
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+              >
+                SELECTED WORK
+              </p>
+
+              <h2
+                class="mt-2 text-3xl font-black tracking-tight"
+              >
+                项目
+              </h2>
+
+            </div>
+
+
+            <!-- Filter -->
+            <details
+              id="project-filter-menu"
+              class="dropdown dropdown-end"
+            >
+
+              <summary class="btn btn-sm btn-outline">
+                <span id="project-filter-label">
+                  筛选
+                </span>
+              </summary>
+
+
+              <ul
+                class="menu dropdown-content z-30 mt-2 w-48 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl"
+              >
+
+                <li>
+                  <button
+                    type="button"
+                    data-filter="all"
+                  >
+                    全部项目
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    type="button"
+                    data-filter="graphics"
+                  >
+                    图形学
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    type="button"
+                    data-filter="web"
+                  >
+                    Web
+                  </button>
+                </li>
+
+              </ul>
+
+            </details>
+
+          </div>
+
+
+          <div
+            id="project-grid"
+            class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          >
+
+            {
+              projects.map(project => (
+                <article
+                  class="project-card card h-full border border-base-300 bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                  data-tags={project.filters.join(" ")}
+                >
+
+                  <div class="card-body p-5 sm:p-6">
+
+                    <div
+                      class="flex items-center justify-between gap-3"
+                    >
+
+                      <span
+                        class="font-mono text-xs text-base-content/35"
+                      >
+                        {project.number}
+                      </span>
+
+                      <span
+                        class={`badge ${project.badgeClass}`}
+                      >
+                        {project.status}
+                      </span>
+
+                    </div>
+
+
+                    <h3
+                      class="mt-4 text-xl font-bold"
+                    >
+                      {project.title}
+                    </h3>
+
+
+                    <p
+                      class="mt-2 min-h-14 text-sm leading-6 text-base-content/55"
+                    >
+                      {project.short}
+                    </p>
+
+
+                    <div
+                      class="mt-4 flex flex-wrap gap-2"
+                    >
+
+                      {
+                        project.tags.map(tag => (
+                          <span class="badge badge-outline badge-sm">
+                            {tag}
+                          </span>
+                        ))
+                      }
+
+                    </div>
+
+
+                    <!-- Collapse -->
+                    <details
+                      class="collapse collapse-arrow mt-4 rounded-box border border-base-300 bg-base-200/50"
+                    >
+                      <summary
+                        class="collapse-title px-4 py-3 text-sm font-semibold"
+                      >
+                        详细信息
+                      </summary>
+
+                      <div
+                        class="collapse-content px-4 text-sm leading-6 text-base-content/60"
+                      >
+                        {project.description}
+                      </div>
+                    </details>
+
+
+                    <div
+                      class="card-actions mt-5 justify-between"
+                    >
+
+                      {
+                        project.href !== "#" ? (
+                          <a
+                            href={project.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            class="btn btn-ghost btn-sm px-0"
+                          >
+                            代码仓库 →
+                          </a>
+                        ) : (
+                          <span></span>
+                        )
+                      }
+
+
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm"
+                        data-modal-target={`project-${project.id}`}
+                      >
+                        预览
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              ))
+            }
+
+          </div>
+
+
+          <div
+            id="project-empty"
+            class="alert alert-neutral mt-4 hidden"
+          >
+            <span>
+              没有符合条件的项目。
+            </span>
+          </div>
+
+        </section>
+
+
+        <!-- ===================================================== -->
+        <!-- Lab -->
+        <!-- ===================================================== -->
+
+        <section
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+
+          <div class="card-body p-5 sm:p-7">
+
+            <div class="mb-5">
+
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+              >
+                LAB NOTES
+              </p>
+
+              <h2
+                class="mt-2 text-2xl font-bold"
+              >
+                最近正在研究的东西
+              </h2>
+
+            </div>
+
+
+            <div
+              class="carousel w-full gap-3 rounded-box"
+            >
+
+              <div
+                id="lab-1"
+                class="carousel-item w-[88%] shrink-0 md:w-[65%]"
+              >
+
+                <div
+                  class="card w-full border border-base-300 bg-base-200"
+                >
+
+                  <div class="card-body p-5 sm:p-6">
+
+                    <div
+                      class="badge badge-secondary badge-soft w-fit"
+                    >
+                      Graphics
+                    </div>
+
+                    <h3
+                      class="mt-2 text-lg font-bold sm:text-xl"
+                    >
+                      投影与坐标系统
+                    </h3>
+
+                    <p
+                      class="text-sm leading-7 text-base-content/55"
+                    >
+                      理解一个 3D 点如何从世界空间一路变换到最终屏幕。
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div
+                id="lab-2"
+                class="carousel-item w-[88%] shrink-0 md:w-[65%]"
+              >
+
+                <div
+                  class="card w-full border border-base-300 bg-base-200"
+                >
+
+                  <div class="card-body p-5 sm:p-6">
+
+                    <div
+                      class="badge badge-accent badge-soft w-fit"
+                    >
+                      Rendering
+                    </div>
+
+                    <h3
+                      class="mt-2 text-lg font-bold sm:text-xl"
+                    >
+                      实时渲染
+                    </h3>
+
+                    <p
+                      class="text-sm leading-7 text-base-content/55"
+                    >
+                      探索光栅化、着色器、光照以及实时渲染器的基本架构。
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div
+                id="lab-3"
+                class="carousel-item w-[88%] shrink-0 md:w-[65%]"
+              >
+
+                <div
+                  class="card w-full border border-base-300 bg-base-200"
+                >
+
+                  <div class="card-body p-5 sm:p-6">
+
+                    <div
+                      class="badge badge-primary badge-soft w-fit"
+                    >
+                      AI / HCI
+                    </div>
+
+                    <h3
+                      class="mt-2 text-lg font-bold sm:text-xl"
+                    >
+                      智能交互
+                    </h3>
+
+                    <p
+                      class="text-sm leading-7 text-base-content/55"
+                    >
+                      持续关注智能系统与人机交互之间的结合。
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="mt-4 flex gap-2">
+
+              <a
+                class="btn btn-sm btn-outline"
+                href="#lab-1"
+              >
+                01
+              </a>
+
+              <a
+                class="btn btn-sm btn-outline"
+                href="#lab-2"
+              >
+                02
+              </a>
+
+              <a
+                class="btn btn-sm btn-outline"
+                href="#lab-3"
+              >
+                03
+              </a>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===================================================== -->
+        <!-- FAQ -->
+        <!-- ===================================================== -->
+
+        <section id="faq">
+
+          <div class="mb-5">
+
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+            >
+              FAQ
+            </p>
+
+            <h2
+              class="mt-2 text-3xl font-black"
+            >
+              关于这个页面
+            </h2>
+
+          </div>
+
+
+          <div class="space-y-2">
+
+            <details
+              name="profile-faq"
+              class="collapse collapse-arrow border border-base-300 bg-base-100"
+            >
+
+              <summary
+                class="collapse-title font-semibold"
+              >
+                为什么这个页面以项目为中心，而不是简历？
+              </summary>
+
+              <div
+                class="collapse-content text-sm leading-7 text-base-content/60"
+              >
+                因为实际构建、测试和学习的过程，更能体现现在正在做什么。
+              </div>
+
+            </details>
+
+
+            <details
+              name="profile-faq"
+              class="collapse collapse-arrow border border-base-300 bg-base-100"
+            >
+
+              <summary
+                class="collapse-title font-semibold"
+              >
+                目前主要的技术方向是什么？
+              </summary>
+
+              <div
+                class="collapse-content text-sm leading-7 text-base-content/60"
+              >
+                目前主要关注计算机图形学与渲染，同时持续探索 AI、人机交互和 XR。
+              </div>
+
+            </details>
+
+
+            <details
+              name="profile-faq"
+              class="collapse collapse-arrow border border-base-300 bg-base-100"
+            >
+
+              <summary
+                class="collapse-title font-semibold"
+              >
+                这里展示的东西都已经完成了吗？
+              </summary>
+
+              <div
+                class="collapse-content text-sm leading-7 text-base-content/60"
+              >
+                没有。这个页面本身就是一个持续变化中的学习记录。
+              </div>
+
+            </details>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===================================================== -->
+        <!-- Bottom CTA -->
+        <!-- ===================================================== -->
+
+        <section
+          class="rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-7"
+        >
+
+          <div
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+
+            <div>
+
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-primary"
+              >
+                KEEP GOING
+              </p>
+
+              <h2 class="mt-2 text-xl font-bold">
+                更多项目、实验与笔记会逐步出现在这里。
+              </h2>
+
+              <p
+                class="mt-1 text-sm text-base-content/55"
+              >
+                © {new Date().getFullYear()} Ethergray
+              </p>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-modal-target="contact-modal"
+            >
+              联系我
+            </button>
+
+          </div>
+
+        </section>
+
+      </section>
+    </div>
+  </main>
+
+
+  <!-- ========================================================= -->
+  <!-- 项目 Modal -->
+  <!-- ========================================================= -->
+
+  {
+    projects.map(project => (
+      <dialog
+        id={`project-${project.id}`}
+        class="modal"
+      >
+
+        <div
+          class="modal-box w-11/12 max-w-3xl max-sm:max-h-[82vh]"
+        >
+
+          <form method="dialog">
+            <button
+              class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+              aria-label="关闭"
+            >
+              ✕
+            </button>
+          </form>
+
+
+          <div
+            class="badge badge-primary badge-soft"
+          >
+            项目 {project.number}
+          </div>
+
+
+          <h3
+            class="mt-4 text-2xl font-black sm:text-3xl"
+          >
+            {project.title}
+          </h3>
+
+
+          <p
+            class="mt-4 text-sm leading-7 text-base-content/60 sm:text-base"
+          >
+            {project.description}
+          </p>
+
+
+          <div
+            class="mt-5 flex flex-wrap gap-2"
+          >
+            {
+              project.tags.map(tag => (
+                <span class="badge badge-outline">
+                  {tag}
+                </span>
+              ))
+            }
+          </div>
+
+
+          <div
+            class="modal-action flex-wrap"
+          >
+
+            <form method="dialog">
+              <button class="btn">
+                关闭
+              </button>
+            </form>
+
+
+            {
+              project.href !== "#" && (
+                <a
+                  class="btn btn-primary"
+                  href={project.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打开项目
+                </a>
+              )
+            }
+
+          </div>
+
+        </div>
+
+
+        <form
+          method="dialog"
+          class="modal-backdrop"
+        >
+          <button aria-label="关闭">
+            关闭
+          </button>
+        </form>
+
+      </dialog>
+    ))
+  }
+
+
+  <!-- ========================================================= -->
+  <!-- Contact Modal -->
+  <!-- ========================================================= -->
+
+  <dialog
+    id="contact-modal"
+    class="modal"
+  >
+
+    <div class="modal-box w-11/12 max-w-lg">
+
+      <form method="dialog">
+
+        <button
+          class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+          aria-label="关闭"
+        >
+          ✕
+        </button>
+
+      </form>
+
+
+      <div
+        class="badge badge-primary badge-soft"
+      >
+        联系方式
+      </div>
+
+
+      <h3
+        class="mt-4 text-2xl font-black sm:text-3xl"
+      >
+        交流一下
+      </h3>
+
+
+      <p
+        class="mt-3 text-sm leading-7 text-base-content/60"
+      >
+        如果想交流项目、技术或者其他有趣的想法，可以通过下面的链接联系。
+      </p>
+
+
+      <div class="mt-6 space-y-2">
+
+        <a
+          class="btn btn-outline w-full justify-start"
+          href={config.site.profile}
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+
+
+        {
+          xUrl !== "#" && (
+            <a
+              class="btn btn-outline w-full justify-start"
+              href={xUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              X / Twitter
+            </a>
+          )
+        }
+
+
+        {
+          emailUrl !== "#" && (
+            <a
+              class="btn btn-primary w-full justify-start"
+              href={emailUrl}
+            >
+              发送邮件
+            </a>
+          )
+        }
+
+      </div>
+
+    </div>
+
+
+    <form
+      method="dialog"
+      class="modal-backdrop"
+    >
+      <button aria-label="关闭">
+        关闭
+      </button>
+    </form>
+
+  </dialog>
+
+
+  <!-- ========================================================= -->
+  <!-- Toast -->
+  <!-- ========================================================= -->
+
+  <div
+    id="profile-toast"
+    class="toast toast-end toast-bottom z-50 hidden"
+  >
+
+    <div class="alert alert-info shadow-lg">
+
+      <span id="profile-toast-text">
+        状态已更新
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <Footer />
+
+
+  <!-- ========================================================= -->
+  <!-- JS -->
+  <!-- ========================================================= -->
+
+  <script>
+    function initProfilePage() {
+      /*
+       * Modal
+       */
+      document
+        .querySelectorAll<HTMLElement>("[data-modal-target]")
+        .forEach(button => {
+          if (button.dataset.bound === "true") return;
+
+          button.dataset.bound = "true";
+
+          button.addEventListener("click", () => {
+            const targetId = button.dataset.modalTarget;
+
+            if (!targetId) return;
+
+            const dialog =
+              document.getElementById(targetId);
+
+            if (
+              dialog instanceof HTMLDialogElement &&
+              !dialog.open
+            ) {
+              dialog.showModal();
+            }
+          });
+        });
+
+
+      /*
+       * Availability toggle
+       */
+      const toggle =
+        document.querySelector<HTMLInputElement>(
+          "#availability-toggle"
+        );
+
+      const status =
+        document.querySelector<HTMLElement>(
+          "#availability-text"
+        );
+
+      const toast =
+        document.querySelector<HTMLElement>(
+          "#profile-toast"
+        );
+
+      const toastText =
+        document.querySelector<HTMLElement>(
+          "#profile-toast-text"
+        );
+
+      if (
+        toggle &&
+        toggle.dataset.bound !== "true"
+      ) {
+        toggle.dataset.bound = "true";
+
+        let toastTimer:
+          ReturnType<typeof setTimeout> | undefined;
+
+
+        toggle.addEventListener("change", () => {
+          const enabled = toggle.checked;
+
+
+          if (status) {
+            status.className = enabled
+              ? "alert alert-info alert-soft mt-4 text-sm"
+              : "alert alert-neutral alert-soft mt-4 text-sm";
+
+
+            status.innerHTML = enabled
+              ? `
+                <span class="status status-info"></span>
+                <span>欢迎交流有趣的项目</span>
+              `
+              : `
+                <span class="status status-neutral"></span>
+                <span>当前专注于学习</span>
+              `;
+          }
+
+
+          if (
+            toast &&
+            toastText
+          ) {
+            toastText.textContent =
+              enabled
+                ? "已开启交流状态"
+                : "已关闭交流状态";
+
+            toast.classList.remove("hidden");
+
+
+            if (toastTimer) {
+              clearTimeout(toastTimer);
+            }
+
+
+            toastTimer =
+              setTimeout(() => {
+                toast.classList.add("hidden");
+              }, 2200);
+          }
+        });
+      }
+
+
+      /*
+       * Project filter
+       */
+      const filterMenu =
+        document.querySelector<HTMLDetailsElement>(
+          "#project-filter-menu"
+        );
+
+      const filterLabel =
+        document.querySelector<HTMLElement>(
+          "#project-filter-label"
+        );
+
+      const cards =
+        Array.from(
+          document.querySelectorAll<HTMLElement>(
+            ".project-card"
+          )
+        );
+
+      const emptyState =
+        document.querySelector<HTMLElement>(
+          "#project-empty"
+        );
+
+
+      filterMenu
+        ?.querySelectorAll<HTMLButtonElement>(
+          "[data-filter]"
+        )
+        .forEach(button => {
+          if (button.dataset.bound === "true") return;
+
+          button.dataset.bound = "true";
+
+
+          button.addEventListener("click", () => {
+            const filter =
+              button.dataset.filter ?? "all";
+
+            const label =
+              button.textContent?.trim() ?? "筛选";
+
+
+            if (filterLabel) {
+              filterLabel.textContent = label;
+            }
+
+
+            let visibleCount = 0;
+
+
+            cards.forEach(card => {
+              const tags =
+                card.dataset.tags?.split(" ") ?? [];
+
+              const visible =
+                filter === "all" ||
+                tags.includes(filter);
+
+
+              card.classList.toggle(
+                "hidden",
+                !visible
+              );
+
+
+              if (visible) {
+                visibleCount += 1;
+              }
+            });
+
+
+            emptyState?.classList.toggle(
+              "hidden",
+              visibleCount !== 0
+            );
+
+
+            filterMenu.removeAttribute("open");
+          });
+        });
+    }
+
+
+    /*
+     * 初次进入页面
+     */
+    initProfilePage();
+
+
+    /*
+     * Astro View Transitions
+     */
+    document.addEventListener(
+      "astro:page-load",
+      initProfilePage
+    );
+  </script>
+</Layout>

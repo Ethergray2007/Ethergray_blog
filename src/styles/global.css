@@ -3,6 +3,8 @@
 @import "./typography.css";
 @import "rehype-callouts/theme/obsidian";
 
+@plugin "daisyui";
+
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @layer base {
