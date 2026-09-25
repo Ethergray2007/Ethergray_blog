@@ -6,10 +6,10 @@ export default defineAstroPaperConfig({
     title: "Ethergray Blog",
     description: "Ethergray 的个人博客",
     author: "Ethergray",
-    profile: "https://satna.ing",
+    profile: "https://github.com/Ethergray2007",
     ogImage: "default-og.jpg",
     lang: "zh",
-    timezone: "Asia/Bangkok",
+    timezone: "Asia/Shanghai",
     dir: "ltr",
   },
   posts: {
