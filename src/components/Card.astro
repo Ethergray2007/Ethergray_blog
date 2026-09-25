@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
 
 import { getPostUrl } from "@/utils/getPostPaths";
 import { slugifyStr } from "@/utils/slugify";
@@ -11,25 +12,11 @@ type Props = {
   variant?: "h2" | "h3";
 } & CollectionEntry<"posts">;
 
-const {
-  variant: Heading = "h2",
-  id,
-  data,
-  filePath,
-} = Astro.props;
+const { variant: Heading = "h2", id, data, filePath } = Astro.props;
 
-const {
-  title,
-  description,
-  tags,
-  ...props
-} = data;
+const { title, description, tags, ...props } = data;
 
-const postUrl = getPostUrl(
-  id,
-  filePath,
-  Astro.currentLocale
-);
+const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
 ---
 
 <li class="my-4 list-none">
@@ -39,13 +26,9 @@ const postUrl = getPostUrl(
     <div class="card-body gap-4 p-4 sm:p-6">
       <!-- Title -->
       <div>
-        <a
-          href={postUrl}
-          class="group inline-block w-full"
-          aria-label={title}
-        >
+        <a href={postUrl} class="group inline-block w-full" aria-label={title}>
           <Heading
-            class="card-title text-lg leading-snug tracking-tight text-base-content transition-colors group-hover:text-primary sm:text-xl"
+            class="card-title text-base-content group-hover:text-primary text-lg leading-snug tracking-tight transition-colors sm:text-xl"
             transition:name={toTransitionName(title)}
           >
             {title}
@@ -61,7 +44,7 @@ const postUrl = getPostUrl(
       <!-- Description -->
       {
         description && (
-          <p class="line-clamp-3 text-sm leading-7 text-base-content/65 sm:text-base">
+          <p class="text-base-content/65 line-clamp-3 text-sm leading-7 sm:text-base">
             {description}
           </p>
         )
@@ -73,8 +56,11 @@ const postUrl = getPostUrl(
           <div class="flex flex-wrap gap-2 pt-1">
             {tags.slice(0, 4).map(tag => (
               <a
-                href={`/tags/${slugifyStr(tag)}/`}
-                class="badge badge-outline badge-sm transition-colors hover:badge-primary"
+                href={getRelativeLocaleUrl(
+                  Astro.currentLocale ?? "zh",
+                  `tags/${slugifyStr(tag)}`
+                )}
+                class="badge badge-outline badge-sm hover:badge-primary transition-colors"
               >
                 {tag}
               </a>

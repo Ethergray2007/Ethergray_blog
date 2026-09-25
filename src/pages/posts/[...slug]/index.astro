@@ -272,6 +272,16 @@ const ogImage = ogImageUrl
 </PostLayout>
 
 <script is:inline data-astro-rerun>
+  /*
+   * ============================
+   * Scroll progress
+   * ============================
+   */
+
+  if (window.__articleProgressCleanup) {
+    window.__articleProgressCleanup();
+  }
+
   function createProgressBar() {
     const existingProgress =
       document.getElementById("scroll-progress");
@@ -306,50 +316,72 @@ const ogImage = ogImageUrl
     );
   }
 
-  createProgressBar();
+  function setupScrollProgress() {
+    createProgressBar();
 
-  function updateScrollProgress() {
-    document.addEventListener(
+    function update() {
+      const winScroll =
+        window.scrollY;
+
+      const height =
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight;
+
+      const scrolled =
+        height > 0
+          ? (winScroll / height) * 100
+          : 0;
+
+      const myBar =
+        document.getElementById("myBar");
+
+      if (myBar) {
+        myBar.style.width =
+          `${Math.min(
+            100,
+            Math.max(0, scrolled)
+          )}%`;
+      }
+    }
+
+    window.addEventListener(
       "scroll",
-      () => {
-        const winScroll =
-          document.body.scrollTop ||
-          document.documentElement.scrollTop;
-
-        const height =
-          document.documentElement
-            .scrollHeight -
-          document.documentElement
-            .clientHeight;
-
-        const scrolled =
-          height > 0
-            ? (winScroll / height) * 100
-            : 0;
-
-        const myBar =
-          document.getElementById("myBar");
-
-        if (myBar) {
-          myBar.style.width =
-            `${Math.min(
-              100,
-              Math.max(0, scrolled)
-            )}%`;
-        }
-      },
+      update,
       { passive: true }
     );
+
+    update();
+
+    window.__articleProgressCleanup =
+      function () {
+        window.removeEventListener(
+          "scroll",
+          update
+        );
+
+        document
+          .getElementById(
+            "scroll-progress"
+          )
+          ?.remove();
+      };
   }
 
-  updateScrollProgress();
+  setupScrollProgress();
+
+  /*
+   * ============================
+   * Heading anchor links
+   * ============================
+   */
 
   function addHeadingLinks() {
-    const headings = Array.from(
-      document.querySelectorAll(
-        "#article h2, #article h3, #article h4, #article h5, #article h6"
-      )
-    );
+    const headings =
+      Array.from(
+        document.querySelectorAll(
+          "#article h2, #article h3, #article h4, #article h5, #article h6"
+        )
+      );
 
     for (const heading of headings) {
       if (
@@ -357,6 +389,10 @@ const ogImage = ogImageUrl
           ".heading-link"
         )
       ) {
+        continue;
+      }
+
+      if (!heading.id) {
         continue;
       }
 
@@ -369,7 +405,7 @@ const ogImage = ogImageUrl
         "heading-link ms-2 no-underline opacity-75 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100";
 
       link.href =
-        "#" + heading.id;
+        `#${heading.id}`;
 
       link.setAttribute(
         "aria-label",
@@ -377,27 +413,41 @@ const ogImage = ogImageUrl
       );
 
       const span =
-        document.createElement("span");
+        document.createElement(
+          "span"
+        );
 
-      span.ariaHidden = "true";
+      span.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
       span.innerText = "#";
 
       link.appendChild(span);
+
       heading.appendChild(link);
     }
   }
 
   addHeadingLinks();
 
+  /*
+   * ============================
+   * Code copy buttons
+   * ============================
+   */
+
   function attachCopyButtons() {
     const copyButtonLabel =
       "Copy";
 
-    const codeBlocks = Array.from(
-      document.querySelectorAll(
-        "#article pre"
-      )
-    );
+    const codeBlocks =
+      Array.from(
+        document.querySelectorAll(
+          "#article pre"
+        )
+      );
 
     for (const codeBlock of codeBlocks) {
       if (
@@ -409,7 +459,9 @@ const ogImage = ogImageUrl
       }
 
       const wrapper =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
       wrapper.style.position =
         "relative";
@@ -436,7 +488,8 @@ const ogImage = ogImageUrl
           "button"
         );
 
-      copyButton.type = "button";
+      copyButton.type =
+        "button";
 
       copyButton.className =
         `copy-code btn btn-xs btn-ghost absolute end-3 ${topClass} border border-base-300 bg-base-100/95 text-base-content shadow-sm backdrop-blur`;
@@ -444,12 +497,17 @@ const ogImage = ogImageUrl
       copyButton.innerText =
         copyButtonLabel;
 
+      copyButton.setAttribute(
+        "aria-label",
+        "Copy code"
+      );
+
       codeBlock.setAttribute(
         "tabindex",
         "0"
       );
 
-      codeBlock?.parentNode?.insertBefore(
+      codeBlock.parentNode?.insertBefore(
         wrapper,
         codeBlock
       );
@@ -483,84 +541,80 @@ const ogImage = ogImageUrl
         );
 
       const text =
-        code?.innerText;
+        code?.textContent ??
+        "";
 
-      await navigator.clipboard.writeText(
-        text ?? ""
-      );
+      try {
+        if (
+          !navigator.clipboard
+        ) {
+          throw new Error(
+            "Clipboard API unavailable"
+          );
+        }
 
-      button.innerText =
-        "Copied";
+        await navigator.clipboard.writeText(
+          text
+        );
 
-      setTimeout(() => {
         button.innerText =
-          copyButtonLabel;
-      }, 700);
+          "Copied";
+
+        setTimeout(() => {
+          button.innerText =
+            copyButtonLabel;
+        }, 700);
+      } catch {
+        button.innerText =
+          "Failed";
+
+        setTimeout(() => {
+          button.innerText =
+            copyButtonLabel;
+        }, 1000);
+      }
     }
   }
 
   attachCopyButtons();
 
-  /** Accessible image lightbox for article images. */
+  /*
+   * ============================
+   * Image lightbox
+   * ============================
+   */
+
   function initLightbox() {
     const article =
       document.getElementById(
         "article"
       );
 
-    if (!article) return;
+    if (!article) {
+      return;
+    }
 
     const prefersReducedMotion =
-      () =>
-        window.matchMedia(
+      function () {
+        return window.matchMedia(
           "(prefers-reduced-motion: reduce)"
         ).matches;
+      };
 
-    let overlay = null;
-    let lastFocused = null;
+    let overlay =
+      null;
 
-    requestAnimationFrame(() => {
-      const images = Array.from(
-        article.querySelectorAll(
-          "img"
-        )
-      );
-
-      for (const image of images) {
-        if (image.closest("a")) {
-          continue;
-        }
-
-        image.setAttribute(
-          "role",
-          "button"
-        );
-
-        image.setAttribute(
-          "tabindex",
-          "0"
-        );
-
-        image.setAttribute(
-          "aria-haspopup",
-          "dialog"
-        );
-
-        image.setAttribute(
-          "aria-label",
-          image.alt
-            ? `Zoom image: ${image.alt}`
-            : "Zoom image"
-        );
-      }
-    });
+    let lastFocused =
+      null;
 
     function open(
       src,
       alt,
       trigger
     ) {
-      if (overlay) return;
+      if (overlay) {
+        return;
+      }
 
       lastFocused =
         trigger ??
@@ -596,7 +650,8 @@ const ogImage = ogImageUrl
           "button"
         );
 
-      closeButton.type = "button";
+      closeButton.type =
+        "button";
 
       closeButton.setAttribute(
         "aria-label",
@@ -619,8 +674,11 @@ const ogImage = ogImageUrl
           "img"
         );
 
-      image.src = src;
-      image.alt = "";
+      image.src =
+        src;
+
+      image.alt =
+        "";
 
       image.className =
         "max-h-[90dvh] max-w-[90dvw] cursor-default object-contain";
@@ -630,11 +688,42 @@ const ogImage = ogImageUrl
         image
       );
 
+      let currentScale =
+        1;
+
+      let translateX =
+        0;
+
+      let translateY =
+        0;
+
+      let initialDist =
+        0;
+
+      let initialScale =
+        1;
+
+      let panStartX =
+        0;
+
+      let panStartY =
+        0;
+
+      let panStartTranslateX =
+        0;
+
+      let panStartTranslateY =
+        0;
+
+      let lastTapTime =
+        0;
+
       overlay.addEventListener(
         "click",
-        e => {
+        event => {
           if (
-            e.target === overlay &&
+            event.target ===
+              overlay &&
             currentScale <= 1
           ) {
             close();
@@ -642,126 +731,151 @@ const ogImage = ogImageUrl
         }
       );
 
-      let currentScale = 1;
-      let translateX = 0;
-      let translateY = 0;
-      let initialDist = 0;
-      let initialScale = 1;
-      let panStartX = 0;
-      let panStartY = 0;
-      let panStartTranslateX = 0;
-      let panStartTranslateY = 0;
-      let lastTapTime = 0;
-
       function applyTransform() {
         image.style.transform =
           `scale(${currentScale}) translate(${translateX}px, ${translateY}px)`;
       }
 
       function resetTransform() {
-        currentScale = 1;
-        translateX = 0;
-        translateY = 0;
+        currentScale =
+          1;
+
+        translateX =
+          0;
+
+        translateY =
+          0;
+
         image.style.transform =
           "";
       }
 
       overlay.addEventListener(
         "touchstart",
-        e => {
-          const t = e.touches;
+        event => {
+          const touches =
+            event.touches;
 
-          if (t.length === 2) {
+          if (
+            touches.length ===
+            2
+          ) {
             initialDist =
               Math.hypot(
-                t[1].clientX -
-                  t[0].clientX,
-                t[1].clientY -
-                  t[0].clientY
+                touches[1].clientX -
+                  touches[0].clientX,
+                touches[1].clientY -
+                  touches[0].clientY
               );
 
             initialScale =
               currentScale;
-          } else if (
-            t.length === 1
+
+            return;
+          }
+
+          if (
+            touches.length !==
+            1
           ) {
-            const now =
-              Date.now();
+            return;
+          }
+
+          const now =
+            Date.now();
+
+          if (
+            now -
+              lastTapTime <
+            300
+          ) {
+            event.preventDefault();
 
             if (
-              now -
-                lastTapTime <
-              300
+              currentScale >
+              1
             ) {
-              e.preventDefault();
-
-              if (
-                currentScale >
-                1
-              ) {
-                resetTransform();
-              } else {
-                currentScale = 2;
-                translateX = 0;
-                translateY = 0;
-                applyTransform();
-              }
-
-              lastTapTime = 0;
-
-              panStartX =
-                t[0].clientX;
-
-              panStartY =
-                t[0].clientY;
-
-              panStartTranslateX =
-                translateX;
-
-              panStartTranslateY =
-                translateY;
+              resetTransform();
             } else {
-              lastTapTime =
-                now;
+              currentScale =
+                2;
 
-              if (
-                currentScale >
-                1
-              ) {
-                panStartX =
-                  t[0].clientX;
+              translateX =
+                0;
 
-                panStartY =
-                  t[0].clientY;
+              translateY =
+                0;
 
-                panStartTranslateX =
-                  translateX;
-
-                panStartTranslateY =
-                  translateY;
-              }
+              applyTransform();
             }
+
+            lastTapTime =
+              0;
+
+            panStartX =
+              touches[0].clientX;
+
+            panStartY =
+              touches[0].clientY;
+
+            panStartTranslateX =
+              translateX;
+
+            panStartTranslateY =
+              translateY;
+
+            return;
+          }
+
+          lastTapTime =
+            now;
+
+          if (
+            currentScale >
+            1
+          ) {
+            panStartX =
+              touches[0].clientX;
+
+            panStartY =
+              touches[0].clientY;
+
+            panStartTranslateX =
+              translateX;
+
+            panStartTranslateY =
+              translateY;
           }
         },
-        { passive: false }
+        {
+          passive: false,
+        }
       );
 
       overlay.addEventListener(
         "touchmove",
-        e => {
-          const t = e.touches;
+        event => {
+          const touches =
+            event.touches;
 
           if (
-            t.length === 2
+            touches.length ===
+            2
           ) {
-            e.preventDefault();
+            event.preventDefault();
+
+            if (
+              initialDist <= 0
+            ) {
+              return;
+            }
 
             const dist =
               Math.hypot(
-                t[1].clientX -
-                  t[0].clientX,
-                t[1].clientY -
-                  t[0].clientY
+                touches[1].clientX -
+                  touches[0].clientX,
+                touches[1].clientY -
+                  touches[0].clientY
               );
 
             currentScale =
@@ -776,81 +890,89 @@ const ogImage = ogImageUrl
               );
 
             applyTransform();
-          } else if (
-            t.length === 1
+
+            return;
+          }
+
+          if (
+            touches.length !==
+            1
           ) {
-            if (
-              currentScale >
-              1
-            ) {
-              e.preventDefault();
+            return;
+          }
 
-              translateX =
-                panStartTranslateX +
-                (t[0].clientX -
-                  panStartX) /
-                  currentScale;
+          if (
+            currentScale >
+            1
+          ) {
+            event.preventDefault();
 
-              translateY =
-                panStartTranslateY +
-                (t[0].clientY -
-                  panStartY) /
-                  currentScale;
+            translateX =
+              panStartTranslateX +
+              (touches[0].clientX -
+                panStartX) /
+                currentScale;
 
-              const maxX =
+            translateY =
+              panStartTranslateY +
+              (touches[0].clientY -
+                panStartY) /
+                currentScale;
+
+            const maxX =
+              Math.max(
+                0,
+                (
+                  image.clientWidth -
+                  overlay.clientWidth /
+                    currentScale
+                ) / 2
+              );
+
+            const maxY =
+              Math.max(
+                0,
+                (
+                  image.clientHeight -
+                  overlay.clientHeight /
+                    currentScale
+                ) / 2
+              );
+
+            translateX =
+              Math.min(
+                maxX,
                 Math.max(
-                  0,
-                  (
-                    image.clientWidth -
-                    overlay.clientWidth /
-                      currentScale
-                  ) / 2
-                );
+                  -maxX,
+                  translateX
+                )
+              );
 
-              const maxY =
+            translateY =
+              Math.min(
+                maxY,
                 Math.max(
-                  0,
-                  (
-                    image.clientHeight -
-                    overlay.clientHeight /
-                      currentScale
-                  ) / 2
-                );
+                  -maxY,
+                  translateY
+                )
+              );
 
-              translateX =
-                Math.min(
-                  maxX,
-                  Math.max(
-                    -maxX,
-                    translateX
-                  )
-                );
-
-              translateY =
-                Math.min(
-                  maxY,
-                  Math.max(
-                    -maxY,
-                    translateY
-                  )
-                );
-
-              applyTransform();
-            } else {
-              e.preventDefault();
-            }
+            applyTransform();
           }
         },
-        { passive: false }
+        {
+          passive: false,
+        }
       );
 
       overlay.addEventListener(
         "touchend",
-        e => {
+        event => {
           if (
-            e.touches.length ===
+            event.touches.length ===
               0 &&
-            currentScale <= 1.05
+            currentScale <=
+              1.05
           ) {
             resetTransform();
           }
@@ -859,11 +981,12 @@ const ogImage = ogImageUrl
 
       overlay.addEventListener(
         "touchcancel",
-        e => {
+        event => {
           if (
-            e.touches.length ===
+            event.touches.length ===
               0 &&
-            currentScale <= 1.05
+            currentScale <=
+              1.05
           ) {
             resetTransform();
           }
@@ -886,24 +1009,31 @@ const ogImage = ogImageUrl
         close;
 
       requestAnimationFrame(
-        () =>
-          overlay?.classList.add(
-            "opacity-100"
-          )
+        () => {
+          if (overlay) {
+            overlay.classList.add(
+              "opacity-100"
+            );
+          }
+        }
       );
 
       closeButton.focus();
     }
 
     function close() {
-      if (!overlay) return;
+      if (!overlay) {
+        return;
+      }
 
-      const el = overlay;
+      const element =
+        overlay;
 
-      overlay = null;
+      overlay =
+        null;
 
       window.__closeLightbox =
-        null;
+        undefined;
 
       document.removeEventListener(
         "keydown",
@@ -913,24 +1043,35 @@ const ogImage = ogImageUrl
       document.body.style.overflow =
         "";
 
-      lastFocused?.focus();
+      if (
+        lastFocused &&
+        typeof lastFocused.focus ===
+          "function"
+      ) {
+        lastFocused.focus();
+      }
 
-      lastFocused = null;
+      lastFocused =
+        null;
 
       if (
         prefersReducedMotion()
       ) {
-        el.remove();
+        element.remove();
         return;
       }
 
-      const remove = () =>
-        el.remove();
+      const remove =
+        function () {
+          element.remove();
+        };
 
-      el.addEventListener(
+      element.addEventListener(
         "transitionend",
         remove,
-        { once: true }
+        {
+          once: true,
+        }
       );
 
       setTimeout(
@@ -938,31 +1079,47 @@ const ogImage = ogImageUrl
         250
       );
 
-      el.classList.remove(
+      element.classList.remove(
         "opacity-100"
       );
     }
 
-    function onKeyDown(e) {
-      if (e.key === "Escape") {
-        close();
-      } else if (
-        e.key === "Tab"
+    function onKeyDown(
+      event
+    ) {
+      if (
+        event.key ===
+        "Escape"
       ) {
-        trapFocus(e);
+        close();
+        return;
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+        trapFocus(event);
       }
     }
 
-    function trapFocus(e) {
-      if (!overlay) return;
+    function trapFocus(
+      event
+    ) {
+      if (!overlay) {
+        return;
+      }
 
       const focusables =
-        overlay.querySelectorAll(
-          'a[href], button, [tabindex]:not([tabindex="-1"])'
+        Array.from(
+          overlay.querySelectorAll(
+            'a[href], button, [tabindex]:not([tabindex="-1"])'
+          )
         );
 
       if (
-        focusables.length === 0
+        focusables.length ===
+        0
       ) {
         return;
       }
@@ -976,25 +1133,39 @@ const ogImage = ogImageUrl
         ];
 
       if (
-        e.shiftKey &&
+        event.shiftKey &&
         document.activeElement ===
           first
       ) {
-        e.preventDefault();
+        event.preventDefault();
+
         last.focus();
       } else if (
-        !e.shiftKey &&
+        !event.shiftKey &&
         document.activeElement ===
           last
       ) {
-        e.preventDefault();
+        event.preventDefault();
+
         first.focus();
       }
     }
 
-    function triggerFromEvent(e) {
+    function triggerFromEvent(
+      event
+    ) {
+      const target =
+        event.target;
+
+      if (
+        !(target instanceof
+          Element)
+      ) {
+        return null;
+      }
+
       const image =
-        e.target.closest("img");
+        target.closest("img");
 
       if (
         !image ||
@@ -1009,7 +1180,9 @@ const ogImage = ogImageUrl
       return image;
     }
 
-    function activate(image) {
+    function activate(
+      image
+    ) {
       open(
         image.currentSrc ||
           image.src,
@@ -1018,15 +1191,58 @@ const ogImage = ogImageUrl
       );
     }
 
+    const images =
+      Array.from(
+        article.querySelectorAll(
+          "img"
+        )
+      );
+
+    for (
+      const image of images
+    ) {
+      if (
+        image.closest("a")
+      ) {
+        continue;
+      }
+
+      image.setAttribute(
+        "role",
+        "button"
+      );
+
+      image.setAttribute(
+        "tabindex",
+        "0"
+      );
+
+      image.setAttribute(
+        "aria-haspopup",
+        "dialog"
+      );
+
+      image.setAttribute(
+        "aria-label",
+        image.alt
+          ? `Zoom image: ${image.alt}`
+          : "Zoom image"
+      );
+    }
+
     article.addEventListener(
       "click",
-      e => {
+      event => {
         const image =
-          triggerFromEvent(e);
+          triggerFromEvent(
+            event
+          );
 
-        if (!image) return;
+        if (!image) {
+          return;
+        }
 
-        e.preventDefault();
+        event.preventDefault();
 
         activate(image);
       }
@@ -1034,21 +1250,28 @@ const ogImage = ogImageUrl
 
     article.addEventListener(
       "keydown",
-      e => {
+      event => {
         if (
-          e.key !== "Enter" &&
-          e.key !== " " &&
-          e.key !== "Spacebar"
+          event.key !==
+            "Enter" &&
+          event.key !==
+            " " &&
+          event.key !==
+            "Spacebar"
         ) {
           return;
         }
 
         const image =
-          triggerFromEvent(e);
+          triggerFromEvent(
+            event
+          );
 
-        if (!image) return;
+        if (!image) {
+          return;
+        }
 
-        e.preventDefault();
+        event.preventDefault();
 
         activate(image);
       }
@@ -1057,26 +1280,67 @@ const ogImage = ogImageUrl
 
   initLightbox();
 
+  /*
+   * ============================
+   * Astro View Transitions
+   * ============================
+   */
+
   if (
-    !window.__lightboxSwapBound
+    !window.__articlePageEventsBound
   ) {
-    window.__lightboxSwapBound =
+    window.__articlePageEventsBound =
       true;
 
     document.addEventListener(
       "astro:before-swap",
-      () =>
-        window.__closeLightbox?.()
+      event => {
+        if (
+          window.__articleProgressCleanup
+        ) {
+          window.__articleProgressCleanup();
+        }
+
+        if (
+          window.__closeLightbox
+        ) {
+          window.__closeLightbox();
+        }
+
+        const color =
+          document
+            .querySelector(
+              "meta[name='theme-color']"
+            )
+            ?.getAttribute(
+              "content"
+            );
+
+        if (
+          color &&
+          event.newDocument
+        ) {
+          event.newDocument
+            .querySelector(
+              "meta[name='theme-color']"
+            )
+            ?.setAttribute(
+              "content",
+              color
+            );
+        }
+      }
+    );
+
+    document.addEventListener(
+      "astro:after-swap",
+      () => {
+        window.scrollTo({
+          left: 0,
+          top: 0,
+          behavior: "instant",
+        });
+      }
     );
   }
-
-  document.addEventListener(
-    "astro:after-swap",
-    () =>
-      window.scrollTo({
-        left: 0,
-        top: 0,
-        behavior: "instant",
-      })
-  );
 </script>

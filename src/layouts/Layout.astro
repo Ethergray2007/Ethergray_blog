@@ -41,31 +41,15 @@ const rssHref = getRelativeLocaleUrl(
 >
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href={getAssetPath("favicon.svg")}
-    />
+    <link rel="icon" type="image/svg+xml" href={getAssetPath("favicon.svg")} />
 
-    <link
-      rel="icon"
-      href={getAssetPath("favicon.ico")}
-    />
+    <link rel="icon" href={getAssetPath("favicon.ico")} />
 
-    <link
-      rel="canonical"
-      href={canonicalURL}
-    />
+    <link rel="canonical" href={canonicalURL} />
 
-    <meta
-      name="generator"
-      content={Astro.generator}
-    />
+    <meta name="generator" content={Astro.generator} />
 
     <Font
       cssVariable="--font-google-sans-code"
@@ -80,82 +64,37 @@ const rssHref = getRelativeLocaleUrl(
 
     <title>{title}</title>
 
-    <meta
-      name="title"
-      content={title}
-    />
+    <meta name="title" content={title} />
 
-    <meta
-      name="description"
-      content={description}
-    />
+    <meta name="description" content={description} />
 
-    <meta
-      name="author"
-      content={site.author}
-    />
+    <meta name="author" content={site.author} />
 
-    <link
-      rel="sitemap"
-      href={getAssetPath("sitemap-index.xml")}
-    />
+    <link rel="sitemap" href={getAssetPath("sitemap-index.xml")} />
 
     <!-- Open Graph -->
-    <meta
-      property="og:type"
-      content="website"
-    />
+    <meta property="og:type" content="website" />
 
-    <meta
-      property="og:site_name"
-      content={site.title}
-    />
+    <meta property="og:site_name" content={site.title} />
 
-    <meta
-      property="og:title"
-      content={title}
-    />
+    <meta property="og:title" content={title} />
 
-    <meta
-      property="og:description"
-      content={description}
-    />
+    <meta property="og:description" content={description} />
 
-    <meta
-      property="og:url"
-      content={canonicalURL}
-    />
+    <meta property="og:url" content={canonicalURL} />
 
-    <meta
-      property="og:image"
-      content={socialImageURL}
-    />
+    <meta property="og:image" content={socialImageURL} />
 
     <!-- Twitter / X -->
-    <meta
-      property="twitter:card"
-      content="summary_large_image"
-    />
+    <meta property="twitter:card" content="summary_large_image" />
 
-    <meta
-      property="twitter:url"
-      content={canonicalURL}
-    />
+    <meta property="twitter:url" content={canonicalURL} />
 
-    <meta
-      property="twitter:title"
-      content={title}
-    />
+    <meta property="twitter:title" content={title} />
 
-    <meta
-      property="twitter:description"
-      content={description}
-    />
+    <meta property="twitter:description" content={description} />
 
-    <meta
-      property="twitter:image"
-      content={socialImageURL}
-    />
+    <meta property="twitter:image" content={socialImageURL} />
 
     <!-- RSS -->
     <link
@@ -166,10 +105,7 @@ const rssHref = getRelativeLocaleUrl(
     />
 
     <!-- Browser theme color -->
-    <meta
-      name="theme-color"
-      content=""
-    />
+    <meta name="theme-color" content="#fdfdfd" />
 
     <slot name="head" />
 
@@ -194,17 +130,13 @@ const rssHref = getRelativeLocaleUrl(
           "(prefers-color-scheme: dark)"
         ).matches;
 
-        const theme =
-          stored ?? (prefersDark ? "dark" : "light");
+        const theme = stored ?? (prefersDark ? "dark" : "light");
 
         const root = document.documentElement;
 
         root.setAttribute("data-theme", theme);
 
-        root.classList.toggle(
-          "dark",
-          theme === "dark"
-        );
+        root.classList.toggle("dark", theme === "dark");
 
         window.__theme = {
           value: theme,
@@ -216,7 +148,7 @@ const rssHref = getRelativeLocaleUrl(
   </head>
 
   <body
-    class="flex min-h-svh flex-col bg-base-100 font-app text-base-content selection:bg-primary/20 selection:text-base-content"
+    class="bg-base-100 font-app text-base-content selection:bg-primary/20 selection:text-base-content flex min-h-svh flex-col"
   >
     <slot />
 

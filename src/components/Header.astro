@@ -37,14 +37,14 @@ const isActive = (path: string) => {
 <a
   id="skip-to-content"
   href="#main-content"
-  class="btn btn-sm btn-ghost absolute inset-s-4 -top-full z-50 bg-base-100 text-primary shadow-md focus:top-4"
+  class="btn btn-sm btn-ghost bg-base-100 text-primary absolute inset-s-4 -top-full z-50 shadow-md focus:top-4"
 >
   {t.a11y.skipToContent}
 </a>
 
 <header class="site-shell">
   <div
-    class="navbar min-h-16 border-b border-base-300 bg-base-100 px-0 sm:min-h-20"
+    class="navbar border-base-300 bg-base-100 min-h-16 border-b px-0 sm:min-h-20"
   >
     <!-- Logo -->
     <div class="navbar-start min-w-0">
@@ -173,16 +173,13 @@ const isActive = (path: string) => {
 </header>
 
 <!-- Mobile navigation -->
-<dialog
-  id="mobile-menu"
-  class="modal sm:hidden"
->
+<dialog id="mobile-menu" class="modal sm:hidden">
   <div
-    class="modal-box absolute inset-y-0 end-0 m-0 flex w-80 max-w-[85vw] flex-col rounded-none p-0"
+    class="modal-box absolute inset-y-0 inset-e-0 m-0 flex w-80 max-w-[85vw] flex-col rounded-none p-0"
   >
     <!-- Drawer header -->
     <div
-      class="flex min-h-16 shrink-0 items-center justify-between border-b border-base-300 px-4"
+      class="border-base-300 flex min-h-16 shrink-0 items-center justify-between border-b px-4"
     >
       <span class="truncate text-lg font-semibold">
         {site.title}
@@ -200,10 +197,7 @@ const isActive = (path: string) => {
     </div>
 
     <!-- Navigation -->
-    <nav
-      class="flex-1 overflow-y-auto p-4"
-      aria-label="Mobile navigation"
-    >
+    <nav class="flex-1 overflow-y-auto p-4" aria-label="Mobile navigation">
       <ul class="menu w-full gap-1">
         <!-- Posts -->
         <li>
@@ -291,18 +285,15 @@ const isActive = (path: string) => {
 
 <script>
   function initMobileMenu() {
-    const dialog =
-      document.querySelector<HTMLDialogElement>("#mobile-menu");
+    const dialog = document.querySelector<HTMLDialogElement>("#mobile-menu");
 
-    const openButton =
-      document.querySelector<HTMLButtonElement>(
-        "[data-mobile-menu-open]"
-      );
+    const openButton = document.querySelector<HTMLButtonElement>(
+      "[data-mobile-menu-open]"
+    );
 
-    const links =
-      document.querySelectorAll<HTMLAnchorElement>(
-        "[data-mobile-menu-link]"
-      );
+    const links = document.querySelectorAll<HTMLAnchorElement>(
+      "[data-mobile-menu-link]"
+    );
 
     if (!dialog || !openButton) return;
 
