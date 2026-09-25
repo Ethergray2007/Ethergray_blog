@@ -4,6 +4,8 @@
 
 Personal blog built with **Astro**.
 
+🌐 **Blog / 博客：** [Ethergray Blog](https://ethergray.netlify.app/)
+
 ## ✨ Features / 特性
 
 - ⚡ Fast and lightweight static site
