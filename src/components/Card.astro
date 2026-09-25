@@ -2,6 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 
 import { getPostUrl } from "@/utils/getPostPaths";
+import { slugifyStr } from "@/utils/slugify";
 import { toTransitionName } from "@/utils/toTransitionName";
 
 import Datetime from "./Datetime.astro";
@@ -20,36 +21,67 @@ const {
 const {
   title,
   description,
+  tags,
   ...props
 } = data;
+
+const postUrl = getPostUrl(
+  id,
+  filePath,
+  Astro.currentLocale
+);
 ---
 
 <li class="my-4 list-none">
   <article
-    class="card card-border bg-base-100 shadow-sm transition-shadow hover:shadow-md"
+    class="card card-border bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
   >
-    <div class="card-body p-5 sm:p-6">
-      <a
-        href={getPostUrl(
-          id,
-          filePath,
-          Astro.currentLocale
-        )}
-        class="group"
-      >
-        <Heading
-          class="card-title text-base-content transition-colors group-hover:text-primary sm:text-xl"
-          transition:name={toTransitionName(title)}
+    <div class="card-body gap-4 p-4 sm:p-6">
+      <!-- Title -->
+      <div>
+        <a
+          href={postUrl}
+          class="group inline-block w-full"
+          aria-label={title}
         >
-          {title}
-        </Heading>
-      </a>
+          <Heading
+            class="card-title text-lg leading-snug tracking-tight text-base-content transition-colors group-hover:text-primary sm:text-xl"
+            transition:name={toTransitionName(title)}
+          >
+            {title}
+          </Heading>
+        </a>
+      </div>
 
-      <Datetime {...props} />
+      <!-- Metadata -->
+      <div class="flex items-center">
+        <Datetime {...props} />
+      </div>
 
-      <p class="text-base-content/75 leading-7">
-        {description}
-      </p>
+      <!-- Description -->
+      {
+        description && (
+          <p class="line-clamp-3 text-sm leading-7 text-base-content/65 sm:text-base">
+            {description}
+          </p>
+        )
+      }
+
+      <!-- Tags -->
+      {
+        tags.length > 0 && (
+          <div class="flex flex-wrap gap-2 pt-1">
+            {tags.slice(0, 4).map(tag => (
+              <a
+                href={`/tags/${slugifyStr(tag)}/`}
+                class="badge badge-outline badge-sm transition-colors hover:badge-primary"
+              >
+                {tag}
+              </a>
+            ))}
+          </div>
+        )
+      }
     </div>
   </article>
 </li>

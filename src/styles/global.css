@@ -13,22 +13,32 @@
     scrollbar-width: auto;
     scrollbar-color: var(--color-muted) transparent;
   }
+
   a,
   button {
     @apply outline-accent outline-offset-1 focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed;
   }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
 }
 
-@utility max-w-app {
-  @apply max-w-3xl;
+@utility site-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility content-shell {
+  @apply mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility reading-shell {
+  @apply mx-auto w-full max-w-3xl px-4 sm:px-6;
 }
 
 @utility app-layout {
-  @apply max-w-app mx-auto w-full px-4;
+  @apply content-shell;
 }
 
 @utility active-nav {

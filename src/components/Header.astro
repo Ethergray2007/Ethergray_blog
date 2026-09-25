@@ -27,35 +27,32 @@ const pathWithoutTrailingSlash =
 const currentPath = stripLocale(pathWithoutTrailingSlash, locale);
 
 const isActive = (path: string) => {
-  const currentPathArray = currentPath.split("/").filter((p) => p.trim());
-  const pathArray = path.split("/").filter((p) => p.trim());
+  const currentPathArray = currentPath.split("/").filter(p => p.trim());
+  const pathArray = path.split("/").filter(p => p.trim());
 
-  return (
-    currentPath === path ||
-    currentPathArray[0] === pathArray[0]
-  );
+  return currentPath === path || currentPathArray[0] === pathArray[0];
 };
 ---
 
 <a
   id="skip-to-content"
   href="#main-content"
-  class="btn btn-sm btn-ghost bg-base-100 text-primary absolute inset-s-4 -top-full z-50 shadow-md focus:top-4"
+  class="btn btn-sm btn-ghost absolute inset-s-4 -top-full z-50 bg-base-100 text-primary shadow-md focus:top-4"
 >
   {t.a11y.skipToContent}
 </a>
 
-<header class="app-layout">
+<header class="site-shell">
   <div
     class="navbar min-h-16 border-b border-base-300 bg-base-100 px-0 sm:min-h-20"
   >
     <!-- Logo -->
-    <div class="navbar-start">
+    <div class="navbar-start min-w-0">
       <a
         href={getRelativeLocaleUrl(locale, "")}
-        class="btn btn-ghost min-h-0 px-2 text-xl font-semibold sm:text-2xl"
+        class="btn btn-ghost min-h-0 max-w-full px-2 text-lg font-semibold sm:text-2xl"
       >
-        {site.title}
+        <span class="truncate">{site.title}</span>
       </a>
     </div>
 
@@ -161,89 +158,177 @@ const isActive = (path: string) => {
         )
       }
 
-      <!-- Mobile navigation -->
-      <details class="dropdown dropdown-end sm:hidden">
-        <summary
-          class="btn btn-ghost btn-square list-none [&::-webkit-details-marker]:hidden"
-          aria-label={t.a11y.openMenu}
-        >
-          <IconMenuDeep class="size-6" />
-        </summary>
-
-        <ul
-          class="menu dropdown-content z-50 mt-3 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
-        >
-          <!-- Posts -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "posts")}
-              class:list={{
-                "menu-active": isActive("/posts"),
-              }}
-            >
-              {t.nav.posts}
-            </a>
-          </li>
-
-          <!-- Tags -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "tags")}
-              class:list={{
-                "menu-active": isActive("/tags"),
-              }}
-            >
-              {t.nav.tags}
-            </a>
-          </li>
-
-          <!-- About -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "about")}
-              class:list={{
-                "menu-active": isActive("/about"),
-              }}
-            >
-              {t.nav.about}
-            </a>
-          </li>
-
-          <!-- Archives -->
-          {
-            features.showArchives && (
-              <li>
-                <a
-                  href={getRelativeLocaleUrl(locale, "archives")}
-                  class:list={{
-                    "menu-active": isActive("/archives"),
-                  }}
-                >
-                  <IconArchive class="size-5" />
-                  {t.nav.archives}
-                </a>
-              </li>
-            )
-          }
-
-          <!-- Search -->
-          {
-            features.search !== false && (
-              <li>
-                <a
-                  href={getRelativeLocaleUrl(locale, "search")}
-                  class:list={{
-                    "menu-active": isActive("/search"),
-                  }}
-                >
-                  <IconSearch class="size-5" />
-                  {t.nav.search}
-                </a>
-              </li>
-            )
-          }
-        </ul>
-      </details>
+      <!-- Mobile menu button -->
+      <button
+        type="button"
+        class="btn btn-ghost btn-square sm:hidden"
+        aria-label={t.a11y.openMenu}
+        aria-controls="mobile-menu"
+        data-mobile-menu-open
+      >
+        <IconMenuDeep class="size-6" />
+      </button>
     </div>
   </div>
 </header>
+
+<!-- Mobile navigation -->
+<dialog
+  id="mobile-menu"
+  class="modal sm:hidden"
+>
+  <div
+    class="modal-box absolute inset-y-0 end-0 m-0 flex w-80 max-w-[85vw] flex-col rounded-none p-0"
+  >
+    <!-- Drawer header -->
+    <div
+      class="flex min-h-16 shrink-0 items-center justify-between border-b border-base-300 px-4"
+    >
+      <span class="truncate text-lg font-semibold">
+        {site.title}
+      </span>
+
+      <form method="dialog">
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          aria-label={t.a11y.closeMenu}
+        >
+          <IconX class="size-6" />
+        </button>
+      </form>
+    </div>
+
+    <!-- Navigation -->
+    <nav
+      class="flex-1 overflow-y-auto p-4"
+      aria-label="Mobile navigation"
+    >
+      <ul class="menu w-full gap-1">
+        <!-- Posts -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "posts")}
+            class:list={{
+              "menu-active": isActive("/posts"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.posts}
+          </a>
+        </li>
+
+        <!-- Tags -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "tags")}
+            class:list={{
+              "menu-active": isActive("/tags"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.tags}
+          </a>
+        </li>
+
+        <!-- About -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "about")}
+            class:list={{
+              "menu-active": isActive("/about"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.about}
+          </a>
+        </li>
+
+        <!-- Archives -->
+        {
+          features.showArchives && (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, "archives")}
+                class:list={{
+                  "menu-active": isActive("/archives"),
+                }}
+                data-mobile-menu-link
+              >
+                <IconArchive class="size-5" />
+                {t.nav.archives}
+              </a>
+            </li>
+          )
+        }
+
+        <!-- Search -->
+        {
+          features.search !== false && (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, "search")}
+                class:list={{
+                  "menu-active": isActive("/search"),
+                }}
+                data-mobile-menu-link
+              >
+                <IconSearch class="size-5" />
+                {t.nav.search}
+              </a>
+            </li>
+          )
+        }
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Backdrop -->
+  <form method="dialog" class="modal-backdrop">
+    <button aria-label={t.a11y.closeMenu}>Close</button>
+  </form>
+</dialog>
+
+<script>
+  function initMobileMenu() {
+    const dialog =
+      document.querySelector<HTMLDialogElement>("#mobile-menu");
+
+    const openButton =
+      document.querySelector<HTMLButtonElement>(
+        "[data-mobile-menu-open]"
+      );
+
+    const links =
+      document.querySelectorAll<HTMLAnchorElement>(
+        "[data-mobile-menu-link]"
+      );
+
+    if (!dialog || !openButton) return;
+
+    if (!openButton.dataset.initialized) {
+      openButton.dataset.initialized = "true";
+
+      openButton.addEventListener("click", () => {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      });
+    }
+
+    links.forEach(link => {
+      if (link.dataset.initialized) return;
+
+      link.dataset.initialized = "true";
+
+      link.addEventListener("click", () => {
+        if (dialog.open) {
+          dialog.close();
+        }
+      });
+    });
+  }
+
+  document.addEventListener("astro:page-load", initMobileMenu);
+  initMobileMenu();
+</script>

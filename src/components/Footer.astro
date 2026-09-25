@@ -1,5 +1,6 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+
 import Socials from "./Socials.astro";
 import { useTranslations } from "@/i18n";
 
@@ -19,22 +20,29 @@ const currentYear = new Date().getFullYear();
 
 <footer
   class:list={[
-    "footer footer-center border-t border-base-300 bg-base-100 px-4 py-6",
-    "sm:footer-horizontal sm:justify-between",
+    "border-t border-base-300 bg-base-100",
     { "mt-auto": !noMarginTop },
     className,
   ]}
   {...attrs}
 >
-  <aside class="text-center sm:text-left">
-    <p>
-      {t.footer.copyright} &#169; {currentYear}
-      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span class="block sm:inline">
-        {t.footer.allRightsReserved}
-      </span>
-    </p>
-  </aside>
+  <div
+    class="site-shell flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-between sm:py-8"
+  >
+    <!-- Copyright -->
+    <div class="text-center text-sm text-base-content/60 sm:text-left">
+      <p>
+        {t.footer.copyright} &#169; {currentYear}
+      </p>
 
-  <Socials />
+      <p class="mt-1">
+        {t.footer.allRightsReserved}
+      </p>
+    </div>
+
+    <!-- Social links -->
+    <div class="flex items-center">
+      <Socials />
+    </div>
+  </div>
 </footer>

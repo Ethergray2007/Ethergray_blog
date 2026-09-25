@@ -1,9 +1,15 @@
 ---
 import type { HTMLAttributes } from "astro/types";
 
-type Props = { disabled?: boolean } & HTMLAttributes<"a">;
+type Props = {
+  disabled?: boolean;
+} & HTMLAttributes<"a">;
 
-const { disabled, class: className, ...attrs } = Astro.props;
+const {
+  disabled,
+  class: className,
+  ...attrs
+} = Astro.props;
 
 const Button = disabled ? "span" : "a";
 ---
@@ -12,7 +18,9 @@ const Button = disabled ? "span" : "a";
   aria-disabled={disabled}
   class:list={[
     "group inline-flex items-center gap-1",
-    { "hover:text-accent": !disabled },
+    {
+      "hover:text-primary": !disabled,
+    },
     className,
   ]}
   {...attrs}

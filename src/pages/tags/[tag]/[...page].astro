@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import type { GetStaticPathsOptions } from "astro";
+
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Main from "@/components/Main.astro";
@@ -8,19 +9,28 @@ import Breadcrumb from "@/components/Breadcrumb.astro";
 import Card from "@/components/Card.astro";
 import Footer from "@/components/Footer.astro";
 import Pagination from "@/components/Pagination.astro";
+
 import { getUniqueTags } from "@/utils/getUniqueTags";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { slugifyAll } from "@/utils/slugify";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
-export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
-  const posts = await getCollection("posts", ({ data }) => !data.draft);
+export async function getStaticPaths({
+  paginate,
+}: GetStaticPathsOptions) {
+  const posts = await getCollection(
+    "posts",
+    ({ data }) => !data.draft
+  );
+
   const tags = getUniqueTags(posts);
 
   return tags.flatMap(({ tag, tagName }) => {
     const tagPosts = getSortedPosts(
-      posts.filter(({ data }) => slugifyAll(data.tags).includes(tag))
+      posts.filter(({ data }) =>
+        slugifyAll(data.tags).includes(tag)
+      )
     );
 
     return paginate(tagPosts, {
@@ -37,7 +47,9 @@ const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 ---
 
-<Layout title={`${t.pages.tagTitle}: ${tagName} | ${config.site.title}`}>
+<Layout
+  title={`${t.pages.tagTitle}: ${tagName} | ${config.site.title}`}
+>
   <Header />
 
   <Breadcrumb />
@@ -46,9 +58,25 @@ const t = useTranslations(locale);
     pageTitle={`${t.pages.tagTitle}: ${tagName}`}
     pageDesc={`${t.pages.tagDesc} "${tagName}".`}
   >
-    <ul>
-      {page.data.map(data => <Card {...data} />)}
-    </ul>
+    <section aria-labelledby="tag-posts-title">
+      <h2 id="tag-posts-title" class="sr-only">
+        {tagName}
+      </h2>
+
+      {
+        page.data.length > 0 ? (
+          <ul class="space-y-4 sm:space-y-5">
+            {page.data.map(data => (
+              <Card {...data} />
+            ))}
+          </ul>
+        ) : (
+          <div class="alert alert-soft">
+            <span>{t.a11y.noResults}</span>
+          </div>
+        )
+      }
+    </section>
   </Main>
 
   <Pagination {page} />

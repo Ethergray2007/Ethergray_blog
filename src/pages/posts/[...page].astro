@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
+
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
@@ -8,13 +9,20 @@ import Main from "@/components/Main.astro";
 import Card from "@/components/Card.astro";
 import Footer from "@/components/Footer.astro";
 import Pagination from "@/components/Pagination.astro";
+
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const posts = await getCollection("posts", ({ data }) => !data.draft);
-  return paginate(getSortedPosts(posts), { pageSize: config.posts.perPage });
+  const posts = await getCollection(
+    "posts",
+    ({ data }) => !data.draft
+  );
+
+  return paginate(getSortedPosts(posts), {
+    pageSize: config.posts.perPage,
+  });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props;
@@ -28,10 +36,21 @@ const t = useTranslations(locale);
 
   <Breadcrumb />
 
-  <Main pageTitle={t.pages.postsTitle} pageDesc={t.pages.postsDesc}>
-    <ul>
-      {page.data.map(data => <Card {...data} />)}
-    </ul>
+  <Main
+    pageTitle={t.pages.postsTitle}
+    pageDesc={t.pages.postsDesc}
+  >
+    <section aria-labelledby="posts-list-title">
+      <h2 id="posts-list-title" class="sr-only">
+        {t.pages.postsTitle}
+      </h2>
+
+      <ul class="space-y-4 sm:space-y-5">
+        {page.data.map(data => (
+          <Card {...data} />
+        ))}
+      </ul>
+    </section>
   </Main>
 
   <Pagination {page} />
