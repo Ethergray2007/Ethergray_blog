@@ -1,36 +1,445 @@
 ---
-import { getEntry, render } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
-import Main from "@/components/Main.astro";
 import Footer from "@/components/Footer.astro";
 import config from "@/config";
 
-const about = await getEntry("pages", "about");
+const coreProjects = [
+  {
+    name: "Astro",
+    role: "网站框架",
+    description: "负责整个博客的页面渲染、路由、内容组织与构建。",
+    url: "https://astro.build/",
+    tag: "Framework",
+    badge: "badge-primary",
+  },
+  {
+    name: "AstroPaper",
+    role: "博客主题 / 基础模板",
+    description:
+      "本项目以 AstroPaper 的设计与项目结构为基础，并在此基础上进行二次开发与定制。",
+    url: "https://github.com/satnaing/astro-paper",
+    tag: "Theme",
+    badge: "badge-secondary",
+  },
+  {
+    name: "Tailwind CSS",
+    role: "样式系统",
+    description: "负责页面布局、间距、响应式设计与整体视觉样式。",
+    url: "https://tailwindcss.com/",
+    tag: "CSS",
+    badge: "badge-accent",
+  },
+  {
+    name: "daisyUI",
+    role: "UI 组件层",
+    description:
+      "为本站提供按钮、卡片、Badge、Tabs、Modal、Dropdown 等 UI 组件样式。",
+    url: "https://daisyui.com/",
+    tag: "UI",
+    badge: "badge-info",
+  },
+];
 
-if (!about) {
-  throw new Error(
-    "Missing content entry: `about.md` or `about.mdx` in `src/content/pages/`"
-  );
-}
+const tooling = [
+  {
+    name: "TypeScript",
+    role: "开发语言",
+    description: "用于类型安全与项目配置、工具函数及页面逻辑。",
+    url: "https://www.typescriptlang.org/",
+  },
+  {
+    name: "MDX",
+    role: "内容系统",
+    description: "为博客提供 Markdown + 组件能力。",
+    url: "https://mdxjs.com/",
+  },
+  {
+    name: "Pagefind",
+    role: "静态搜索",
+    description: "用于生成静态站点搜索索引，让博客可以直接进行站内搜索。",
+    url: "https://pagefind.app/",
+  },
+  {
+    name: "Shiki",
+    role: "代码高亮",
+    description: "用于博客文章中的代码语法高亮与代码展示。",
+    url: "https://shiki.style/",
+  },
+  {
+    name: "Sharp",
+    role: "图片处理",
+    description: "用于构建过程中的图片处理与优化。",
+    url: "https://sharp.pixelplumbing.com/",
+  },
+  {
+    name: "Satori",
+    role: "OG 图片",
+    description: "用于生成动态 Open Graph 社交分享图片。",
+    url: "https://github.com/vercel/satori",
+  },
+];
 
-const { Content } = await render(about);
+const ecosystem = [
+  "Astro RSS",
+  "Astro Sitemap",
+  "Day.js",
+  "Lodash Kebab Case",
+  "Slugify",
+  "rehype-callouts",
+  "remark-collapse",
+  "remark-toc",
+  "ESLint",
+  "Prettier",
+];
+
+const navLinks = [
+  { label: "项目", href: "#projects" },
+  { label: "技术栈", href: "#tooling" },
+  { label: "生态依赖", href: "#ecosystem" },
+  { label: "许可证", href: "#license" },
+];
 ---
 
 <Layout
-  title={`${about.data.title} | ${config.site.title}`}
-  description={about.data.description}
-  ogImage={about.data.ogImage}
-  canonicalURL={about.data.canonicalURL}
+  title={`致谢与开源项目 | ${config.site.title}`}
+  description="Ethergray Blog 使用的开源项目与致谢"
 >
   <Header />
-
   <Breadcrumb />
 
-  <Main pageTitle={about.data.title} class="app-prose">
-    <Content />
-  </Main>
+  <main
+    id="main-content"
+    class="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8"
+  >
+    <!-- Hero -->
+    <section class="py-8 sm:py-12 lg:py-16">
+      <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge badge-primary badge-soft">
+              Open Source
+            </span>
+            <span class="badge badge-outline">
+              Acknowledgements
+            </span>
+          </div>
+
+          <h1
+            class="mt-5 max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl"
+          >
+            这个博客，
+            <br />
+            <span class="text-primary">站在很多开源项目上。</span>
+          </h1>
+
+          <p class="mt-6 max-w-3xl text-base leading-8 text-base-content/60">
+            Ethergray Blog 并不是从零开始编写的。这个页面记录本站使用的主要开源项目，
+            并向这些项目的作者、维护者和贡献者表示感谢。
+          </p>
+        </div>
+
+        <div
+          class="card border border-base-300 bg-base-100 shadow-sm"
+        >
+          <div class="card-body p-6">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-base-content/50">
+                本页涵盖
+              </span>
+              <span class="badge badge-primary">
+                OSS
+              </span>
+            </div>
+
+            <div class="stats mt-4 bg-base-200">
+              <div class="stat p-4">
+                <div class="stat-title">核心项目</div>
+                <div class="stat-value text-3xl">4</div>
+                <div class="stat-desc">Framework / Theme / UI</div>
+              </div>
+
+              <div class="stat p-4">
+                <div class="stat-title">工具依赖</div>
+                <div class="stat-value text-3xl">6+</div>
+                <div class="stat-desc">Content / Build / Tooling</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick nav -->
+    <div class="mb-10 overflow-x-auto">
+      <div class="join min-w-max">
+        {navLinks.map(link => (
+          <a
+            href={link.href}
+            class="btn btn-sm join-item btn-outline"
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <!-- Core projects -->
+    <section id="projects" class="scroll-mt-24">
+      <div class="mb-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          Core Stack
+        </p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight">
+          核心开源项目
+        </h2>
+        <p class="mt-2 max-w-2xl text-sm leading-7 text-base-content/55">
+          构成本站整体框架、主题与 UI 的主要项目。
+        </p>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        {coreProjects.map(project => (
+          <article class="card border border-base-300 bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="card-body p-6">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class={`badge ${project.badge} badge-soft`}>
+                      {project.tag}
+                    </span>
+                    <span class="badge badge-ghost">
+                      {project.role}
+                    </span>
+                  </div>
+
+                  <h3 class="mt-4 text-2xl font-black">
+                    {project.name}
+                  </h3>
+                </div>
+
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="btn btn-circle btn-ghost btn-sm"
+                  aria-label={`打开 ${project.name}`}
+                  title={`打开 ${project.name}`}
+                >
+                  ↗
+                </a>
+              </div>
+
+              <p class="mt-4 leading-7 text-base-content/60">
+                {project.description}
+              </p>
+
+              <div class="card-actions mt-6 justify-between">
+                <span class="text-xs text-base-content/40">
+                  Open Source
+                </span>
+
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="btn btn-sm btn-ghost"
+                >
+                  查看项目 →
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="py-12 sm:py-16">
+      <div class="card overflow-hidden border border-base-300 bg-base-100 shadow-sm">
+        <div class="card-body p-6 sm:p-8">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                How It Fits Together
+              </p>
+              <h2 class="mt-2 text-2xl font-black">
+                它们是怎样组合起来的？
+              </h2>
+            </div>
+
+            <div class="badge badge-info badge-soft">
+              Astro + Tailwind + daisyUI
+            </div>
+          </div>
+
+          <ul class="steps steps-vertical mt-8 w-full lg:steps-horizontal">
+            <li class="step step-primary">
+              Astro
+            </li>
+            <li class="step step-primary">
+              Tailwind CSS
+            </li>
+            <li class="step step-primary">
+              daisyUI
+            </li>
+            <li class="step">
+              Blog Content
+            </li>
+          </ul>
+
+          <div class="alert alert-info alert-soft mt-8">
+            <span>
+              Astro 负责网站本身，Tailwind 负责底层样式与布局，daisyUI
+              提供可复用的 UI 组件，Markdown / MDX 则负责博客内容。
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tooling -->
+    <section id="tooling" class="scroll-mt-24">
+      <div class="mb-6">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          Tooling
+        </p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight">
+          内容与构建工具
+        </h2>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {tooling.map(item => (
+          <article class="card border border-base-300 bg-base-100 shadow-sm">
+            <div class="card-body p-5">
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-lg font-bold">
+                  {item.name}
+                </h3>
+
+                <span class="badge badge-outline badge-sm">
+                  {item.role}
+                </span>
+              </div>
+
+              <p class="mt-3 text-sm leading-7 text-base-content/55">
+                {item.description}
+              </p>
+
+              <div class="card-actions mt-4 justify-end">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="btn btn-ghost btn-sm"
+                >
+                  官方项目 →
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- Ecosystem -->
+    <section id="ecosystem" class="scroll-mt-24 py-12 sm:py-16">
+      <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            Ecosystem
+          </p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight">
+            其他开源依赖
+          </h2>
+        </div>
+
+        <div class="badge badge-ghost">
+          npm dependencies
+        </div>
+      </div>
+
+      <div class="card border border-base-300 bg-base-100 shadow-sm">
+        <div class="card-body p-6">
+          <div class="flex flex-wrap gap-2">
+            {ecosystem.map(item => (
+              <span class="badge badge-outline py-4">
+                {item}
+              </span>
+            ))}
+          </div>
+
+          <div class="divider"></div>
+
+          <p class="text-sm leading-7 text-base-content/55">
+            上述依赖主要用于 RSS、Sitemap、日期处理、Slug、
+            Markdown/Remark/Rehype 处理、代码高亮、代码质量检查与格式化等工作。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Thanks -->
+    <section class="py-4">
+      <div class="card border border-primary/20 bg-primary/5 shadow-sm">
+        <div class="card-body p-6 sm:p-8">
+          <div class="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <div class="badge badge-primary badge-soft">
+                Thank You
+              </div>
+
+              <h2 class="mt-4 text-3xl font-black">
+                感谢每一位开源贡献者
+              </h2>
+
+              <p class="mt-4 max-w-3xl leading-8 text-base-content/65">
+                感谢所有维护这些项目的人。正是这些开源项目，
+                让个人开发者可以在已有成果之上继续学习、修改和创造。
+              </p>
+            </div>
+
+            <div class="flex lg:justify-end">
+              <a
+                href="https://github.com/satnaing/astro-paper"
+                target="_blank"
+                rel="noreferrer"
+                class="btn btn-primary"
+              >
+                感谢 AstroPaper →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- License -->
+    <section id="license" class="scroll-mt-24 pt-12">
+      <div class="collapse collapse-arrow border border-base-300 bg-base-100">
+        <input type="checkbox" />
+        <div class="collapse-title text-lg font-bold">
+          许可证与使用说明
+        </div>
+
+        <div class="collapse-content">
+          <div class="pt-2 text-sm leading-7 text-base-content/60">
+            <p>
+              本仓库当前保留的主许可证为 MIT License，原许可证文件中的版权信息属于
+              Sat Naing。
+            </p>
+
+            <p class="mt-3">
+              不同第三方依赖拥有各自的许可证与版权声明。本页面用于致谢与展示项目来源，
+              具体使用和再分发时请以各项目仓库及其许可证文件为准。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <Footer />
 </Layout>

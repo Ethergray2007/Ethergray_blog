@@ -1,9 +1,10 @@
 ---
 import type { Page } from "astro";
 import type { CollectionEntry } from "astro:content";
+
 import IconArrowLeft from "@/assets/icons/IconArrowLeft.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
-import LinkButton from "./LinkButton.astro";
+
 import { useTranslations } from "@/i18n";
 
 type Props = {
@@ -18,29 +19,61 @@ const t = useTranslations(Astro.currentLocale);
 {
   page.lastPage > 1 && (
     <nav
-      class="mt-auto mb-8 flex justify-center gap-4"
+      class="my-8 flex justify-center"
       role="navigation"
       aria-label="Pagination Navigation"
     >
-      <LinkButton
-        disabled={!page.url.prev}
-        href={page.url.prev as string}
-        class:list={["select-none", { "opacity-50": !page.url.prev }]}
-        aria-label={t.a11y.goToPreviousPage}
-      >
-        <IconArrowLeft class="inline-block rtl:rotate-180" />
-        {t.pagination.prev}
-      </LinkButton>
-      {page.currentPage} / {page.lastPage}
-      <LinkButton
-        disabled={!page.url.next}
-        href={page.url.next as string}
-        class:list={["select-none", { "opacity-50": !page.url.next }]}
-        aria-label={t.a11y.goToNextPage}
-      >
-        {t.pagination.next}
-        <IconArrowRight class="inline-block rtl:rotate-180" />
-      </LinkButton>
+      <div class="join">
+        {page.url.prev ? (
+          <a
+            href={page.url.prev}
+            class="btn btn-outline join-item"
+            aria-label={t.a11y.goToPreviousPage}
+          >
+            <IconArrowLeft class="size-4 rtl:rotate-180" />
+            <span class="hidden sm:inline">
+              {t.pagination.prev}
+            </span>
+          </a>
+        ) : (
+          <span
+            class="btn btn-outline join-item btn-disabled"
+            aria-disabled="true"
+          >
+            <IconArrowLeft class="size-4 rtl:rotate-180" />
+            <span class="hidden sm:inline">
+              {t.pagination.prev}
+            </span>
+          </span>
+        )}
+
+        <span class="btn join-item no-animation">
+          {page.currentPage} / {page.lastPage}
+        </span>
+
+        {page.url.next ? (
+          <a
+            href={page.url.next}
+            class="btn btn-outline join-item"
+            aria-label={t.a11y.goToNextPage}
+          >
+            <span class="hidden sm:inline">
+              {t.pagination.next}
+            </span>
+            <IconArrowRight class="size-4 rtl:rotate-180" />
+          </a>
+        ) : (
+          <span
+            class="btn btn-outline join-item btn-disabled"
+            aria-disabled="true"
+          >
+            <span class="hidden sm:inline">
+              {t.pagination.next}
+            </span>
+            <IconArrowRight class="size-4 rtl:rotate-180" />
+          </span>
+        )}
+      </div>
     </nav>
   )
 }

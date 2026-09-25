@@ -1,41 +1,165 @@
 ---
-import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
-import LinkButton from "@/components/LinkButton.astro";
-import { getRelativeLocaleUrl } from "astro:i18n";
+import IconArrowLeft from "@/assets/icons/IconArrowLeft.svg";
+import IconArrowNarrowUp from "@/assets/icons/IconArrowNarrowUp.svg";
 import { useTranslations } from "@/i18n";
-import config from "@/config";
 
-const locale = Astro.currentLocale ?? config.site.lang;
-const t = useTranslations(locale);
+const t = useTranslations(Astro.currentLocale);
 ---
 
-{
-  config.features.showBackButton && (
-    <div class="app-layout flex items-center justify-start">
-      <LinkButton
-        id="back-button"
-        href={getRelativeLocaleUrl(locale, "")}
-        class="focus-outline hover:text-foreground/75 -ms-2 mt-8 mb-2"
-      >
-        <IconChevronLeft class="inline-block size-6 rtl:rotate-180" />
-        <span>{t.post.goBack}</span>
-      </LinkButton>
-    </div>
-  )
-}
+<div
+  id="btt-btn-container"
+  class:list={[
+    "fixed inset-e-4 bottom-8 z-50",
+    "translate-y-14 opacity-0 transition duration-500",
+    "md:sticky md:inset-e-auto md:float-end md:me-1",
+  ]}
+>
+  <button
+    type="button"
+    data-button="back-to-top"
+    class:list={[
+      "group relative px-2 py-1",
+      "size-14 rounded-full bg-base-100 shadow-xl",
+      "md:h-8 md:w-fit md:rounded-md md:shadow-none",
+      "md:focus-visible:rounded-none",
+      "md:bg-base-100/60 md:bg-clip-padding md:backdrop-blur-lg",
+      "hover:text-primary",
+    ]}
+  >
+    <span
+      id="progress-indicator"
+      class="absolute inset-0 -z-10 block size-14 scale-110 rounded-full bg-transparent md:hidden md:h-8 md:rounded-md"
+    ></span>
 
-<script>
-  function updateGoBackUrl() {
-    const backButton: HTMLAnchorElement | null =
-      document.querySelector("#back-button");
+    <IconArrowLeft
+      class="inline-block rotate-90 md:hidden"
+    />
 
-    const backUrl = sessionStorage.getItem("backUrl");
+    <span class="sr-only text-sm md:not-sr-only">
+      <IconArrowNarrowUp class="inline-block size-4" />
+      {t.post.backToTop}
+    </span>
+  </button>
+</div>
 
-    if (backUrl && backButton) {
-      backButton.href = backUrl;
+<script is:inline data-astro-rerun>
+  function backToTop() {
+    const rootElement = document.documentElement;
+    const btnContainer =
+      document.querySelector("#btt-btn-container");
+
+    const backToTopBtn =
+      document.querySelector(
+        "[data-button='back-to-top']"
+      );
+
+    const progressIndicator =
+      document.querySelector(
+        "#progress-indicator"
+      );
+
+    if (
+      !rootElement ||
+      !btnContainer ||
+      !backToTopBtn ||
+      !progressIndicator
+    ) {
+      return;
     }
+
+    if (backToTopBtn.dataset.bound === "true") {
+      return;
+    }
+
+    backToTopBtn.dataset.bound = "true";
+
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+
+    let lastVisible = false;
+
+    function handleScroll() {
+      const scrollTotal =
+        rootElement.scrollHeight -
+        rootElement.clientHeight;
+
+      if (scrollTotal <= 0) {
+        return;
+      }
+
+      const scrollTop =
+        rootElement.scrollTop;
+
+      const scrollPercent = Math.min(
+        100,
+        Math.max(
+          0,
+          Math.floor(
+            (scrollTop / scrollTotal) * 100
+          )
+        )
+      );
+
+      progressIndicator.style.setProperty(
+        "background-image",
+        `conic-gradient(var(--color-primary), var(--color-primary) ${scrollPercent}%, transparent ${scrollPercent}%)`
+      );
+
+      const isVisible =
+        scrollTop / scrollTotal > 0.3;
+
+      if (isVisible === lastVisible) {
+        return;
+      }
+
+      btnContainer.classList.toggle(
+        "opacity-100",
+        isVisible
+      );
+
+      btnContainer.classList.toggle(
+        "translate-y-0",
+        isVisible
+      );
+
+      btnContainer.classList.toggle(
+        "opacity-0",
+        !isVisible
+      );
+
+      btnContainer.classList.toggle(
+        "translate-y-14",
+        !isVisible
+      );
+
+      lastVisible = isVisible;
+    }
+
+    let ticking = false;
+
+    document.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) {
+          return;
+        }
+
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+
+        ticking = true;
+      },
+      { passive: true }
+    );
+
+    handleScroll();
   }
 
-  document.addEventListener("astro:page-load", updateGoBackUrl);
-  updateGoBackUrl();
+  backToTop();
 </script>

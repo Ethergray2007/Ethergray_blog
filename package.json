@@ -1,5 +1,5 @@
 {
-  "name": "astro-paper-v6",
+  "name": "ethergray-blog",
   "type": "module",
   "version": "6.1.0",
   "engines": {
@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro check && astro build && pagefind --site dist && cp -r dist/pagefind public/",
+    "build": "astro check && astro build && pagefind --site dist",
     "preview": "astro preview",
     "sync": "astro sync",
     "astro": "astro",
@@ -39,6 +39,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/lodash.kebabcase": "^4.1.9",
     "@typescript-eslint/parser": "^8.60.0",
+    "daisyui": "^5.7.46",
     "eslint": "^10.4.1",
     "eslint-plugin-astro": "^1.7.0",
     "pagefind": "^1.5.2",

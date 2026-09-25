@@ -1,19 +1,24 @@
 ---
 import { type CollectionEntry, getCollection, render } from "astro:content";
+
 import PostLayout from "@/layouts/PostLayout.astro";
+
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Datetime from "@/components/Datetime.astro";
 import Tag from "@/components/Tag.astro";
+
 import { getPostSlug, getPostUrl } from "@/utils/getPostPaths";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { slugifyStr } from "@/utils/slugify";
 import { toTransitionName } from "@/utils/toTransitionName";
+
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
+
 import config from "@/config";
 
 export async function getStaticPaths() {
@@ -21,9 +26,13 @@ export async function getStaticPaths() {
   const sortedPosts = getSortedPosts(posts);
 
   return sortedPosts.map((post, index) => ({
-    params: { slug: getPostSlug(post.id, post.filePath) },
+    params: {
+      slug: getPostSlug(post.id, post.filePath),
+    },
+
     props: {
       post,
+
       prevPost:
         index > 0
           ? {
@@ -32,6 +41,7 @@ export async function getStaticPaths() {
               filePath: sortedPosts[index - 1].filePath,
             }
           : null,
+
       nextPost:
         index < sortedPosts.length - 1
           ? {
@@ -57,7 +67,9 @@ type Props = {
 };
 
 const { post, prevPost, nextPost } = Astro.props;
-const locale = Astro.currentLocale ?? config.site.lang;
+
+const locale =
+  Astro.currentLocale ?? config.site.lang;
 
 const {
   title,
@@ -82,15 +94,20 @@ if (typeof initOgImage === "string") {
 }
 
 if (!ogImageUrl && config.features.dynamicOgImage) {
-  const postUrl = getPostUrl(post.id, post.filePath, locale).replace(
-    /\/+$/,
-    ""
-  );
+  const postUrl = getPostUrl(
+    post.id,
+    post.filePath,
+    locale
+  ).replace(/\/+$/, "");
+
   ogImageUrl = `${postUrl}/index.png`;
 }
 
 const ogImage = ogImageUrl
-  ? new URL(ogImageUrl, Astro.url.origin).href
+  ? new URL(
+      ogImageUrl,
+      Astro.url.origin
+    ).href
   : undefined;
 ---
 
@@ -108,425 +125,1222 @@ const ogImage = ogImageUrl
 
   <main
     id="main-content"
-    class:list={["app-layout", { "mt-8": !config.features.showBackButton }]}
+    class:list={[
+      "reading-shell pb-12 sm:pb-16 lg:pb-20",
+      {
+        "mt-8": !config.features.showBackButton,
+      },
+    ]}
     data-pagefind-body
   >
-    <h1
-      style={{ viewTransitionName: toTransitionName(title) }}
-      class="text-accent inline-block text-2xl font-bold sm:text-3xl"
+    <!-- Article header -->
+    <header
+      class="card card-border mb-6 bg-base-100 shadow-sm sm:mb-8"
     >
-      {title}
-    </h1>
+      <div class="card-body gap-4 p-5 sm:p-7 lg:p-8">
+        <div
+          class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <h1
+            style={{
+              viewTransitionName: toTransitionName(title),
+            }}
+            class="min-w-0 text-3xl font-black leading-tight tracking-tight text-base-content sm:text-4xl lg:text-5xl"
+          >
+            {title}
+          </h1>
 
-    <div class="my-2 flex items-center gap-2">
-      <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-      <span
-        aria-hidden="true"
-        class:list={[
-          "text-muted-foreground max-sm:hidden",
-          { hidden: !config.features.editPost?.enabled || hideEditPost },
-        ]}
-      >
-        |
-      </span>
-      <EditPost {hideEditPost} {post} class="max-sm:hidden" />
-    </div>
+          {
+            !hideEditPost &&
+              config.features.editPost?.enabled && (
+                <EditPost
+                  {hideEditPost}
+                  {post}
+                  class="shrink-0 max-sm:hidden"
+                />
+              )
+          }
+        </div>
 
+        <div class="flex flex-wrap items-center gap-2">
+          <Datetime
+            {pubDatetime}
+            {modDatetime}
+            {timezone}
+            size="lg"
+          />
+
+          {
+            description && (
+              <span class="hidden text-sm text-base-content/50 sm:inline">
+                ·
+              </span>
+            )
+          }
+
+          {
+            description && (
+              <span class="hidden max-w-full text-sm leading-6 text-base-content/60 sm:inline">
+                {description}
+              </span>
+            )
+          }
+        </div>
+      </div>
+    </header>
+
+    <!-- Article content -->
     <article
       id="article"
-      class:list={[
-        "mt-8 w-full",
-        "app-prose max-w-app",
-        "prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)",
-      ]}
+      class="card card-border min-w-0 bg-base-100 shadow-sm"
     >
-      <Content />
+      <div class="card-body min-w-0 p-5 sm:p-8 lg:p-10">
+        <div
+          class:list={[
+            "app-prose w-full min-w-0",
+            "prose-pre:bg-(--shiki-light-bg)",
+            "dark:prose-pre:bg-(--shiki-dark-bg)",
+          ]}
+        >
+          <Content />
+        </div>
+      </div>
     </article>
 
-    <hr class="my-8 border-dashed" />
+    <!-- Article actions -->
+    <section class="mt-6 sm:mt-8">
+      <div
+        class="card card-border bg-base-100 shadow-sm"
+      >
+        <div class="card-body gap-5 p-5 sm:p-6">
+          <!-- Mobile edit -->
+          {
+            !hideEditPost &&
+              config.features.editPost?.enabled && (
+                <div class="sm:hidden">
+                  <EditPost
+                    {hideEditPost}
+                    {post}
+                  />
+                </div>
+              )
+          }
 
-    <EditPost class="sm:hidden" {hideEditPost} {post} />
+          <!-- Tags -->
+          {
+            tags.length > 0 && (
+              <div class="flex flex-col gap-3">
+                <span class="text-sm font-semibold text-base-content/60">
+                  标签
+                </span>
 
+                <ul class="flex flex-wrap gap-2">
+                  {tags.map(tag => (
+                    <Tag
+                      tag={slugifyStr(tag)}
+                      tagName={tag}
+                      size="sm"
+                    />
+                  ))}
+                </ul>
+              </div>
+            )
+          }
+
+          <!-- Share -->
+          <ShareLinks />
+        </div>
+      </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="my-6 sm:my-8">
+      <div class="divider"></div>
+    </div>
+
+    <!-- Previous / Next -->
+    <AdjacentPostNav
+      {prevPost}
+      {nextPost}
+    />
+
+    <!-- Back to top -->
     <BackToTopButton />
-
-    <ul class="mt-4 mb-8 flex flex-wrap gap-4 sm:my-8">
-      {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
-    </ul>
-
-    <ShareLinks />
-
-    <hr class="my-8 border-dashed" />
-
-    <AdjacentPostNav {prevPost} {nextPost} />
   </main>
+
   <Footer />
 </PostLayout>
 
 <script is:inline data-astro-rerun>
-  function createProgressBar() {
-    const progressContainer = document.createElement("div");
-    progressContainer.className =
-      "progress-container fixed top-0 z-10 h-1 w-full bg-background";
+  /*
+   * ============================
+   * Scroll progress
+   * ============================
+   */
 
-    const progressBar = document.createElement("div");
-    progressBar.className = "progress-bar h-1 w-0 bg-accent";
+  if (window.__articleProgressCleanup) {
+    window.__articleProgressCleanup();
+  }
+
+  function createProgressBar() {
+    const existingProgress =
+      document.getElementById("scroll-progress");
+
+    if (existingProgress) {
+      existingProgress.remove();
+    }
+
+    const progressContainer =
+      document.createElement("div");
+
+    progressContainer.id =
+      "scroll-progress";
+
+    progressContainer.className =
+      "fixed top-0 z-50 h-1 w-full bg-base-100";
+
+    const progressBar =
+      document.createElement("div");
+
     progressBar.id = "myBar";
 
-    progressContainer.appendChild(progressBar);
-    document.body.appendChild(progressContainer);
-  }
-  createProgressBar();
+    progressBar.className =
+      "h-1 w-0 bg-primary";
 
-  function updateScrollProgress() {
-    document.addEventListener("scroll", () => {
+    progressContainer.appendChild(
+      progressBar
+    );
+
+    document.body.appendChild(
+      progressContainer
+    );
+  }
+
+  function setupScrollProgress() {
+    createProgressBar();
+
+    function update() {
       const winScroll =
-        document.body.scrollTop || document.documentElement.scrollTop;
+        window.scrollY;
+
       const height =
         document.documentElement.scrollHeight -
         document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
-      if (document) {
-        const myBar = document.getElementById("myBar");
-        if (myBar) {
-          myBar.style.width = scrolled + "%";
-        }
+
+      const scrolled =
+        height > 0
+          ? (winScroll / height) * 100
+          : 0;
+
+      const myBar =
+        document.getElementById("myBar");
+
+      if (myBar) {
+        myBar.style.width =
+          `${Math.min(
+            100,
+            Math.max(0, scrolled)
+          )}%`;
       }
-    });
+    }
+
+    window.addEventListener(
+      "scroll",
+      update,
+      { passive: true }
+    );
+
+    update();
+
+    window.__articleProgressCleanup =
+      function () {
+        window.removeEventListener(
+          "scroll",
+          update
+        );
+
+        document
+          .getElementById(
+            "scroll-progress"
+          )
+          ?.remove();
+      };
   }
-  updateScrollProgress();
+
+  setupScrollProgress();
+
+  /*
+   * ============================
+   * Heading anchor links
+   * ============================
+   */
 
   function addHeadingLinks() {
-    const headings = Array.from(
-      document.querySelectorAll("h2, h3, h4, h5, h6")
-    );
+    const headings =
+      Array.from(
+        document.querySelectorAll(
+          "#article h2, #article h3, #article h4, #article h5, #article h6"
+        )
+      );
+
     for (const heading of headings) {
+      if (
+        heading.querySelector(
+          ".heading-link"
+        )
+      ) {
+        continue;
+      }
+
+      if (!heading.id) {
+        continue;
+      }
+
       heading.classList.add("group");
-      const link = document.createElement("a");
+
+      const link =
+        document.createElement("a");
+
       link.className =
         "heading-link ms-2 no-underline opacity-75 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100";
-      link.href = "#" + heading.id;
 
-      const span = document.createElement("span");
-      span.ariaHidden = "true";
+      link.href =
+        `#${heading.id}`;
+
+      link.setAttribute(
+        "aria-label",
+        "Link to this section"
+      );
+
+      const span =
+        document.createElement(
+          "span"
+        );
+
+      span.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
       span.innerText = "#";
+
       link.appendChild(span);
+
       heading.appendChild(link);
     }
   }
+
   addHeadingLinks();
 
+  /*
+   * ============================
+   * Code copy buttons
+   * ============================
+   */
+
   function attachCopyButtons() {
-    const copyButtonLabel = "Copy";
-    const codeBlocks = Array.from(document.querySelectorAll("pre"));
+    const copyButtonLabel =
+      "Copy";
+
+    const codeBlocks =
+      Array.from(
+        document.querySelectorAll(
+          "#article pre"
+        )
+      );
 
     for (const codeBlock of codeBlocks) {
-      const wrapper = document.createElement("div");
-      wrapper.style.position = "relative";
+      if (
+        codeBlock.querySelector(
+          ".copy-code"
+        )
+      ) {
+        continue;
+      }
 
-      const computedStyle = getComputedStyle(codeBlock);
+      const wrapper =
+        document.createElement(
+          "div"
+        );
+
+      wrapper.style.position =
+        "relative";
+
+      const computedStyle =
+        getComputedStyle(
+          codeBlock
+        );
+
       const hasFileNameOffset =
-        computedStyle.getPropertyValue("--file-name-offset").trim() !== "";
+        computedStyle
+          .getPropertyValue(
+            "--file-name-offset"
+          )
+          .trim() !== "";
 
-      const topClass = hasFileNameOffset
-        ? "top-(--file-name-offset)"
-        : "-top-3";
+      const topClass =
+        hasFileNameOffset
+          ? "top-(--file-name-offset)"
+          : "-top-3";
 
-      const copyButton = document.createElement("button");
-      copyButton.className = `copy-code absolute end-3 ${topClass} rounded bg-muted border border-muted px-2 py-1 text-xs leading-4 text-foreground font-medium`;
-      copyButton.innerHTML = copyButtonLabel;
-      codeBlock.setAttribute("tabindex", "0");
-      codeBlock.appendChild(copyButton);
+      const copyButton =
+        document.createElement(
+          "button"
+        );
 
-      codeBlock?.parentNode?.insertBefore(wrapper, codeBlock);
-      wrapper.appendChild(codeBlock);
+      copyButton.type =
+        "button";
 
-      copyButton.addEventListener("click", async () => {
-        await copyCode(codeBlock, copyButton);
-      });
+      copyButton.className =
+        `copy-code btn btn-xs btn-ghost absolute end-3 ${topClass} border border-base-300 bg-base-100/95 text-base-content shadow-sm backdrop-blur`;
+
+      copyButton.innerText =
+        copyButtonLabel;
+
+      copyButton.setAttribute(
+        "aria-label",
+        "Copy code"
+      );
+
+      codeBlock.setAttribute(
+        "tabindex",
+        "0"
+      );
+
+      codeBlock.parentNode?.insertBefore(
+        wrapper,
+        codeBlock
+      );
+
+      wrapper.appendChild(
+        codeBlock
+      );
+
+      codeBlock.appendChild(
+        copyButton
+      );
+
+      copyButton.addEventListener(
+        "click",
+        async () => {
+          await copyCode(
+            codeBlock,
+            copyButton
+          );
+        }
+      );
     }
 
-    async function copyCode(block, button) {
-      const code = block.querySelector("code");
-      const text = code?.innerText;
+    async function copyCode(
+      block,
+      button
+    ) {
+      const code =
+        block.querySelector(
+          "code"
+        );
 
-      await navigator.clipboard.writeText(text ?? "");
+      const text =
+        code?.textContent ??
+        "";
 
-      button.innerText = "Copied";
+      try {
+        if (
+          !navigator.clipboard
+        ) {
+          throw new Error(
+            "Clipboard API unavailable"
+          );
+        }
 
-      setTimeout(() => {
-        button.innerText = copyButtonLabel;
-      }, 700);
+        await navigator.clipboard.writeText(
+          text
+        );
+
+        button.innerText =
+          "Copied";
+
+        setTimeout(() => {
+          button.innerText =
+            copyButtonLabel;
+        }, 700);
+      } catch {
+        button.innerText =
+          "Failed";
+
+        setTimeout(() => {
+          button.innerText =
+            copyButtonLabel;
+        }, 1000);
+      }
     }
   }
+
   attachCopyButtons();
 
-  /** Accessible image lightbox for article images. */
+  /*
+   * ============================
+   * Image lightbox
+   * ============================
+   */
+
   function initLightbox() {
-    const article = document.getElementById("article");
-    if (!article) return;
+    const article =
+      document.getElementById(
+        "article"
+      );
 
-    const prefersReducedMotion = () =>
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!article) {
+      return;
+    }
 
-    let overlay = null;
-    let lastFocused = null;
+    const prefersReducedMotion =
+      function () {
+        return window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+      };
 
-    // Defer attribute mutations so they don't push the LCP timestamp.
-    // Event listeners below use delegation and don't need the attributes to exist yet.
-    requestAnimationFrame(() => {
-      const images = Array.from(article.querySelectorAll("img"));
-      for (const image of images) {
-        if (image.closest("a")) continue;
-        image.setAttribute("role", "button");
-        image.setAttribute("tabindex", "0");
-        image.setAttribute("aria-haspopup", "dialog");
-        image.setAttribute(
-          "aria-label",
-          image.alt ? `Zoom image: ${image.alt}` : "Zoom image"
-        );
+    let overlay =
+      null;
+
+    let lastFocused =
+      null;
+
+    function open(
+      src,
+      alt,
+      trigger
+    ) {
+      if (overlay) {
+        return;
       }
-    });
 
-    function open(src, alt, trigger) {
-      if (overlay) return;
-      lastFocused = trigger ?? document.activeElement;
+      lastFocused =
+        trigger ??
+        document.activeElement;
 
-      overlay = document.createElement("div");
-      overlay.setAttribute("role", "dialog");
-      overlay.setAttribute("aria-modal", "true");
+      overlay =
+        document.createElement(
+          "div"
+        );
+
+      overlay.setAttribute(
+        "role",
+        "dialog"
+      );
+
+      overlay.setAttribute(
+        "aria-modal",
+        "true"
+      );
+
       overlay.setAttribute(
         "aria-label",
-        alt ? `Image preview: ${alt}` : "Image preview"
+        alt
+          ? `Image preview: ${alt}`
+          : "Image preview"
       );
+
       overlay.className =
-        "fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
+        "fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/70 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
 
-      const closeButton = document.createElement("button");
-      closeButton.type = "button";
-      closeButton.setAttribute("aria-label", "Close image preview");
+      const closeButton =
+        document.createElement(
+          "button"
+        );
+
+      closeButton.type =
+        "button";
+
+      closeButton.setAttribute(
+        "aria-label",
+        "Close image preview"
+      );
+
       closeButton.className =
-        "absolute end-4 top-4 rounded p-2 text-3xl leading-none text-white";
-      closeButton.innerHTML = "&#10005;";
-      closeButton.addEventListener("click", close);
+        "btn btn-circle absolute end-4 top-4 bg-black/40 text-xl text-white hover:bg-black/60";
 
-      const image = document.createElement("img");
-      image.src = src;
-      image.alt = "";
+      closeButton.innerHTML =
+        "&#10005;";
+
+      closeButton.addEventListener(
+        "click",
+        close
+      );
+
+      const image =
+        document.createElement(
+          "img"
+        );
+
+      image.src =
+        src;
+
+      image.alt =
+        "";
+
       image.className =
         "max-h-[90dvh] max-w-[90dvw] cursor-default object-contain";
 
-      overlay.append(closeButton, image);
-      overlay.addEventListener("click", e => {
-        if (e.target === overlay && currentScale <= 1) close();
-      });
+      overlay.append(
+        closeButton,
+        image
+      );
 
-      let currentScale = 1;
-      let translateX = 0;
-      let translateY = 0;
-      let initialDist = 0;
-      let initialScale = 1;
-      let panStartX = 0;
-      let panStartY = 0;
-      let panStartTranslateX = 0;
-      let panStartTranslateY = 0;
-      let lastTapTime = 0;
+      let currentScale =
+        1;
+
+      let translateX =
+        0;
+
+      let translateY =
+        0;
+
+      let initialDist =
+        0;
+
+      let initialScale =
+        1;
+
+      let panStartX =
+        0;
+
+      let panStartY =
+        0;
+
+      let panStartTranslateX =
+        0;
+
+      let panStartTranslateY =
+        0;
+
+      let lastTapTime =
+        0;
+
+      overlay.addEventListener(
+        "click",
+        event => {
+          if (
+            event.target ===
+              overlay &&
+            currentScale <= 1
+          ) {
+            close();
+          }
+        }
+      );
 
       function applyTransform() {
-        image.style.transform = `scale(${currentScale}) translate(${translateX}px, ${translateY}px)`;
+        image.style.transform =
+          `scale(${currentScale}) translate(${translateX}px, ${translateY}px)`;
       }
 
       function resetTransform() {
-        currentScale = 1;
-        translateX = 0;
-        translateY = 0;
-        image.style.transform = "";
+        currentScale =
+          1;
+
+        translateX =
+          0;
+
+        translateY =
+          0;
+
+        image.style.transform =
+          "";
       }
 
       overlay.addEventListener(
         "touchstart",
-        e => {
-          const t = e.touches;
-          if (t.length === 2) {
-            initialDist = Math.hypot(
-              t[1].clientX - t[0].clientX,
-              t[1].clientY - t[0].clientY
-            );
-            initialScale = currentScale;
-          } else if (t.length === 1) {
-            const now = Date.now();
-            if (now - lastTapTime < 300) {
-              e.preventDefault();
-              if (currentScale > 1) {
-                resetTransform();
-              } else {
-                currentScale = 2;
-                translateX = 0;
-                translateY = 0;
-                applyTransform();
-              }
-              lastTapTime = 0;
-              panStartX = t[0].clientX;
-              panStartY = t[0].clientY;
-              panStartTranslateX = translateX;
-              panStartTranslateY = translateY;
+        event => {
+          const touches =
+            event.touches;
+
+          if (
+            touches.length ===
+            2
+          ) {
+            initialDist =
+              Math.hypot(
+                touches[1].clientX -
+                  touches[0].clientX,
+                touches[1].clientY -
+                  touches[0].clientY
+              );
+
+            initialScale =
+              currentScale;
+
+            return;
+          }
+
+          if (
+            touches.length !==
+            1
+          ) {
+            return;
+          }
+
+          const now =
+            Date.now();
+
+          if (
+            now -
+              lastTapTime <
+            300
+          ) {
+            event.preventDefault();
+
+            if (
+              currentScale >
+              1
+            ) {
+              resetTransform();
             } else {
-              lastTapTime = now;
-              if (currentScale > 1) {
-                panStartX = t[0].clientX;
-                panStartY = t[0].clientY;
-                panStartTranslateX = translateX;
-                panStartTranslateY = translateY;
-              }
+              currentScale =
+                2;
+
+              translateX =
+                0;
+
+              translateY =
+                0;
+
+              applyTransform();
             }
+
+            lastTapTime =
+              0;
+
+            panStartX =
+              touches[0].clientX;
+
+            panStartY =
+              touches[0].clientY;
+
+            panStartTranslateX =
+              translateX;
+
+            panStartTranslateY =
+              translateY;
+
+            return;
+          }
+
+          lastTapTime =
+            now;
+
+          if (
+            currentScale >
+            1
+          ) {
+            panStartX =
+              touches[0].clientX;
+
+            panStartY =
+              touches[0].clientY;
+
+            panStartTranslateX =
+              translateX;
+
+            panStartTranslateY =
+              translateY;
           }
         },
-        { passive: false }
+        {
+          passive: false,
+        }
       );
 
       overlay.addEventListener(
         "touchmove",
-        e => {
-          const t = e.touches;
-          if (t.length === 2) {
-            e.preventDefault();
-            const dist = Math.hypot(
-              t[1].clientX - t[0].clientX,
-              t[1].clientY - t[0].clientY
-            );
-            currentScale = Math.min(
-              4,
-              Math.max(1, initialScale * (dist / initialDist))
-            );
-            applyTransform();
-          } else if (t.length === 1) {
-            if (currentScale > 1) {
-              e.preventDefault();
-              translateX =
-                panStartTranslateX + (t[0].clientX - panStartX) / currentScale;
-              translateY =
-                panStartTranslateY + (t[0].clientY - panStartY) / currentScale;
-              const maxX = Math.max(
-                0,
-                (image.clientWidth - overlay.clientWidth / currentScale) / 2
-              );
-              const maxY = Math.max(
-                0,
-                (image.clientHeight - overlay.clientHeight / currentScale) / 2
-              );
-              translateX = Math.min(maxX, Math.max(-maxX, translateX));
-              translateY = Math.min(maxY, Math.max(-maxY, translateY));
-              applyTransform();
-            } else {
-              e.preventDefault();
+        event => {
+          const touches =
+            event.touches;
+
+          if (
+            touches.length ===
+            2
+          ) {
+            event.preventDefault();
+
+            if (
+              initialDist <= 0
+            ) {
+              return;
             }
+
+            const dist =
+              Math.hypot(
+                touches[1].clientX -
+                  touches[0].clientX,
+                touches[1].clientY -
+                  touches[0].clientY
+              );
+
+            currentScale =
+              Math.min(
+                4,
+                Math.max(
+                  1,
+                  initialScale *
+                    (dist /
+                      initialDist)
+                )
+              );
+
+            applyTransform();
+
+            return;
+          }
+
+          if (
+            touches.length !==
+            1
+          ) {
+            return;
+          }
+
+          if (
+            currentScale >
+            1
+          ) {
+            event.preventDefault();
+
+            translateX =
+              panStartTranslateX +
+              (touches[0].clientX -
+                panStartX) /
+                currentScale;
+
+            translateY =
+              panStartTranslateY +
+              (touches[0].clientY -
+                panStartY) /
+                currentScale;
+
+            const maxX =
+              Math.max(
+                0,
+                (
+                  image.clientWidth -
+                  overlay.clientWidth /
+                    currentScale
+                ) / 2
+              );
+
+            const maxY =
+              Math.max(
+                0,
+                (
+                  image.clientHeight -
+                  overlay.clientHeight /
+                    currentScale
+                ) / 2
+              );
+
+            translateX =
+              Math.min(
+                maxX,
+                Math.max(
+                  -maxX,
+                  translateX
+                )
+              );
+
+            translateY =
+              Math.min(
+                maxY,
+                Math.max(
+                  -maxY,
+                  translateY
+                )
+              );
+
+            applyTransform();
           }
         },
-        { passive: false }
+        {
+          passive: false,
+        }
       );
 
-      overlay.addEventListener("touchend", e => {
-        if (e.touches.length === 0 && currentScale <= 1.05) {
-          resetTransform();
+      overlay.addEventListener(
+        "touchend",
+        event => {
+          if (
+            event.touches.length ===
+              0 &&
+            currentScale <=
+              1.05
+          ) {
+            resetTransform();
+          }
         }
-      });
+      );
 
-      overlay.addEventListener("touchcancel", e => {
-        if (e.touches.length === 0 && currentScale <= 1.05) {
-          resetTransform();
+      overlay.addEventListener(
+        "touchcancel",
+        event => {
+          if (
+            event.touches.length ===
+              0 &&
+            currentScale <=
+              1.05
+          ) {
+            resetTransform();
+          }
         }
-      });
+      );
 
-      document.body.appendChild(overlay);
-      document.body.style.overflow = "hidden";
-      document.addEventListener("keydown", onKeyDown);
-      window.__closeLightbox = close;
+      document.body.appendChild(
+        overlay
+      );
 
-      requestAnimationFrame(() => overlay?.classList.add("opacity-100"));
+      document.body.style.overflow =
+        "hidden";
+
+      document.addEventListener(
+        "keydown",
+        onKeyDown
+      );
+
+      window.__closeLightbox =
+        close;
+
+      requestAnimationFrame(
+        () => {
+          if (overlay) {
+            overlay.classList.add(
+              "opacity-100"
+            );
+          }
+        }
+      );
+
       closeButton.focus();
     }
 
     function close() {
-      if (!overlay) return;
-      const el = overlay;
-      overlay = null;
-      window.__closeLightbox = null;
-
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-      lastFocused?.focus();
-      lastFocused = null;
-
-      if (prefersReducedMotion()) {
-        el.remove();
+      if (!overlay) {
         return;
       }
-      const remove = () => el.remove();
-      el.addEventListener("transitionend", remove, { once: true });
-      setTimeout(remove, 250); // fallback in case transitionend never fires
-      el.classList.remove("opacity-100");
+
+      const element =
+        overlay;
+
+      overlay =
+        null;
+
+      window.__closeLightbox =
+        undefined;
+
+      document.removeEventListener(
+        "keydown",
+        onKeyDown
+      );
+
+      document.body.style.overflow =
+        "";
+
+      if (
+        lastFocused &&
+        typeof lastFocused.focus ===
+          "function"
+      ) {
+        lastFocused.focus();
+      }
+
+      lastFocused =
+        null;
+
+      if (
+        prefersReducedMotion()
+      ) {
+        element.remove();
+        return;
+      }
+
+      const remove =
+        function () {
+          element.remove();
+        };
+
+      element.addEventListener(
+        "transitionend",
+        remove,
+        {
+          once: true,
+        }
+      );
+
+      setTimeout(
+        remove,
+        250
+      );
+
+      element.classList.remove(
+        "opacity-100"
+      );
     }
 
-    function onKeyDown(e) {
-      if (e.key === "Escape") {
+    function onKeyDown(
+      event
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
         close();
-      } else if (e.key === "Tab") {
-        trapFocus(e);
+        return;
+      }
+
+      if (
+        event.key ===
+        "Tab"
+      ) {
+        trapFocus(event);
       }
     }
 
-    // Keep keyboard focus inside the open dialog.
-    function trapFocus(e) {
-      if (!overlay) return;
-      const focusables = overlay.querySelectorAll(
-        'a[href], button, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
+    function trapFocus(
+      event
+    ) {
+      if (!overlay) {
+        return;
+      }
+
+      const focusables =
+        Array.from(
+          overlay.querySelectorAll(
+            'a[href], button, [tabindex]:not([tabindex="-1"])'
+          )
+        );
+
+      if (
+        focusables.length ===
+        0
+      ) {
+        return;
+      }
+
+      const first =
+        focusables[0];
+
+      const last =
+        focusables[
+          focusables.length - 1
+        ];
+
+      if (
+        event.shiftKey &&
+        document.activeElement ===
+          first
+      ) {
+        event.preventDefault();
+
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement ===
+          last
+      ) {
+        event.preventDefault();
+
         first.focus();
       }
     }
 
-    function triggerFromEvent(e) {
-      const image = e.target.closest("img");
-      if (!image || !article.contains(image) || image.closest("a")) return null;
+    function triggerFromEvent(
+      event
+    ) {
+      const target =
+        event.target;
+
+      if (
+        !(target instanceof
+          Element)
+      ) {
+        return null;
+      }
+
+      const image =
+        target.closest("img");
+
+      if (
+        !image ||
+        !article.contains(
+          image
+        ) ||
+        image.closest("a")
+      ) {
+        return null;
+      }
+
       return image;
     }
 
-    function activate(image) {
-      open(image.currentSrc || image.src, image.alt, image);
+    function activate(
+      image
+    ) {
+      open(
+        image.currentSrc ||
+          image.src,
+        image.alt,
+        image
+      );
     }
 
-    article.addEventListener("click", e => {
-      const image = triggerFromEvent(e);
-      if (!image) return;
-      e.preventDefault();
-      activate(image);
-    });
+    const images =
+      Array.from(
+        article.querySelectorAll(
+          "img"
+        )
+      );
 
-    article.addEventListener("keydown", e => {
-      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
-      const image = triggerFromEvent(e);
-      if (!image) return;
-      e.preventDefault();
-      activate(image);
-    });
-  }
-  initLightbox();
+    for (
+      const image of images
+    ) {
+      if (
+        image.closest("a")
+      ) {
+        continue;
+      }
 
-  if (!window.__lightboxSwapBound) {
-    window.__lightboxSwapBound = true;
-    document.addEventListener("astro:before-swap", () =>
-      window.__closeLightbox?.()
+      image.setAttribute(
+        "role",
+        "button"
+      );
+
+      image.setAttribute(
+        "tabindex",
+        "0"
+      );
+
+      image.setAttribute(
+        "aria-haspopup",
+        "dialog"
+      );
+
+      image.setAttribute(
+        "aria-label",
+        image.alt
+          ? `Zoom image: ${image.alt}`
+          : "Zoom image"
+      );
+    }
+
+    article.addEventListener(
+      "click",
+      event => {
+        const image =
+          triggerFromEvent(
+            event
+          );
+
+        if (!image) {
+          return;
+        }
+
+        event.preventDefault();
+
+        activate(image);
+      }
+    );
+
+    article.addEventListener(
+      "keydown",
+      event => {
+        if (
+          event.key !==
+            "Enter" &&
+          event.key !==
+            " " &&
+          event.key !==
+            "Spacebar"
+        ) {
+          return;
+        }
+
+        const image =
+          triggerFromEvent(
+            event
+          );
+
+        if (!image) {
+          return;
+        }
+
+        event.preventDefault();
+
+        activate(image);
+      }
     );
   }
 
-  document.addEventListener("astro:after-swap", () =>
-    window.scrollTo({ left: 0, top: 0, behavior: "instant" })
-  );
+  initLightbox();
+
+  /*
+   * ============================
+   * Astro View Transitions
+   * ============================
+   */
+
+  if (
+    !window.__articlePageEventsBound
+  ) {
+    window.__articlePageEventsBound =
+      true;
+
+    document.addEventListener(
+      "astro:before-swap",
+      event => {
+        if (
+          window.__articleProgressCleanup
+        ) {
+          window.__articleProgressCleanup();
+        }
+
+        if (
+          window.__closeLightbox
+        ) {
+          window.__closeLightbox();
+        }
+
+        const color =
+          document
+            .querySelector(
+              "meta[name='theme-color']"
+            )
+            ?.getAttribute(
+              "content"
+            );
+
+        if (
+          color &&
+          event.newDocument
+        ) {
+          event.newDocument
+            .querySelector(
+              "meta[name='theme-color']"
+            )
+            ?.setAttribute(
+              "content",
+              color
+            );
+        }
+      }
+    );
+
+    document.addEventListener(
+      "astro:after-swap",
+      () => {
+        window.scrollTo({
+          left: 0,
+          top: 0,
+          behavior: "instant",
+        });
+      }
+    );
+  }
 </script>
