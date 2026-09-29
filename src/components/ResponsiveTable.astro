@@ -1,38 +1,26 @@
 ---
 type Props = {
   class?: string;
-  variant?:
-    | "minimal"
-    | "striped"
-    | "striped-minimal";
+  variant?: "minimal" | "striped" | "striped-minimal";
 };
 
-const {
-  class: className,
-  variant = "minimal",
-} = Astro.props;
+const { class: className, variant = "minimal" } = Astro.props;
 
-const isStriped =
-  variant === "striped" ||
-  variant === "striped-minimal";
+const isStriped = variant === "striped" || variant === "striped-minimal";
 ---
 
 <div
-  class:list={[
-    "w-full overflow-hidden",
-    className,
-  ]}
+  class:list={["w-full overflow-hidden", className]}
   data-table-variant={variant}
 >
-  <div class="overflow-x-auto rounded-box border border-base-300">
+  <div class="rounded-box border-base-300 overflow-x-auto border">
     <table
       class:list={[
         "table w-full",
         { "table-zebra": isStriped },
         {
           "[&_td]:border-0 [&_th]:border-0":
-            variant === "minimal" ||
-            variant === "striped-minimal",
+            variant === "minimal" || variant === "striped-minimal",
         },
       ]}
     >

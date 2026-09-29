@@ -10,7 +10,10 @@ import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
 
 import { postFilter } from "@/utils/postFilter";
-import { getPostsByGroupCondition } from "./_utils/getPostsByGroupCondition";
+import {
+  getPostsByGroupCondition,
+  getTopTagsInGroup,
+} from "./_utils/getPostsByGroupCondition";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -33,11 +36,20 @@ const monthFormatter = new Intl.DateTimeFormat(locale, {
 });
 
 const postsByYear = Object.entries(
-  getPostsByGroupCondition(
-    filteredPosts,
-    post => post.data.pubDatetime.getFullYear()
+  getPostsByGroupCondition(filteredPosts, post =>
+    post.data.pubDatetime.getFullYear()
   )
 ).sort(([yearA], [yearB]) => Number(yearB) - Number(yearA));
+
+/**
+ * 每年的标签小结。
+ *
+ * 只算一次而不是放在模板的循环里算 ——
+ * 模板里对同一个年份可能渲染多次，重复统计是浪费。
+ */
+const topTagsByYear = new Map(
+  postsByYear.map(([year, yearGroup]) => [year, getTopTagsInGroup(yearGroup)])
+);
 ---
 
 <Layout title={`${t.pages.archivesTitle} | ${config.site.title}`}>
@@ -45,10 +57,7 @@ const postsByYear = Object.entries(
 
   <Breadcrumb />
 
-  <Main
-    pageTitle={t.pages.archivesTitle}
-    pageDesc={t.pages.archivesDesc}
-  >
+  <Main pageTitle={t.pages.archivesTitle} pageDesc={t.pages.archivesDesc}>
     <div class="space-y-12">
       {
         postsByYear.map(([year, yearGroup]) => {
@@ -57,17 +66,12 @@ const postsByYear = Object.entries(
               yearGroup,
               post => post.data.pubDatetime.getMonth() + 1
             )
-          ).sort(
-            ([monthA], [monthB]) =>
-              Number(monthB) - Number(monthA)
-          );
+          ).sort(([monthA], [monthB]) => Number(monthB) - Number(monthA));
 
           return (
-            <section
-              aria-labelledby={`archive-year-${year}`}
-            >
-              <!-- Year header -->
-              <div class="mb-6 flex items-end gap-3">
+            <section aria-labelledby={`archive-year-${year}`}>
+              {/* Year header */}
+              <div class="mb-6 flex flex-wrap items-center gap-3">
                 <h2
                   id={`archive-year-${year}`}
                   class="text-3xl font-black tracking-tight sm:text-4xl"
@@ -75,74 +79,71 @@ const postsByYear = Object.entries(
                   {year}
                 </h2>
 
-                <span class="badge badge-neutral badge-sm mb-1">
+                <span class="badge badge-neutral badge-sm">
                   {yearGroup.length}
                 </span>
+
+                {/* 这一年的标签小结：让读者一眼看出主题分布 */}
+                {(topTagsByYear.get(year) ?? []).length > 0 && (
+                  <span class="text-base-content/50 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    {(topTagsByYear.get(year) ?? []).map(({ tag, tagName }) => (
+                      <a
+                        href={getRelativeLocaleUrl(locale, `tags/${tag}/`)}
+                        class="link link-hover"
+                      >
+                        #{tagName}
+                      </a>
+                    ))}
+                  </span>
+                )}
               </div>
 
-              <!-- Timeline -->
+              {/* Timeline */}
               <ul class="timeline timeline-vertical max-md:timeline-compact">
-                {
-                  postsByMonth.map(
-                    ([month, monthGroup], monthIndex) => {
-                      const sortedMonthPosts = [...monthGroup].sort(
-                        (a, b) =>
-                          new Date(
-                            b.data.pubDatetime
-                          ).getTime() -
-                          new Date(
-                            a.data.pubDatetime
-                          ).getTime()
-                      );
+                {postsByMonth.map(([month, monthGroup], monthIndex) => {
+                  const sortedMonthPosts = [...monthGroup].sort(
+                    (a, b) =>
+                      new Date(b.data.pubDatetime).getTime() -
+                      new Date(a.data.pubDatetime).getTime()
+                  );
 
-                      const monthName = monthFormatter.format(
-                        new Date(
-                          2000,
-                          Number(month) - 1,
-                          1
-                        )
-                      );
+                  const monthName = monthFormatter.format(
+                    new Date(2000, Number(month) - 1, 1)
+                  );
 
-                      return (
-                        <li>
-                          <!-- Timeline point -->
-                          <div class="timeline-middle">
-                            <div class="size-3 rounded-full bg-primary ring-4 ring-base-100"></div>
-                          </div>
+                  return (
+                    <li>
+                      {/* Timeline point */}
+                      <div class="timeline-middle">
+                        <div class="bg-primary ring-base-100 size-3 rounded-full ring-4" />
+                      </div>
 
-                          <!-- Month -->
-                          <div class="timeline-end mb-8 w-full max-w-none md:mb-10 md:w-[calc(100%-2rem)]">
-                            <div class="mb-4 flex items-center gap-2">
-                              <h3 class="text-lg font-bold sm:text-xl">
-                                {monthName}
-                              </h3>
+                      {/* Month */}
+                      <div class="timeline-end mb-8 w-full max-w-none md:mb-10 md:w-[calc(100%-2rem)]">
+                        <div class="mb-4 flex items-center gap-2">
+                          <h3 class="text-lg font-bold sm:text-xl">
+                            {monthName}
+                          </h3>
 
-                              <span class="badge badge-ghost badge-sm">
-                                {monthGroup.length}
-                              </span>
-                            </div>
+                          <span class="badge badge-ghost badge-sm">
+                            {monthGroup.length}
+                          </span>
+                        </div>
 
-                            <ul class="space-y-4 sm:space-y-5">
-                              {
-                                sortedMonthPosts.map(data => (
-                                  <Card {...data} />
-                                ))
-                              }
-                            </ul>
-                          </div>
+                        <ul class="space-y-4 sm:space-y-5">
+                          {sortedMonthPosts.map(data => (
+                            <Card {...data} />
+                          ))}
+                        </ul>
+                      </div>
 
-                          <!-- Timeline line -->
-                          {
-                            monthIndex <
-                              postsByMonth.length - 1 && (
-                              <hr class="bg-base-300" />
-                            )
-                          }
-                        </li>
-                      );
-                    }
-                  )
-                }
+                      {/* Timeline line */}
+                      {monthIndex < postsByMonth.length - 1 && (
+                        <hr class="bg-base-300" />
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           );

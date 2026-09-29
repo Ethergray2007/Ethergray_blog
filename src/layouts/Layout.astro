@@ -45,8 +45,6 @@ const rssHref = getRelativeLocaleUrl(
 
     <link rel="icon" type="image/svg+xml" href={getAssetPath("favicon.svg")} />
 
-    <link rel="icon" href={getAssetPath("favicon.ico")} />
-
     <link rel="canonical" href={canonicalURL} />
 
     <meta name="generator" content={Astro.generator} />
@@ -138,6 +136,8 @@ const rssHref = getRelativeLocaleUrl(
 
         root.classList.toggle("dark", theme === "dark");
 
+        // 主题按钮在 body 里，此时还没解析到，所以先记在全局变量上，
+        // 由 src/scripts/theme.ts 在初始化时读取并同步 aria-pressed。
         window.__theme = {
           value: theme,
         };

@@ -9,12 +9,10 @@
     h3,
     h4,
     th {
-      @apply mb-3 text-base-content;
+      @apply text-base-content mb-3;
     }
 
-    h3 {
-      @apply italic;
-    }
+    /* 小标题保持直体：站点以中文为主，中文斜体观感较差 */
 
     p,
     strong,
@@ -27,7 +25,7 @@
     }
 
     a {
-      @apply wrap-break-word text-base-content underline decoration-dashed underline-offset-4 hover:text-primary focus-visible:no-underline;
+      @apply text-base-content hover:text-primary wrap-break-word underline decoration-dashed underline-offset-4 focus-visible:no-underline;
     }
 
     ul {
@@ -43,14 +41,14 @@
     }
 
     img {
-      @apply mx-auto border border-base-300;
+      @apply border-base-300 mx-auto border;
     }
 
     img[role="button"] {
       @apply cursor-zoom-in;
 
       &:focus-visible {
-        @apply outline-2 outline-offset-2 outline-dashed outline-primary;
+        @apply outline-primary outline-2 outline-offset-2 outline-dashed;
       }
     }
 
@@ -61,7 +59,7 @@
     table {
       th,
       td {
-        @apply border border-base-300 p-2;
+        @apply border-base-300 border p-2;
       }
 
       th {
@@ -70,7 +68,7 @@
     }
 
     code {
-      @apply wrap-break-word rounded bg-base-200 p-1 text-base-content before:content-none after:content-none;
+      @apply bg-base-200 text-base-content rounded p-1 wrap-break-word before:content-none after:content-none;
     }
 
     .astro-code code {
@@ -78,25 +76,25 @@
     }
 
     blockquote {
-      @apply wrap-break-word border-s-primary/80 text-base-content/70;
+      @apply border-s-primary/80 text-base-content/70 wrap-break-word;
     }
 
     details:not(.callout) {
-      @apply inline-block cursor-pointer select-none text-base-content [&_p]:hidden [&_ul]:my-0!;
+      @apply text-base-content inline-block cursor-pointer select-none [&_p]:hidden [&_ul]:my-0!;
     }
 
     summary {
-      @apply focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dashed focus-visible:outline-primary focus-visible:no-underline;
+      @apply focus-visible:outline-primary focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dashed;
     }
 
     pre {
-      @apply focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed focus-visible:outline-primary;
+      @apply focus-visible:outline-primary focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
   }
 
   /* Code blocks / Shiki */
   .astro-code {
-    @apply flex border border-base-300 bg-(--shiki-light-bg) text-(--shiki-light) [&_span]:text-(--shiki-light);
+    @apply border-base-300 flex border bg-(--shiki-light-bg) text-(--shiki-light) [&_span]:text-(--shiki-light);
   }
 
   html[data-theme="dark"] .astro-code {
@@ -118,7 +116,7 @@
     }
 
     .highlighted-word {
-      @apply rounded-sm border border-base-300 px-0.5 py-px;
+      @apply border-base-300 rounded-sm border px-0.5 py-px;
     }
   }
 }

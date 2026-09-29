@@ -19,7 +19,7 @@ const t = useTranslations(Astro.currentLocale);
     data-button="back-to-top"
     class:list={[
       "group relative px-2 py-1",
-      "size-14 rounded-full bg-base-100 shadow-xl",
+      "bg-base-100 size-14 rounded-full shadow-xl",
       "md:h-8 md:w-fit md:rounded-md md:shadow-none",
       "md:focus-visible:rounded-none",
       "md:bg-base-100/60 md:bg-clip-padding md:backdrop-blur-lg",
@@ -31,9 +31,7 @@ const t = useTranslations(Astro.currentLocale);
       class="absolute inset-0 -z-10 block size-14 scale-110 rounded-full bg-transparent md:hidden md:h-8 md:rounded-md"
     ></span>
 
-    <IconArrowLeft
-      class="inline-block rotate-90 md:hidden"
-    />
+    <IconArrowLeft class="inline-block rotate-90 md:hidden" />
 
     <span class="sr-only text-sm md:not-sr-only">
       <IconArrowNarrowUp class="inline-block size-4" />
@@ -45,25 +43,13 @@ const t = useTranslations(Astro.currentLocale);
 <script is:inline data-astro-rerun>
   function backToTop() {
     const rootElement = document.documentElement;
-    const btnContainer =
-      document.querySelector("#btt-btn-container");
+    const btnContainer = document.querySelector("#btt-btn-container");
 
-    const backToTopBtn =
-      document.querySelector(
-        "[data-button='back-to-top']"
-      );
+    const backToTopBtn = document.querySelector("[data-button='back-to-top']");
 
-    const progressIndicator =
-      document.querySelector(
-        "#progress-indicator"
-      );
+    const progressIndicator = document.querySelector("#progress-indicator");
 
-    if (
-      !rootElement ||
-      !btnContainer ||
-      !backToTopBtn ||
-      !progressIndicator
-    ) {
+    if (!rootElement || !btnContainer || !backToTopBtn || !progressIndicator) {
       return;
     }
 
@@ -83,25 +69,17 @@ const t = useTranslations(Astro.currentLocale);
     let lastVisible = false;
 
     function handleScroll() {
-      const scrollTotal =
-        rootElement.scrollHeight -
-        rootElement.clientHeight;
+      const scrollTotal = rootElement.scrollHeight - rootElement.clientHeight;
 
       if (scrollTotal <= 0) {
         return;
       }
 
-      const scrollTop =
-        rootElement.scrollTop;
+      const scrollTop = rootElement.scrollTop;
 
       const scrollPercent = Math.min(
         100,
-        Math.max(
-          0,
-          Math.floor(
-            (scrollTop / scrollTotal) * 100
-          )
-        )
+        Math.max(0, Math.floor((scrollTop / scrollTotal) * 100))
       );
 
       progressIndicator.style.setProperty(
@@ -109,32 +87,19 @@ const t = useTranslations(Astro.currentLocale);
         `conic-gradient(var(--color-primary), var(--color-primary) ${scrollPercent}%, transparent ${scrollPercent}%)`
       );
 
-      const isVisible =
-        scrollTop / scrollTotal > 0.3;
+      const isVisible = scrollTop / scrollTotal > 0.3;
 
       if (isVisible === lastVisible) {
         return;
       }
 
-      btnContainer.classList.toggle(
-        "opacity-100",
-        isVisible
-      );
+      btnContainer.classList.toggle("opacity-100", isVisible);
 
-      btnContainer.classList.toggle(
-        "translate-y-0",
-        isVisible
-      );
+      btnContainer.classList.toggle("translate-y-0", isVisible);
 
-      btnContainer.classList.toggle(
-        "opacity-0",
-        !isVisible
-      );
+      btnContainer.classList.toggle("opacity-0", !isVisible);
 
-      btnContainer.classList.toggle(
-        "translate-y-14",
-        !isVisible
-      );
+      btnContainer.classList.toggle("translate-y-14", !isVisible);
 
       lastVisible = isVisible;
     }

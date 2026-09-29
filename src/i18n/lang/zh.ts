@@ -8,11 +8,14 @@ export default {
     about: "关于",
     archives: "归档",
     search: "搜索",
+    now: "近况",
   },
 
   post: {
     publishedAt: "发表于",
     updatedAt: "更新于",
+    readingTime: "约 {{minutes}} 分钟阅读",
+    toc: "目录",
     sharePostIntro: "分享这篇文章：",
     sharePostOn: "分享到 {{platform}}",
     sharePostViaEmail: "通过邮件分享这篇文章",
@@ -32,13 +35,23 @@ export default {
 
   home: {
     socialLinks: "社交链接",
+    badge: "博客",
+    heroTitle: "欢迎",
+    heroLead: "欢迎来到我的博客。",
+    heroMore:
+      "这里记录算法、编程、图形学学习过程，以及值得长期保留的技术内容。",
+    viewReadme: "查看 README",
+    viewProfile: "个人主页",
     featured: "精选文章",
+    featuredDesc: "值得优先阅读的文章",
     recentPosts: "最近文章",
+    recentPostsDesc: "最近更新的文章",
     allPosts: "全部文章",
   },
 
   footer: {
     copyright: "版权所有",
+    copyrightLine: "版权所有 © {{year}} {{author}}",
     allRightsReserved: "保留所有权利。",
   },
 
@@ -57,6 +70,9 @@ export default {
 
     searchTitle: "搜索",
     searchDesc: "搜索文章……",
+
+    nowTitle: "近况",
+    nowDesc: "我现在在做什么、在学什么。",
   },
 
   a11y: {

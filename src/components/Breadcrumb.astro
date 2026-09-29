@@ -8,18 +8,11 @@ import config from "@/config";
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
-const pathWithoutBase = stripBase(Astro.url.pathname)
-  .replace(/\/+$/, "");
+const pathWithoutBase = stripBase(Astro.url.pathname).replace(/\/+$/, "");
 
-const currentUrlPath = stripLocale(
-  pathWithoutBase,
-  locale
-);
+const currentUrlPath = stripLocale(pathWithoutBase, locale);
 
-const breadcrumbList = currentUrlPath
-  .split("/")
-  .slice(1)
-  .filter(Boolean);
+const breadcrumbList = currentUrlPath.split("/").slice(1).filter(Boolean);
 
 const decodeSegment = (value: string) => {
   try {
@@ -33,6 +26,7 @@ const navLabels: Record<string, string> = {
   posts: t.nav.posts,
   tags: t.nav.tags,
   about: t.nav.about,
+  now: t.nav.now,
   archives: t.nav.archives,
   search: t.nav.search,
 };
@@ -41,16 +35,11 @@ if (breadcrumbList[0] === "posts") {
   breadcrumbList.splice(
     0,
     2,
-    `${t.nav.posts} (${
-      t.pagination.page.toLowerCase()
-    } ${breadcrumbList[1] || 1})`
+    `${t.nav.posts} (${t.pagination.page.toLowerCase()} ${breadcrumbList[1] || 1})`
   );
 }
 
-if (
-  breadcrumbList[0] === "tags" &&
-  !isNaN(Number(breadcrumbList[2]))
-) {
+if (breadcrumbList[0] === "tags" && !isNaN(Number(breadcrumbList[2]))) {
   breadcrumbList.splice(
     1,
     3,
@@ -63,47 +52,32 @@ if (
 }
 ---
 
-<nav
-  class="breadcrumbs app-layout mt-6 mb-2 text-sm"
-  aria-label="breadcrumb"
->
+<nav class="breadcrumbs app-layout mt-6 mb-2 text-sm" aria-label="breadcrumb">
   <ul>
     <!-- Home -->
     <li>
-      <a
-        href={getRelativeLocaleUrl(locale, "")}
-        class="link link-hover"
-      >
+      <a href={getRelativeLocaleUrl(locale, "")} class="link link-hover">
         {t.nav.home}
       </a>
     </li>
 
     {
       breadcrumbList.map((breadcrumb, index) => {
-        const isLast =
-          index + 1 === breadcrumbList.length;
+        const isLast = index + 1 === breadcrumbList.length;
 
         return isLast ? (
           <li>
-            <span
-              class="opacity-70"
-              aria-current="page"
-            >
-              {navLabels[breadcrumb] ??
-                decodeSegment(breadcrumb)}
+            <span class="opacity-70" aria-current="page">
+              {navLabels[breadcrumb] ?? decodeSegment(breadcrumb)}
             </span>
           </li>
         ) : (
           <li>
             <a
-              href={getRelativeLocaleUrl(
-                locale,
-                breadcrumb
-              )}
+              href={getRelativeLocaleUrl(locale, breadcrumb)}
               class="link link-hover"
             >
-              {navLabels[breadcrumb] ??
-                decodeSegment(breadcrumb)}
+              {navLabels[breadcrumb] ?? decodeSegment(breadcrumb)}
             </a>
           </li>
         );

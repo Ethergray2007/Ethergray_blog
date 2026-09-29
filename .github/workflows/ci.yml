@@ -43,5 +43,12 @@ jobs:
       - name: "📝 Check code format"
         run: npm run format:check
 
+      # 单独列出来，而不是只依赖 build 里的 astro check：
+      # 这样失败时能一眼看出是"类型错了"还是"构建挂了"。
+      # 注意顺序和 AGENTS.md 里写的一致 —— 快的先跑，
+      # format:check 能抓到 astro check 和 build 都抓不到的错。
+      - name: "🧪 Type check"
+        run: npx astro check
+
       - name: "🚀 Build the project"
         run: npm run build

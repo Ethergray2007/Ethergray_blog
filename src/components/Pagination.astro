@@ -31,9 +31,7 @@ const t = useTranslations(Astro.currentLocale);
             aria-label={t.a11y.goToPreviousPage}
           >
             <IconArrowLeft class="size-4 rtl:rotate-180" />
-            <span class="hidden sm:inline">
-              {t.pagination.prev}
-            </span>
+            <span class="hidden sm:inline">{t.pagination.prev}</span>
           </a>
         ) : (
           <span
@@ -41,9 +39,7 @@ const t = useTranslations(Astro.currentLocale);
             aria-disabled="true"
           >
             <IconArrowLeft class="size-4 rtl:rotate-180" />
-            <span class="hidden sm:inline">
-              {t.pagination.prev}
-            </span>
+            <span class="hidden sm:inline">{t.pagination.prev}</span>
           </span>
         )}
 
@@ -57,9 +53,7 @@ const t = useTranslations(Astro.currentLocale);
             class="btn btn-outline join-item"
             aria-label={t.a11y.goToNextPage}
           >
-            <span class="hidden sm:inline">
-              {t.pagination.next}
-            </span>
+            <span class="hidden sm:inline">{t.pagination.next}</span>
             <IconArrowRight class="size-4 rtl:rotate-180" />
           </a>
         ) : (
@@ -67,9 +61,7 @@ const t = useTranslations(Astro.currentLocale);
             class="btn btn-outline join-item btn-disabled"
             aria-disabled="true"
           >
-            <span class="hidden sm:inline">
-              {t.pagination.next}
-            </span>
+            <span class="hidden sm:inline">{t.pagination.next}</span>
             <IconArrowRight class="size-4 rtl:rotate-180" />
           </span>
         )}

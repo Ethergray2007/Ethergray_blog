@@ -1,0 +1,13 @@
+{
+  "//": "练习册专用的 TS 配置：故意关掉 verbatimModuleSyntax，这样练习文件里可以直接写 import { Post } 而不用写 import type { Post }，降低初学门槛。",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
+    "noUnusedLocals": false,
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["./tests/**"]
+}
