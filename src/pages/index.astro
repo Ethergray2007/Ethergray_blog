@@ -22,13 +22,9 @@ const t = useTranslations(locale);
 const posts = await getCollection("posts");
 const sortedPosts = getSortedPosts(posts);
 
-const featuredPosts = sortedPosts.filter(
-  ({ data }) => data.featured
-);
+const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 
-const recentPosts = sortedPosts.filter(
-  ({ data }) => !data.featured
-);
+const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 
 const homePath = getRelativeLocaleUrl(locale, "");
 ---
@@ -45,14 +41,12 @@ const homePath = getRelativeLocaleUrl(locale, "");
     <!-- Hero -->
     <section
       id="hero"
-      class="card border border-base-300 bg-base-100 shadow-sm"
+      class="card border-base-300 bg-base-100 border shadow-sm"
     >
       <div class="card-body p-6 sm:p-8 lg:p-10">
-        <div
-          class="mb-4 flex flex-wrap items-center gap-2"
-        >
+        <div class="mb-4 flex flex-wrap items-center gap-2">
           <span class="badge badge-primary badge-soft">
-            Blog
+            {t.home.badge}
           </span>
 
           <a
@@ -71,38 +65,38 @@ const homePath = getRelativeLocaleUrl(locale, "");
         <h1
           class="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl"
         >
-          Welcome
+          {t.home.heroTitle}
         </h1>
 
         <p
-          class="mt-4 max-w-2xl text-lg leading-8 text-base-content/70 sm:text-xl"
+          class="text-base-content/70 mt-4 max-w-2xl text-lg leading-8 sm:text-xl"
         >
-          欢迎来到我的博客。
+          {t.home.heroLead}
         </p>
 
-        <p
-          class="mt-2 max-w-2xl leading-7 text-base-content/60"
-        >
-          这里记录算法、编程、图形学学习过程，以及值得长期保留的技术内容。
+        <p class="text-base-content/60 mt-2 max-w-2xl leading-7">
+          {t.home.heroMore}
         </p>
 
-        <div
-          class="mt-6 flex flex-wrap gap-3"
-        >
+        <div class="mt-6 flex flex-wrap gap-3">
           <a
             href="https://github.com/Ethergray2007/Ethergray_blog#readme"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
           >
-            查看 README
+            {t.home.viewReadme}
           </a>
 
           <a
             href={getRelativeLocaleUrl(locale, "profile")}
             class="btn btn-outline"
           >
-            个人主页
+            {t.home.viewProfile}
+          </a>
+
+          <a href={getRelativeLocaleUrl(locale, "now")} class="btn btn-outline">
+            {t.nav.now}
           </a>
         </div>
       </div>
@@ -111,18 +105,15 @@ const homePath = getRelativeLocaleUrl(locale, "");
     <!-- Featured -->
     {
       featuredPosts.length > 0 && (
-        <section
-          id="featured"
-          class="mt-10 sm:mt-12"
-        >
+        <section id="featured" class="mt-10 sm:mt-12">
           <div class="mb-5 flex items-end justify-between gap-4">
             <div>
               <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
                 {t.home.featured}
               </h2>
 
-              <p class="mt-1 text-sm text-base-content/55 sm:text-base">
-                值得优先阅读的文章
+              <p class="text-base-content/55 mt-1 text-sm sm:text-base">
+                {t.home.featuredDesc}
               </p>
             </div>
           </div>
@@ -141,24 +132,22 @@ const homePath = getRelativeLocaleUrl(locale, "");
       recentPosts.length > 0 && (
         <section
           id="recent-posts"
-          class="mt-10 border-t border-base-300 pt-10 sm:mt-12 sm:pt-12"
+          class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
         >
           <div class="mb-5">
             <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
               {t.home.recentPosts}
             </h2>
 
-            <p class="mt-1 text-sm text-base-content/55 sm:text-base">
-              最近更新的文章
+            <p class="text-base-content/55 mt-1 text-sm sm:text-base">
+              {t.home.recentPostsDesc}
             </p>
           </div>
 
           <ul>
-            {recentPosts
-              .slice(0, postsConfig.perIndex)
-              .map(data => (
-                <Card variant="h3" {...data} />
-              ))}
+            {recentPosts.slice(0, postsConfig.perIndex).map(data => (
+              <Card variant="h3" {...data} />
+            ))}
           </ul>
         </section>
       )
@@ -166,17 +155,12 @@ const homePath = getRelativeLocaleUrl(locale, "");
 
     <!-- All Posts -->
     <section
-      class="mt-8 flex justify-center border-t border-base-300 pt-8 sm:mt-10 sm:pt-10"
+      class="border-base-300 mt-8 flex justify-center border-t pt-8 sm:mt-10 sm:pt-10"
     >
-      <a
-        href={getRelativeLocaleUrl(locale, "posts")}
-        class="btn btn-outline"
-      >
+      <a href={getRelativeLocaleUrl(locale, "posts")} class="btn btn-outline">
         {t.home.allPosts}
 
-        <IconArrowRight
-          class="size-4 rtl:-rotate-180"
-        />
+        <IconArrowRight class="size-4 rtl:-rotate-180" />
       </a>
     </section>
   </main>
@@ -187,17 +171,12 @@ const homePath = getRelativeLocaleUrl(locale, "");
 <script>
   document.addEventListener("astro:page-load", () => {
     const indexLayout =
-      document.querySelector<HTMLElement>("#main-content")
-        ?.dataset;
+      document.querySelector<HTMLElement>("#main-content")?.dataset;
 
-    const baseRoot =
-      import.meta.env.BASE_URL.replace(/\/?$/, "/");
+    const baseRoot = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
     if (indexLayout?.layout) {
-      sessionStorage.setItem(
-        "backUrl",
-        indexLayout.homePath ?? baseRoot
-      );
+      sessionStorage.setItem("backUrl", indexLayout.homePath ?? baseRoot);
     }
   });
 </script>

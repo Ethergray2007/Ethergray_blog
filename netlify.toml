@@ -1,0 +1,26 @@
+# Netlify 部署配置
+# ============================================================
+# 为什么需要这个文件：
+#   不写的话，Netlify 会**自动推断**构建命令和 Node 版本。
+#   自动推断一旦变了（比如平台默认 Node 版本升级），
+#   线上构建就可能突然失败，而你在本地完全复现不出来。
+#
+#   写死之后，本地跑什么、线上就跑什么。
+
+[build]
+  # 和 package.json 里的 build 脚本保持一致：
+  #   astro check → astro build → pagefind 生成搜索索引
+  command = "npm run build"
+
+  # Astro 的输出目录
+  publish = "dist"
+
+[build.environment]
+  # 和 package.json 里 engines.node 的要求保持一致
+  # （Astro 7 需要 Node >= 22.12）
+  NODE_VERSION = "24"
+
+# 本地预览线上产物的命令：npx netlify dev
+# 想固定某个分支才部署生产环境时，可以用下面这段
+# [context.production]
+#   branch = "main"

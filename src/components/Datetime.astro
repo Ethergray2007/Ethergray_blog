@@ -2,6 +2,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import "dayjs/locale/zh-cn";
 
 import IconCalendar from "@/assets/icons/IconCalendar.svg";
 import config from "@/config";
@@ -28,14 +29,25 @@ const {
 
 const t = useTranslations(Astro.currentLocale);
 
-const isModified =
-  modDatetime && modDatetime > pubDatetime;
+/**
+ * 让日期跟着站点语言走。
+ *
+ * 原来固定用 dayjs 默认的英文格式化，中文站点上会出现“7 1月, 2022”
+ * 这种中英混杂的写法。这里根据当前 locale 显式切换 dayjs 语言。
+ */
+const dayjsLocale =
+  (Astro.currentLocale ?? config.site.lang) === "zh" ? "zh-cn" : "en";
 
-const datetime = dayjs(
-  isModified ? modDatetime : pubDatetime
-).tz(postTimezone ?? config.site.timezone);
+/** 中文用“2026年9月25日”，其他语言用 dayjs 默认的“25 Sep, 2026” */
+const dateFormat = dayjsLocale === "zh-cn" ? "YYYY年M月D日" : "D MMM, YYYY";
 
-const date = datetime.format("D MMM, YYYY");
+const isModified = modDatetime && modDatetime > pubDatetime;
+
+const datetime = dayjs(isModified ? modDatetime : pubDatetime)
+  .tz(postTimezone ?? config.site.timezone)
+  .locale(dayjsLocale);
+
+const date = datetime.format(dateFormat);
 ---
 
 <div class:list={[className]}>
@@ -49,20 +61,9 @@ const date = datetime.format("D MMM, YYYY");
     ]}
     datetime={datetime.toISOString()}
   >
-    <IconCalendar
-      class:list={[
-        "size-4",
-        { "size-5": size === "lg" },
-      ]}
-    />
+    <IconCalendar class:list={["size-4", { "size-5": size === "lg" }]} />
 
-    {
-      isModified && (
-        <span>
-          {t.post.updatedAt}:
-        </span>
-      )
-    }
+    {isModified && <span>{t.post.updatedAt}:</span>}
 
     <span>{date}</span>
   </time>

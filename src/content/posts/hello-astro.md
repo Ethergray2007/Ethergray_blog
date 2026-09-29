@@ -29,6 +29,47 @@ Astro 的一个特点是非常适合内容型网站。
 
 Astro 可以把页面尽可能多地作为静态 HTML 输出，这对于博客这种网站非常合适。
 
+## 这个博客是怎么跑起来的
+
+本地开发只需要一条命令：
+
+```bash
+npm run dev
+```
+
+它会在 `http://localhost:4321` 起一个开发服务器。改任何文件，浏览器都会立刻刷新，不用手动重启。
+
+写完之后构建成静态文件：
+
+```bash
+npm run build
+```
+
+构建产物在 `dist/` 目录里，全都是普通的 HTML、CSS、JS。也就是说，它不依赖任何后端服务，扔到任意一个静态托管上就能跑。这个博客目前部署在 Netlify 上。
+
+## Astro 的组件长什么样
+
+一个 `.astro` 文件分成两半：上面是**服务端代码**（用 `---` 包起来），下面是**模板**。
+
+```astro
+---
+// 这一部分在构建时执行，浏览器看不到
+import config from "@/config";
+
+const title = "我的博客";
+const posts = await getCollection("posts");
+---
+
+<!-- 这一部分是模板，会被渲染成 HTML -->
+<h1>{title}</h1>
+
+<ul>
+  {posts.map(post => <li>{post.data.title}</li>)}
+</ul>
+```
+
+这种设计的好处是：**能写 JavaScript 的地方就是构建时**，所以取数据、算格式这些事情都不需要发到浏览器里。
+
 ## 为什么使用 AstroPaper
 
 这次使用的是 AstroPaper。

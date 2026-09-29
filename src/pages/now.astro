@@ -1,0 +1,163 @@
+---
+/**
+ * /now 页面（近况）
+ * ============================================================
+ * 这个页面回答一个问题：我现在在干什么？
+ * 灵感来自 nownownow.com —— 很多人用它代替"关于我"里那些永远不过期的空话。
+ *
+ * 内容直接写在下面的 sections 数组里，改内容只改这里就行。
+ * 没做成内容集合（Content Collection），因为这是**单个页面**，
+ * 用集合反而要多建文件和多写一套 schema，不划算。
+ *
+ * 想删掉这个页面？
+ *   1. 删掉 src/pages/now.astro
+ *   2. 删掉 Header.astro 里的「近况」链接（桌面和移动各一处）
+ *   3. 删掉 i18n 里的 nav.now / pages.nowTitle / pages.nowDesc（可选）
+ * ============================================================
+ */
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Main from "@/components/Main.astro";
+
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+/** 一项内容：要么是一句话，要么是"标题 + 说明" */
+type Item =
+  | string
+  | {
+      label: string;
+      text: string;
+    };
+
+type Section = {
+  title: string;
+  items: Item[];
+};
+
+/**
+ * 页面内容 —— 想更新近况，只改这个数组。
+ * 建议每次更新都顺手改一下下面的 updatedAt。
+ */
+const updatedAt = "2026-09-29";
+
+const sections: Section[] = [
+  {
+    title: "在做",
+    items: [
+      "把这个博客从一个现成的模板，慢慢改造成自己的东西。",
+      "学 TypeScript，然后深入 Astro —— 边学边拿这个博客练手。",
+    ],
+  },
+  {
+    title: "在学",
+    items: [
+      {
+        label: "TypeScript",
+        text: "类型、泛型、异步，目标是能读懂任意一个 TS 项目。",
+      },
+      {
+        label: "Astro",
+        text: "路由、组件、内容集合，以及怎么把静态站点做好。",
+      },
+      { label: "算法与图形学", text: "长期方向，进展慢但不打算停。" },
+    ],
+  },
+  {
+    title: "接下来",
+    items: [
+      "给博客补上目录、阅读时长这类阅读体验上的细节。",
+      "学会服务端渲染，然后接上数据库，做一个能在线写文章的后台。",
+    ],
+  },
+  {
+    title: "这个网站",
+    items: [
+      "用 Astro 构建，部署在 Netlify，纯静态。",
+      "没有追踪脚本，没有广告，没有评论框。",
+      "源码在 GitHub 上公开。",
+    ],
+  },
+];
+
+/** 把日期显示成 2026年9月29日 这种格式，和站内其他日期保持一致 */
+const updatedAtText = (() => {
+  const [year, month, day] = updatedAt.split("-");
+  return locale === "zh"
+    ? `${year}年${Number(month)}月${Number(day)}日`
+    : new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(
+        new Date(updatedAt)
+      );
+})();
+---
+
+<Layout
+  title={`${t.pages.nowTitle} | ${config.site.title}`}
+  description={t.pages.nowDesc}
+>
+  <Header />
+
+  <Breadcrumb />
+
+  <Main pageTitle={t.pages.nowTitle} pageDesc={t.pages.nowDesc}>
+    <!-- 更新日期 -->
+    <p class="text-base-content/55 mb-8 text-sm">
+      最后更新：{updatedAtText}
+    </p>
+
+    <div class="space-y-8">
+      {
+        sections.map(section => (
+          <section class="card card-border bg-base-100 shadow-sm">
+            <div class="card-body gap-4 p-5 sm:p-6">
+              <h2 class="text-xl font-bold tracking-tight sm:text-2xl">
+                {section.title}
+              </h2>
+
+              <ul class="space-y-3">
+                {section.items.map(item =>
+                  typeof item === "string" ? (
+                    <li class="text-base-content/75 flex gap-3 leading-7">
+                      <span class="text-primary shrink-0" aria-hidden="true">
+                        —
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ) : (
+                    <li class="flex gap-3 leading-7">
+                      <span class="text-primary shrink-0" aria-hidden="true">
+                        —
+                      </span>
+                      <span>
+                        <span class="font-semibold">{item.label}</span>
+                        <span class="text-base-content/50"> · </span>
+                        <span class="text-base-content/75">{item.text}</span>
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+          </section>
+        ))
+      }
+    </div>
+
+    <p class="text-base-content/50 mt-10 text-sm leading-7">
+      这个页面不定期更新。内容风格参考了
+      <a
+        href="https://nownownow.com/about"
+        target="_blank"
+        rel="noreferrer"
+        class="link link-hover">/now 页面</a
+      > 的做法。
+    </p>
+  </Main>
+
+  <Footer />
+</Layout>

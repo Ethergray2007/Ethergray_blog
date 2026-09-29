@@ -1,7 +1,8 @@
 {
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "public/pagefind"],
+  "//exclude": "practice 是 TypeScript 练习册，里面的函数是故意留空的，会让 astro check 报一堆未使用变量。它有自己的 practice/tsconfig.json，用 npx tsc -p practice/tsconfig.json 单独检查。",
+  "exclude": ["dist", "public/pagefind", "practice"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],

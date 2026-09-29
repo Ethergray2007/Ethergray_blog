@@ -2,25 +2,29 @@
 import type { HTMLAttributes } from "astro/types";
 
 import Socials from "./Socials.astro";
-import { useTranslations } from "@/i18n";
+import config from "@/config";
+import { tplStr, useTranslations } from "@/i18n";
 
 type Props = {
   noMarginTop?: boolean;
 } & HTMLAttributes<"footer">;
 
-const {
-  noMarginTop = false,
-  class: className,
-  ...attrs
-} = Astro.props;
+const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
 const t = useTranslations(Astro.currentLocale);
 const currentYear = new Date().getFullYear();
+
+// 版权行在语言文件里拼好，避免模板里多个表达式相邻把空格吃掉
+// （否则会渲染成 “© 2026Ethergray”）。
+const copyrightLine = tplStr(t.footer.copyrightLine, {
+  year: String(currentYear),
+  author: config.site.author,
+});
 ---
 
 <footer
   class:list={[
-    "border-t border-base-300 bg-base-100",
+    "border-base-300 bg-base-100 border-t",
     { "mt-auto": !noMarginTop },
     className,
   ]}
@@ -30,9 +34,9 @@ const currentYear = new Date().getFullYear();
     class="site-shell flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-between sm:py-8"
   >
     <!-- Copyright -->
-    <div class="text-center text-sm text-base-content/60 sm:text-left">
+    <div class="text-base-content/60 text-center text-sm sm:text-left">
       <p>
-        {t.footer.copyright} &#169; {currentYear}
+        {copyrightLine}
       </p>
 
       <p class="mt-1">

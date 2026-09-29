@@ -18,6 +18,9 @@ import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
+import ReadingTime from "./_components/ReadingTime.astro";
+import TableOfContents from "./_components/TableOfContents.astro";
+import CopyCodeButton from "./_components/CopyCodeButton.astro";
 
 import config from "@/config";
 
@@ -68,8 +71,7 @@ type Props = {
 
 const { post, prevPost, nextPost } = Astro.props;
 
-const locale =
-  Astro.currentLocale ?? config.site.lang;
+const locale = Astro.currentLocale ?? config.site.lang;
 
 const {
   title,
@@ -94,20 +96,16 @@ if (typeof initOgImage === "string") {
 }
 
 if (!ogImageUrl && config.features.dynamicOgImage) {
-  const postUrl = getPostUrl(
-    post.id,
-    post.filePath,
-    locale
-  ).replace(/\/+$/, "");
+  const postUrl = getPostUrl(post.id, post.filePath, locale).replace(
+    /\/+$/,
+    ""
+  );
 
   ogImageUrl = `${postUrl}/index.png`;
 }
 
 const ogImage = ogImageUrl
-  ? new URL(
-      ogImageUrl,
-      Astro.url.origin
-    ).href
+  ? new URL(ogImageUrl, Astro.url.origin).href
   : undefined;
 ---
 
@@ -134,9 +132,7 @@ const ogImage = ogImageUrl
     data-pagefind-body
   >
     <!-- Article header -->
-    <header
-      class="card card-border mb-6 bg-base-100 shadow-sm sm:mb-8"
-    >
+    <header class="card card-border bg-base-100 mb-6 shadow-sm sm:mb-8">
       <div class="card-body gap-4 p-5 sm:p-7 lg:p-8">
         <div
           class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
@@ -145,34 +141,29 @@ const ogImage = ogImageUrl
             style={{
               viewTransitionName: toTransitionName(title),
             }}
-            class="min-w-0 text-3xl font-black leading-tight tracking-tight text-base-content sm:text-4xl lg:text-5xl"
+            class="text-base-content min-w-0 text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
           >
             {title}
           </h1>
 
           {
-            !hideEditPost &&
-              config.features.editPost?.enabled && (
-                <EditPost
-                  {hideEditPost}
-                  {post}
-                  class="shrink-0 max-sm:hidden"
-                />
-              )
+            !hideEditPost && config.features.editPost?.enabled && (
+              <EditPost {hideEditPost} {post} class="shrink-0 max-sm:hidden" />
+            )
           }
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <Datetime
-            {pubDatetime}
-            {modDatetime}
-            {timezone}
-            size="lg"
-          />
+          <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
+
+          <span class="text-base-content/50 hidden text-sm sm:inline"> · </span>
+
+          <!-- 阅读时长：计算逻辑全在 ReadingTime.astro 里，这里只传正文 -->
+          <ReadingTime body={post.body ?? ""} />
 
           {
             description && (
-              <span class="hidden text-sm text-base-content/50 sm:inline">
+              <span class="text-base-content/50 hidden text-sm sm:inline">
                 ·
               </span>
             )
@@ -180,7 +171,7 @@ const ogImage = ogImageUrl
 
           {
             description && (
-              <span class="hidden max-w-full text-sm leading-6 text-base-content/60 sm:inline">
+              <span class="text-base-content/60 hidden max-w-full text-sm leading-6 sm:inline">
                 {description}
               </span>
             )
@@ -189,10 +180,13 @@ const ogImage = ogImageUrl
       </div>
     </header>
 
+    <!-- 目录：标题少于两个时组件自己会隐藏 -->
+    <TableOfContents body={post.body ?? ""} />
+
     <!-- Article content -->
     <article
       id="article"
-      class="card card-border min-w-0 bg-base-100 shadow-sm"
+      class="card card-border bg-base-100 min-w-0 shadow-sm"
     >
       <div class="card-body min-w-0 p-5 sm:p-8 lg:p-10">
         <div
@@ -207,40 +201,33 @@ const ogImage = ogImageUrl
       </div>
     </article>
 
+    <!-- 代码块复制按钮：脚本会自己找到所有代码块挂上去 -->
+    <CopyCodeButton />
+
     <!-- Article actions -->
     <section class="mt-6 sm:mt-8">
-      <div
-        class="card card-border bg-base-100 shadow-sm"
-      >
+      <div class="card card-border bg-base-100 shadow-sm">
         <div class="card-body gap-5 p-5 sm:p-6">
           <!-- Mobile edit -->
           {
-            !hideEditPost &&
-              config.features.editPost?.enabled && (
-                <div class="sm:hidden">
-                  <EditPost
-                    {hideEditPost}
-                    {post}
-                  />
-                </div>
-              )
+            !hideEditPost && config.features.editPost?.enabled && (
+              <div class="sm:hidden">
+                <EditPost {hideEditPost} {post} />
+              </div>
+            )
           }
 
           <!-- Tags -->
           {
             tags.length > 0 && (
               <div class="flex flex-col gap-3">
-                <span class="text-sm font-semibold text-base-content/60">
+                <span class="text-base-content/60 text-sm font-semibold">
                   标签
                 </span>
 
                 <ul class="flex flex-wrap gap-2">
                   {tags.map(tag => (
-                    <Tag
-                      tag={slugifyStr(tag)}
-                      tagName={tag}
-                      size="sm"
-                    />
+                    <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />
                   ))}
                 </ul>
               </div>
@@ -259,10 +246,7 @@ const ogImage = ogImageUrl
     </div>
 
     <!-- Previous / Next -->
-    <AdjacentPostNav
-      {prevPost}
-      {nextPost}
-    />
+    <AdjacentPostNav {prevPost} {nextPost} />
 
     <!-- Back to top -->
     <BackToTopButton />
@@ -283,88 +267,57 @@ const ogImage = ogImageUrl
   }
 
   function createProgressBar() {
-    const existingProgress =
-      document.getElementById("scroll-progress");
+    const existingProgress = document.getElementById("scroll-progress");
 
     if (existingProgress) {
       existingProgress.remove();
     }
 
-    const progressContainer =
-      document.createElement("div");
+    const progressContainer = document.createElement("div");
 
-    progressContainer.id =
-      "scroll-progress";
+    progressContainer.id = "scroll-progress";
 
-    progressContainer.className =
-      "fixed top-0 z-50 h-1 w-full bg-base-100";
+    progressContainer.className = "fixed top-0 z-50 h-1 w-full bg-base-100";
 
-    const progressBar =
-      document.createElement("div");
+    const progressBar = document.createElement("div");
 
     progressBar.id = "myBar";
 
-    progressBar.className =
-      "h-1 w-0 bg-primary";
+    progressBar.className = "h-1 w-0 bg-primary";
 
-    progressContainer.appendChild(
-      progressBar
-    );
+    progressContainer.appendChild(progressBar);
 
-    document.body.appendChild(
-      progressContainer
-    );
+    document.body.appendChild(progressContainer);
   }
 
   function setupScrollProgress() {
     createProgressBar();
 
     function update() {
-      const winScroll =
-        window.scrollY;
+      const winScroll = window.scrollY;
 
       const height =
         document.documentElement.scrollHeight -
         document.documentElement.clientHeight;
 
-      const scrolled =
-        height > 0
-          ? (winScroll / height) * 100
-          : 0;
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
 
-      const myBar =
-        document.getElementById("myBar");
+      const myBar = document.getElementById("myBar");
 
       if (myBar) {
-        myBar.style.width =
-          `${Math.min(
-            100,
-            Math.max(0, scrolled)
-          )}%`;
+        myBar.style.width = `${Math.min(100, Math.max(0, scrolled))}%`;
       }
     }
 
-    window.addEventListener(
-      "scroll",
-      update,
-      { passive: true }
-    );
+    window.addEventListener("scroll", update, { passive: true });
 
     update();
 
-    window.__articleProgressCleanup =
-      function () {
-        window.removeEventListener(
-          "scroll",
-          update
-        );
+    window.__articleProgressCleanup = function () {
+      window.removeEventListener("scroll", update);
 
-        document
-          .getElementById(
-            "scroll-progress"
-          )
-          ?.remove();
-      };
+      document.getElementById("scroll-progress")?.remove();
+    };
   }
 
   setupScrollProgress();
@@ -376,19 +329,14 @@ const ogImage = ogImageUrl
    */
 
   function addHeadingLinks() {
-    const headings =
-      Array.from(
-        document.querySelectorAll(
-          "#article h2, #article h3, #article h4, #article h5, #article h6"
-        )
-      );
+    const headings = Array.from(
+      document.querySelectorAll(
+        "#article h2, #article h3, #article h4, #article h5, #article h6"
+      )
+    );
 
     for (const heading of headings) {
-      if (
-        heading.querySelector(
-          ".heading-link"
-        )
-      ) {
+      if (heading.querySelector(".heading-link")) {
         continue;
       }
 
@@ -398,29 +346,18 @@ const ogImage = ogImageUrl
 
       heading.classList.add("group");
 
-      const link =
-        document.createElement("a");
+      const link = document.createElement("a");
 
       link.className =
         "heading-link ms-2 no-underline opacity-75 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100";
 
-      link.href =
-        `#${heading.id}`;
+      link.href = `#${heading.id}`;
 
-      link.setAttribute(
-        "aria-label",
-        "Link to this section"
-      );
+      link.setAttribute("aria-label", "Link to this section");
 
-      const span =
-        document.createElement(
-          "span"
-        );
+      const span = document.createElement("span");
 
-      span.setAttribute(
-        "aria-hidden",
-        "true"
-      );
+      span.setAttribute("aria-hidden", "true");
 
       span.innerText = "#";
 
@@ -439,138 +376,73 @@ const ogImage = ogImageUrl
    */
 
   function attachCopyButtons() {
-    const copyButtonLabel =
-      "Copy";
+    const copyButtonLabel = "Copy";
 
-    const codeBlocks =
-      Array.from(
-        document.querySelectorAll(
-          "#article pre"
-        )
-      );
+    const codeBlocks = Array.from(document.querySelectorAll("#article pre"));
 
     for (const codeBlock of codeBlocks) {
-      if (
-        codeBlock.querySelector(
-          ".copy-code"
-        )
-      ) {
+      if (codeBlock.querySelector(".copy-code")) {
         continue;
       }
 
-      const wrapper =
-        document.createElement(
-          "div"
-        );
+      const wrapper = document.createElement("div");
 
-      wrapper.style.position =
-        "relative";
+      wrapper.style.position = "relative";
 
-      const computedStyle =
-        getComputedStyle(
-          codeBlock
-        );
+      const computedStyle = getComputedStyle(codeBlock);
 
       const hasFileNameOffset =
-        computedStyle
-          .getPropertyValue(
-            "--file-name-offset"
-          )
-          .trim() !== "";
+        computedStyle.getPropertyValue("--file-name-offset").trim() !== "";
 
-      const topClass =
-        hasFileNameOffset
-          ? "top-(--file-name-offset)"
-          : "-top-3";
+      const topClass = hasFileNameOffset
+        ? "top-(--file-name-offset)"
+        : "-top-3";
 
-      const copyButton =
-        document.createElement(
-          "button"
-        );
+      const copyButton = document.createElement("button");
 
-      copyButton.type =
-        "button";
+      copyButton.type = "button";
 
-      copyButton.className =
-        `copy-code btn btn-xs btn-ghost absolute end-3 ${topClass} border border-base-300 bg-base-100/95 text-base-content shadow-sm backdrop-blur`;
+      copyButton.className = `copy-code btn btn-xs btn-ghost absolute end-3 ${topClass} border border-base-300 bg-base-100/95 text-base-content shadow-sm backdrop-blur`;
 
-      copyButton.innerText =
-        copyButtonLabel;
+      copyButton.innerText = copyButtonLabel;
 
-      copyButton.setAttribute(
-        "aria-label",
-        "Copy code"
-      );
+      copyButton.setAttribute("aria-label", "Copy code");
 
-      codeBlock.setAttribute(
-        "tabindex",
-        "0"
-      );
+      codeBlock.setAttribute("tabindex", "0");
 
-      codeBlock.parentNode?.insertBefore(
-        wrapper,
-        codeBlock
-      );
+      codeBlock.parentNode?.insertBefore(wrapper, codeBlock);
 
-      wrapper.appendChild(
-        codeBlock
-      );
+      wrapper.appendChild(codeBlock);
 
-      codeBlock.appendChild(
-        copyButton
-      );
+      codeBlock.appendChild(copyButton);
 
-      copyButton.addEventListener(
-        "click",
-        async () => {
-          await copyCode(
-            codeBlock,
-            copyButton
-          );
-        }
-      );
+      copyButton.addEventListener("click", async () => {
+        await copyCode(codeBlock, copyButton);
+      });
     }
 
-    async function copyCode(
-      block,
-      button
-    ) {
-      const code =
-        block.querySelector(
-          "code"
-        );
+    async function copyCode(block, button) {
+      const code = block.querySelector("code");
 
-      const text =
-        code?.textContent ??
-        "";
+      const text = code?.textContent ?? "";
 
       try {
-        if (
-          !navigator.clipboard
-        ) {
-          throw new Error(
-            "Clipboard API unavailable"
-          );
+        if (!navigator.clipboard) {
+          throw new Error("Clipboard API unavailable");
         }
 
-        await navigator.clipboard.writeText(
-          text
-        );
+        await navigator.clipboard.writeText(text);
 
-        button.innerText =
-          "Copied";
+        button.innerText = "Copied";
 
         setTimeout(() => {
-          button.innerText =
-            copyButtonLabel;
+          button.innerText = copyButtonLabel;
         }, 700);
       } catch {
-        button.innerText =
-          "Failed";
+        button.innerText = "Failed";
 
         setTimeout(() => {
-          button.innerText =
-            copyButtonLabel;
+          button.innerText = copyButtonLabel;
         }, 1000);
       }
     }
@@ -585,266 +457,165 @@ const ogImage = ogImageUrl
    */
 
   function initLightbox() {
-    const article =
-      document.getElementById(
-        "article"
-      );
+    const article = document.getElementById("article");
 
     if (!article) {
       return;
     }
 
-    const prefersReducedMotion =
-      function () {
-        return window.matchMedia(
-          "(prefers-reduced-motion: reduce)"
-        ).matches;
-      };
+    const prefersReducedMotion = function () {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    };
 
-    let overlay =
-      null;
+    let overlay = null;
 
-    let lastFocused =
-      null;
+    let lastFocused = null;
 
-    function open(
-      src,
-      alt,
-      trigger
-    ) {
+    function open(src, alt, trigger) {
       if (overlay) {
         return;
       }
 
-      lastFocused =
-        trigger ??
-        document.activeElement;
+      lastFocused = trigger ?? document.activeElement;
 
-      overlay =
-        document.createElement(
-          "div"
-        );
+      overlay = document.createElement("div");
 
-      overlay.setAttribute(
-        "role",
-        "dialog"
-      );
+      overlay.setAttribute("role", "dialog");
 
-      overlay.setAttribute(
-        "aria-modal",
-        "true"
-      );
+      overlay.setAttribute("aria-modal", "true");
 
       overlay.setAttribute(
         "aria-label",
-        alt
-          ? `Image preview: ${alt}`
-          : "Image preview"
+        alt ? `Image preview: ${alt}` : "Image preview"
       );
 
       overlay.className =
         "fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/70 p-4 backdrop-blur-sm opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
 
-      const closeButton =
-        document.createElement(
-          "button"
-        );
+      const closeButton = document.createElement("button");
 
-      closeButton.type =
-        "button";
+      closeButton.type = "button";
 
-      closeButton.setAttribute(
-        "aria-label",
-        "Close image preview"
-      );
+      closeButton.setAttribute("aria-label", "Close image preview");
 
       closeButton.className =
         "btn btn-circle absolute end-4 top-4 bg-black/40 text-xl text-white hover:bg-black/60";
 
-      closeButton.innerHTML =
-        "&#10005;";
+      closeButton.innerHTML = "&#10005;";
 
-      closeButton.addEventListener(
-        "click",
-        close
-      );
+      closeButton.addEventListener("click", close);
 
-      const image =
-        document.createElement(
-          "img"
-        );
+      const image = document.createElement("img");
 
-      image.src =
-        src;
+      image.src = src;
 
-      image.alt =
-        "";
+      image.alt = "";
 
       image.className =
         "max-h-[90dvh] max-w-[90dvw] cursor-default object-contain";
 
-      overlay.append(
-        closeButton,
-        image
-      );
+      overlay.append(closeButton, image);
 
-      let currentScale =
-        1;
+      let currentScale = 1;
 
-      let translateX =
-        0;
+      let translateX = 0;
 
-      let translateY =
-        0;
+      let translateY = 0;
 
-      let initialDist =
-        0;
+      let initialDist = 0;
 
-      let initialScale =
-        1;
+      let initialScale = 1;
 
-      let panStartX =
-        0;
+      let panStartX = 0;
 
-      let panStartY =
-        0;
+      let panStartY = 0;
 
-      let panStartTranslateX =
-        0;
+      let panStartTranslateX = 0;
 
-      let panStartTranslateY =
-        0;
+      let panStartTranslateY = 0;
 
-      let lastTapTime =
-        0;
+      let lastTapTime = 0;
 
-      overlay.addEventListener(
-        "click",
-        event => {
-          if (
-            event.target ===
-              overlay &&
-            currentScale <= 1
-          ) {
-            close();
-          }
+      overlay.addEventListener("click", event => {
+        if (event.target === overlay && currentScale <= 1) {
+          close();
         }
-      );
+      });
 
       function applyTransform() {
-        image.style.transform =
-          `scale(${currentScale}) translate(${translateX}px, ${translateY}px)`;
+        image.style.transform = `scale(${currentScale}) translate(${translateX}px, ${translateY}px)`;
       }
 
       function resetTransform() {
-        currentScale =
-          1;
+        currentScale = 1;
 
-        translateX =
-          0;
+        translateX = 0;
 
-        translateY =
-          0;
+        translateY = 0;
 
-        image.style.transform =
-          "";
+        image.style.transform = "";
       }
 
       overlay.addEventListener(
         "touchstart",
         event => {
-          const touches =
-            event.touches;
+          const touches = event.touches;
 
-          if (
-            touches.length ===
-            2
-          ) {
-            initialDist =
-              Math.hypot(
-                touches[1].clientX -
-                  touches[0].clientX,
-                touches[1].clientY -
-                  touches[0].clientY
-              );
+          if (touches.length === 2) {
+            initialDist = Math.hypot(
+              touches[1].clientX - touches[0].clientX,
+              touches[1].clientY - touches[0].clientY
+            );
 
-            initialScale =
-              currentScale;
+            initialScale = currentScale;
 
             return;
           }
 
-          if (
-            touches.length !==
-            1
-          ) {
+          if (touches.length !== 1) {
             return;
           }
 
-          const now =
-            Date.now();
+          const now = Date.now();
 
-          if (
-            now -
-              lastTapTime <
-            300
-          ) {
+          if (now - lastTapTime < 300) {
             event.preventDefault();
 
-            if (
-              currentScale >
-              1
-            ) {
+            if (currentScale > 1) {
               resetTransform();
             } else {
-              currentScale =
-                2;
+              currentScale = 2;
 
-              translateX =
-                0;
+              translateX = 0;
 
-              translateY =
-                0;
+              translateY = 0;
 
               applyTransform();
             }
 
-            lastTapTime =
-              0;
+            lastTapTime = 0;
 
-            panStartX =
-              touches[0].clientX;
+            panStartX = touches[0].clientX;
 
-            panStartY =
-              touches[0].clientY;
+            panStartY = touches[0].clientY;
 
-            panStartTranslateX =
-              translateX;
+            panStartTranslateX = translateX;
 
-            panStartTranslateY =
-              translateY;
+            panStartTranslateY = translateY;
 
             return;
           }
 
-          lastTapTime =
-            now;
+          lastTapTime = now;
 
-          if (
-            currentScale >
-            1
-          ) {
-            panStartX =
-              touches[0].clientX;
+          if (currentScale > 1) {
+            panStartX = touches[0].clientX;
 
-            panStartY =
-              touches[0].clientY;
+            panStartY = touches[0].clientY;
 
-            panStartTranslateX =
-              translateX;
+            panStartTranslateX = translateX;
 
-            panStartTranslateY =
-              translateY;
+            panStartTranslateY = translateY;
           }
         },
         {
@@ -855,107 +626,58 @@ const ogImage = ogImageUrl
       overlay.addEventListener(
         "touchmove",
         event => {
-          const touches =
-            event.touches;
+          const touches = event.touches;
 
-          if (
-            touches.length ===
-            2
-          ) {
+          if (touches.length === 2) {
             event.preventDefault();
 
-            if (
-              initialDist <= 0
-            ) {
+            if (initialDist <= 0) {
               return;
             }
 
-            const dist =
-              Math.hypot(
-                touches[1].clientX -
-                  touches[0].clientX,
-                touches[1].clientY -
-                  touches[0].clientY
-              );
+            const dist = Math.hypot(
+              touches[1].clientX - touches[0].clientX,
+              touches[1].clientY - touches[0].clientY
+            );
 
-            currentScale =
-              Math.min(
-                4,
-                Math.max(
-                  1,
-                  initialScale *
-                    (dist /
-                      initialDist)
-                )
-              );
+            currentScale = Math.min(
+              4,
+              Math.max(1, initialScale * (dist / initialDist))
+            );
 
             applyTransform();
 
             return;
           }
 
-          if (
-            touches.length !==
-            1
-          ) {
+          if (touches.length !== 1) {
             return;
           }
 
-          if (
-            currentScale >
-            1
-          ) {
+          if (currentScale > 1) {
             event.preventDefault();
 
             translateX =
               panStartTranslateX +
-              (touches[0].clientX -
-                panStartX) /
-                currentScale;
+              (touches[0].clientX - panStartX) / currentScale;
 
             translateY =
               panStartTranslateY +
-              (touches[0].clientY -
-                panStartY) /
-                currentScale;
+              (touches[0].clientY - panStartY) / currentScale;
 
-            const maxX =
-              Math.max(
-                0,
-                (
-                  image.clientWidth -
-                  overlay.clientWidth /
-                    currentScale
-                ) / 2
-              );
+            const maxX = Math.max(
+              0,
+              (image.clientWidth - overlay.clientWidth / currentScale) / 2
+            );
 
-            const maxY =
-              Math.max(
-                0,
-                (
-                  image.clientHeight -
-                  overlay.clientHeight /
-                    currentScale
-                ) / 2
-              );
+            const maxY = Math.max(
+              0,
+              (image.clientHeight - overlay.clientHeight / currentScale) / 2
+            );
 
-            translateX =
-              Math.min(
-                maxX,
-                Math.max(
-                  -maxX,
-                  translateX
-                )
-              );
+            translateX = Math.min(maxX, Math.max(-maxX, translateX));
 
-            translateY =
-              Math.min(
-                maxY,
-                Math.max(
-                  -maxY,
-                  translateY
-                )
-              );
+            translateY = Math.min(maxY, Math.max(-maxY, translateY));
 
             applyTransform();
           }
@@ -965,58 +687,31 @@ const ogImage = ogImageUrl
         }
       );
 
-      overlay.addEventListener(
-        "touchend",
-        event => {
-          if (
-            event.touches.length ===
-              0 &&
-            currentScale <=
-              1.05
-          ) {
-            resetTransform();
-          }
+      overlay.addEventListener("touchend", event => {
+        if (event.touches.length === 0 && currentScale <= 1.05) {
+          resetTransform();
         }
-      );
+      });
 
-      overlay.addEventListener(
-        "touchcancel",
-        event => {
-          if (
-            event.touches.length ===
-              0 &&
-            currentScale <=
-              1.05
-          ) {
-            resetTransform();
-          }
+      overlay.addEventListener("touchcancel", event => {
+        if (event.touches.length === 0 && currentScale <= 1.05) {
+          resetTransform();
         }
-      );
+      });
 
-      document.body.appendChild(
-        overlay
-      );
+      document.body.appendChild(overlay);
 
-      document.body.style.overflow =
-        "hidden";
+      document.body.style.overflow = "hidden";
 
-      document.addEventListener(
-        "keydown",
-        onKeyDown
-      );
+      document.addEventListener("keydown", onKeyDown);
 
-      window.__closeLightbox =
-        close;
+      window.__closeLightbox = close;
 
-      requestAnimationFrame(
-        () => {
-          if (overlay) {
-            overlay.classList.add(
-              "opacity-100"
-            );
-          }
+      requestAnimationFrame(() => {
+        if (overlay) {
+          overlay.classList.add("opacity-100");
         }
-      );
+      });
 
       closeButton.focus();
     }
@@ -1026,256 +721,151 @@ const ogImage = ogImageUrl
         return;
       }
 
-      const element =
-        overlay;
+      const element = overlay;
 
-      overlay =
-        null;
+      overlay = null;
 
-      window.__closeLightbox =
-        undefined;
+      window.__closeLightbox = undefined;
 
-      document.removeEventListener(
-        "keydown",
-        onKeyDown
-      );
+      document.removeEventListener("keydown", onKeyDown);
 
-      document.body.style.overflow =
-        "";
+      document.body.style.overflow = "";
 
-      if (
-        lastFocused &&
-        typeof lastFocused.focus ===
-          "function"
-      ) {
+      if (lastFocused && typeof lastFocused.focus === "function") {
         lastFocused.focus();
       }
 
-      lastFocused =
-        null;
+      lastFocused = null;
 
-      if (
-        prefersReducedMotion()
-      ) {
+      if (prefersReducedMotion()) {
         element.remove();
         return;
       }
 
-      const remove =
-        function () {
-          element.remove();
-        };
+      const remove = function () {
+        element.remove();
+      };
 
-      element.addEventListener(
-        "transitionend",
-        remove,
-        {
-          once: true,
-        }
-      );
+      element.addEventListener("transitionend", remove, {
+        once: true,
+      });
 
-      setTimeout(
-        remove,
-        250
-      );
+      setTimeout(remove, 250);
 
-      element.classList.remove(
-        "opacity-100"
-      );
+      element.classList.remove("opacity-100");
     }
 
-    function onKeyDown(
-      event
-    ) {
-      if (
-        event.key ===
-        "Escape"
-      ) {
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
         close();
         return;
       }
 
-      if (
-        event.key ===
-        "Tab"
-      ) {
+      if (event.key === "Tab") {
         trapFocus(event);
       }
     }
 
-    function trapFocus(
-      event
-    ) {
+    function trapFocus(event) {
       if (!overlay) {
         return;
       }
 
-      const focusables =
-        Array.from(
-          overlay.querySelectorAll(
-            'a[href], button, [tabindex]:not([tabindex="-1"])'
-          )
-        );
+      const focusables = Array.from(
+        overlay.querySelectorAll(
+          'a[href], button, [tabindex]:not([tabindex="-1"])'
+        )
+      );
 
-      if (
-        focusables.length ===
-        0
-      ) {
+      if (focusables.length === 0) {
         return;
       }
 
-      const first =
-        focusables[0];
+      const first = focusables[0];
 
-      const last =
-        focusables[
-          focusables.length - 1
-        ];
+      const last = focusables[focusables.length - 1];
 
-      if (
-        event.shiftKey &&
-        document.activeElement ===
-          first
-      ) {
+      if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
 
         last.focus();
-      } else if (
-        !event.shiftKey &&
-        document.activeElement ===
-          last
-      ) {
+      } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
 
         first.focus();
       }
     }
 
-    function triggerFromEvent(
-      event
-    ) {
-      const target =
-        event.target;
+    function triggerFromEvent(event) {
+      const target = event.target;
 
-      if (
-        !(target instanceof
-          Element)
-      ) {
+      if (!(target instanceof Element)) {
         return null;
       }
 
-      const image =
-        target.closest("img");
+      const image = target.closest("img");
 
-      if (
-        !image ||
-        !article.contains(
-          image
-        ) ||
-        image.closest("a")
-      ) {
+      if (!image || !article.contains(image) || image.closest("a")) {
         return null;
       }
 
       return image;
     }
 
-    function activate(
-      image
-    ) {
-      open(
-        image.currentSrc ||
-          image.src,
-        image.alt,
-        image
-      );
+    function activate(image) {
+      open(image.currentSrc || image.src, image.alt, image);
     }
 
-    const images =
-      Array.from(
-        article.querySelectorAll(
-          "img"
-        )
-      );
+    const images = Array.from(article.querySelectorAll("img"));
 
-    for (
-      const image of images
-    ) {
-      if (
-        image.closest("a")
-      ) {
+    for (const image of images) {
+      if (image.closest("a")) {
         continue;
       }
 
-      image.setAttribute(
-        "role",
-        "button"
-      );
+      image.setAttribute("role", "button");
 
-      image.setAttribute(
-        "tabindex",
-        "0"
-      );
+      image.setAttribute("tabindex", "0");
 
-      image.setAttribute(
-        "aria-haspopup",
-        "dialog"
-      );
+      image.setAttribute("aria-haspopup", "dialog");
 
       image.setAttribute(
         "aria-label",
-        image.alt
-          ? `Zoom image: ${image.alt}`
-          : "Zoom image"
+        image.alt ? `Zoom image: ${image.alt}` : "Zoom image"
       );
     }
 
-    article.addEventListener(
-      "click",
-      event => {
-        const image =
-          triggerFromEvent(
-            event
-          );
+    article.addEventListener("click", event => {
+      const image = triggerFromEvent(event);
 
-        if (!image) {
-          return;
-        }
-
-        event.preventDefault();
-
-        activate(image);
+      if (!image) {
+        return;
       }
-    );
 
-    article.addEventListener(
-      "keydown",
-      event => {
-        if (
-          event.key !==
-            "Enter" &&
-          event.key !==
-            " " &&
-          event.key !==
-            "Spacebar"
-        ) {
-          return;
-        }
+      event.preventDefault();
 
-        const image =
-          triggerFromEvent(
-            event
-          );
+      activate(image);
+    });
 
-        if (!image) {
-          return;
-        }
-
-        event.preventDefault();
-
-        activate(image);
+    article.addEventListener("keydown", event => {
+      if (
+        event.key !== "Enter" &&
+        event.key !== " " &&
+        event.key !== "Spacebar"
+      ) {
+        return;
       }
-    );
+
+      const image = triggerFromEvent(event);
+
+      if (!image) {
+        return;
+      }
+
+      event.preventDefault();
+
+      activate(image);
+    });
   }
 
   initLightbox();
@@ -1286,61 +876,35 @@ const ogImage = ogImageUrl
    * ============================
    */
 
-  if (
-    !window.__articlePageEventsBound
-  ) {
-    window.__articlePageEventsBound =
-      true;
+  if (!window.__articlePageEventsBound) {
+    window.__articlePageEventsBound = true;
 
-    document.addEventListener(
-      "astro:before-swap",
-      event => {
-        if (
-          window.__articleProgressCleanup
-        ) {
-          window.__articleProgressCleanup();
-        }
-
-        if (
-          window.__closeLightbox
-        ) {
-          window.__closeLightbox();
-        }
-
-        const color =
-          document
-            .querySelector(
-              "meta[name='theme-color']"
-            )
-            ?.getAttribute(
-              "content"
-            );
-
-        if (
-          color &&
-          event.newDocument
-        ) {
-          event.newDocument
-            .querySelector(
-              "meta[name='theme-color']"
-            )
-            ?.setAttribute(
-              "content",
-              color
-            );
-        }
+    document.addEventListener("astro:before-swap", event => {
+      if (window.__articleProgressCleanup) {
+        window.__articleProgressCleanup();
       }
-    );
 
-    document.addEventListener(
-      "astro:after-swap",
-      () => {
-        window.scrollTo({
-          left: 0,
-          top: 0,
-          behavior: "instant",
-        });
+      if (window.__closeLightbox) {
+        window.__closeLightbox();
       }
-    );
+
+      const color = document
+        .querySelector("meta[name='theme-color']")
+        ?.getAttribute("content");
+
+      if (color && event.newDocument) {
+        event.newDocument
+          .querySelector("meta[name='theme-color']")
+          ?.setAttribute("content", color);
+      }
+    });
+
+    document.addEventListener("astro:after-swap", () => {
+      window.scrollTo({
+        left: 0,
+        top: 0,
+        behavior: "instant",
+      });
+    });
   }
 </script>

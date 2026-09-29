@@ -25,8 +25,7 @@ function getPreferredTheme(): Theme {
 }
 
 // Reuse the value already set by the inline FOUC-prevention script if available.
-let themeValue: Theme =
-  themeWindow.__theme?.value ?? getPreferredTheme();
+let themeValue: Theme = themeWindow.__theme?.value ?? getPreferredTheme();
 
 function reflect(): void {
   const root = document.documentElement;
@@ -34,8 +33,11 @@ function reflect(): void {
   root.setAttribute("data-theme", themeValue);
   root.classList.toggle("dark", themeValue === DARK);
 
-  // theme.ts 只负责反映当前主题。
-  // aria-label 保留给页面上的国际化文本，不在这里覆盖。
+  // 把当前状态同步给主题按钮，读屏软件靠 aria-pressed 判断开关状态。
+  // 按钮上的 aria-label 仍然使用页面里的国际化文案，这里不覆盖。
+  document
+    .querySelector("#theme-btn")
+    ?.setAttribute("aria-pressed", String(themeValue === DARK));
 
   const bg = window.getComputedStyle(document.body).backgroundColor;
 
@@ -52,8 +54,7 @@ function persist(): void {
 function setup(): void {
   reflect();
 
-  const button =
-    document.querySelector<HTMLButtonElement>("#theme-btn");
+  const button = document.querySelector<HTMLButtonElement>("#theme-btn");
 
   if (!button || button.dataset.themeInitialized === "true") {
     return;

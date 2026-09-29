@@ -1,0 +1,52 @@
+---
+/**
+ * 文章目录（TOC）
+ * ============================================================
+ * 自包含模块：提取标题 + 渲染列表，只依赖 getTableOfContents.ts。
+ *
+ * 想删掉目录功能？
+ *   1. 删掉这个文件
+ *   2. 删掉文章页里的 <TableOfContents ... /> 那一行
+ *   3. 删掉 src/utils/getTableOfContents.ts
+ *   4. 删掉 i18n 里的 post.toc（可选，留着也不影响）
+ * ============================================================
+ */
+import { getTableOfContents } from "@/utils/getTableOfContents";
+import { useTranslations } from "@/i18n";
+
+type Props = {
+  /** 文章正文（Markdown 原文），传 post.body 即可 */
+  body: string;
+};
+
+const { body } = Astro.props;
+
+const t = useTranslations(Astro.currentLocale);
+const headings = getTableOfContents(body);
+---
+
+{
+  /* 标题少于两个就不显示目录，避免占地方 */
+  headings.length > 0 && (
+    <details class="card card-border bg-base-100 group mb-6 shadow-sm sm:mb-8">
+      <summary class="cursor-pointer list-none p-4 font-semibold select-none sm:px-5">
+        <span class="inline-flex items-center gap-2">{t.post.toc}</span>
+      </summary>
+
+      <nav class="px-4 pb-4 sm:px-5" aria-label={t.post.toc}>
+        <ul class="border-base-300 space-y-2 border-s ps-4 text-sm">
+          {headings.map(heading => (
+            <li class:list={[{ "ps-4": heading.depth === 3 }]}>
+              <a
+                href={`#${heading.id}`}
+                class="text-base-content/70 hover:text-primary link-hover transition-colors"
+              >
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </details>
+  )
+}

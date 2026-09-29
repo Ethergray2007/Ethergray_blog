@@ -8,10 +8,13 @@ export default {
     about: "About",
     archives: "Archives",
     search: "Search",
+    now: "Now",
   },
   post: {
     publishedAt: "Published at",
     updatedAt: "Updated",
+    readingTime: "{{minutes}} min read",
+    toc: "Table of Contents",
     sharePostIntro: "Share this post:",
     sharePostOn: "Share this post on {{platform}}",
     sharePostViaEmail: "Share this post via email",
@@ -29,12 +32,22 @@ export default {
   },
   home: {
     socialLinks: "Social Links",
+    badge: "Blog",
+    heroTitle: "Welcome",
+    heroLead: "Welcome to my blog.",
+    heroMore:
+      "Notes on algorithms, programming and computer graphics, plus the technical writing worth keeping around.",
+    viewReadme: "View README",
+    viewProfile: "Profile",
     featured: "Featured",
+    featuredDesc: "Posts worth reading first",
     recentPosts: "Recent Posts",
+    recentPostsDesc: "The latest updates",
     allPosts: "All Posts",
   },
   footer: {
     copyright: "Copyright",
+    copyrightLine: "Copyright © {{year}} {{author}}",
     allRightsReserved: "All rights reserved.",
   },
   pages: {
@@ -52,6 +65,9 @@ export default {
 
     searchTitle: "Search",
     searchDesc: "Search any article ...",
+
+    nowTitle: "Now",
+    nowDesc: "What I'm doing and learning right now.",
   },
   a11y: {
     skipToContent: "Skip to content",

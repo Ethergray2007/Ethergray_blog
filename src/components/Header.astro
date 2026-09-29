@@ -32,6 +32,13 @@ const isActive = (path: string) => {
 
   return currentPath === path || currentPathArray[0] === pathArray[0];
 };
+
+/**
+ * 服务端渲染时拿不到用户的主题偏好（它存在 localStorage 里），
+ * 所以这里先给一个初始值；`src/scripts/theme.ts` 会在客户端把
+ * `aria-pressed` 同步成真实状态，保证读屏软件读到的是对的。
+ */
+const isDarkInitially = false;
 ---
 
 <a
@@ -64,10 +71,11 @@ const isActive = (path: string) => {
           <li>
             <a
               href={getRelativeLocaleUrl(locale, "posts")}
-              class:list={{
-                "menu-active": isActive("/posts"),
-              }}
-              class="font-medium"
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/posts") },
+              ]}
+              aria-current={isActive("/posts") ? "page" : undefined}
             >
               {t.nav.posts}
             </a>
@@ -77,10 +85,8 @@ const isActive = (path: string) => {
           <li>
             <a
               href={getRelativeLocaleUrl(locale, "tags")}
-              class:list={{
-                "menu-active": isActive("/tags"),
-              }}
-              class="font-medium"
+              class:list={["font-medium", { "menu-active": isActive("/tags") }]}
+              aria-current={isActive("/tags") ? "page" : undefined}
             >
               {t.nav.tags}
             </a>
@@ -90,12 +96,24 @@ const isActive = (path: string) => {
           <li>
             <a
               href={getRelativeLocaleUrl(locale, "about")}
-              class:list={{
-                "menu-active": isActive("/about"),
-              }}
-              class="font-medium"
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/about") },
+              ]}
+              aria-current={isActive("/about") ? "page" : undefined}
             >
               {t.nav.about}
+            </a>
+          </li>
+
+          <!-- Now -->
+          <li>
+            <a
+              href={getRelativeLocaleUrl(locale, "now")}
+              class:list={["font-medium", { "menu-active": isActive("/now") }]}
+              aria-current={isActive("/now") ? "page" : undefined}
+            >
+              {t.nav.now}
             </a>
           </li>
 
@@ -148,7 +166,7 @@ const isActive = (path: string) => {
             class="btn btn-ghost btn-square"
             title={t.a11y.toggleTheme}
             aria-label={t.a11y.toggleTheme}
-            aria-live="polite"
+            aria-pressed={isDarkInitially}
           >
             <span class="relative grid size-5 place-items-center">
               <IconMoon class="absolute size-5 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
@@ -238,6 +256,19 @@ const isActive = (path: string) => {
           </a>
         </li>
 
+        <!-- Now -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "now")}
+            class:list={{
+              "menu-active": isActive("/now"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.now}
+          </a>
+        </li>
+
         <!-- Archives -->
         {
           features.showArchives && (
@@ -279,7 +310,7 @@ const isActive = (path: string) => {
 
   <!-- Backdrop -->
   <form method="dialog" class="modal-backdrop">
-    <button aria-label={t.a11y.closeMenu}>Close</button>
+    <button aria-label={t.a11y.closeMenu}></button>
   </form>
 </dialog>
 

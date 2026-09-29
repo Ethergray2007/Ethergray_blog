@@ -35,10 +35,7 @@ const t = useTranslations(locale);
 
   <Breadcrumb />
 
-  <Main
-    pageTitle={t.pages.searchTitle}
-    pageDesc={t.pages.searchDesc}
-  >
+  <Main pageTitle={t.pages.searchTitle} pageDesc={t.pages.searchDesc}>
     <section aria-labelledby="search-section-title">
       <h2 id="search-section-title" class="sr-only">
         {t.pages.searchTitle}
@@ -51,7 +48,8 @@ const t = useTranslations(locale);
             transition:persist
             data-backurl={backUrl}
             data-bundle-path={pagefindBundlePath}
-          ></div>
+          >
+          </div>
         </div>
       </div>
     </section>
@@ -82,9 +80,7 @@ const t = useTranslations(locale);
 
     const params = new URLSearchParams(window.location.search);
 
-    const onIdle =
-      window.requestIdleCallback ||
-      (cb => setTimeout(cb, 1));
+    const onIdle = window.requestIdleCallback || (cb => setTimeout(cb, 1));
 
     onIdle(async () => {
       /*
@@ -122,15 +118,10 @@ const t = useTranslations(locale);
         processTerm: function (term: string) {
           params.set("q", term);
 
-          history.replaceState(
-            history.state,
-            "",
-            "?" + params.toString()
-          );
+          history.replaceState(history.state, "", "?" + params.toString());
 
           const currentBackUrl =
-            pageFindSearch.dataset.backurl ??
-            window.location.pathname;
+            pageFindSearch.dataset.backurl ?? window.location.pathname;
 
           sessionStorage.setItem(
             "backUrl",
@@ -149,36 +140,23 @@ const t = useTranslations(locale);
       }
 
       // Reset search param if search input is cleared
-      const searchInput =
-        document.querySelector<HTMLInputElement>(
-          ".pagefind-ui__search-input"
-        );
-
-      const clearButton =
-        document.querySelector<HTMLButtonElement>(
-          ".pagefind-ui__search-clear"
-        );
-
-      searchInput?.addEventListener(
-        "input",
-        resetSearchParam
+      const searchInput = document.querySelector<HTMLInputElement>(
+        ".pagefind-ui__search-input"
       );
 
-      clearButton?.addEventListener(
-        "click",
-        resetSearchParam
+      const clearButton = document.querySelector<HTMLButtonElement>(
+        ".pagefind-ui__search-clear"
       );
+
+      searchInput?.addEventListener("input", resetSearchParam);
+
+      clearButton?.addEventListener("click", resetSearchParam);
 
       function resetSearchParam(event: Event) {
-        const target =
-          event.target as HTMLInputElement | null;
+        const target = event.target as HTMLInputElement | null;
 
         if (target?.value.trim() === "") {
-          history.replaceState(
-            history.state,
-            "",
-            window.location.pathname
-          );
+          history.replaceState(history.state, "", window.location.pathname);
         }
       }
     });
@@ -189,10 +167,7 @@ const t = useTranslations(locale);
       document.querySelector<HTMLElement>("#pagefind-search");
 
     // If Pagefind has already been initialized, do nothing.
-    if (
-      pagefindSearch &&
-      pagefindSearch.querySelector("form")
-    ) {
+    if (pagefindSearch && pagefindSearch.querySelector("form")) {
       return;
     }
 
@@ -251,24 +226,15 @@ const t = useTranslations(locale);
     );
   }
 
-  #pagefind-search
-    .pagefind-ui__search-input:focus {
+  #pagefind-search .pagefind-ui__search-input:focus {
     border-color: var(--color-primary);
-    outline: 2px solid color-mix(
-      in oklab,
-      var(--color-primary) 20%,
-      transparent
-    );
+    outline: 2px solid
+      color-mix(in oklab, var(--color-primary) 20%, transparent);
     outline-offset: 1px;
   }
 
-  #pagefind-search
-    .pagefind-ui__search-input::placeholder {
-    color: color-mix(
-      in oklab,
-      var(--color-base-content) 50%,
-      transparent
-    );
+  #pagefind-search .pagefind-ui__search-input::placeholder {
+    color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
   }
 
   /* Search icon */
@@ -277,20 +243,14 @@ const t = useTranslations(locale);
   }
 
   /* Clear button */
-  #pagefind-search
-    .pagefind-ui__search-clear {
+  #pagefind-search .pagefind-ui__search-clear {
     color: var(--color-base-content);
   }
 
   /* Result count */
-  #pagefind-search
-    .pagefind-ui__result-count {
+  #pagefind-search .pagefind-ui__result-count {
     margin-bottom: 1rem;
-    color: color-mix(
-      in oklab,
-      var(--color-base-content) 60%,
-      transparent
-    );
+    color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
     font-size: 0.875rem;
   }
 
@@ -301,54 +261,40 @@ const t = useTranslations(locale);
     border-bottom: 1px solid var(--color-base-300);
   }
 
-  #pagefind-search
-    .pagefind-ui__result:last-of-type {
+  #pagefind-search .pagefind-ui__result:last-of-type {
     border-bottom: 0;
   }
 
   /* Result title */
-  #pagefind-search
-    .pagefind-ui__result-title {
+  #pagefind-search .pagefind-ui__result-title {
     margin-bottom: 0.35rem;
   }
 
-  #pagefind-search
-    .pagefind-ui__result-title
-    a {
+  #pagefind-search .pagefind-ui__result-title a {
     color: var(--color-primary);
     font-weight: 600;
     text-decoration: none;
     text-underline-offset: 4px;
   }
 
-  #pagefind-search
-    .pagefind-ui__result-title
-    a:hover {
+  #pagefind-search .pagefind-ui__result-title a:hover {
     text-decoration-line: underline;
     text-decoration-style: dashed;
   }
 
-  #pagefind-search
-    .pagefind-ui__result-title
-    a:focus-visible {
+  #pagefind-search .pagefind-ui__result-title a:focus-visible {
     outline: 2px dashed var(--color-primary);
     outline-offset: 2px;
   }
 
   /* Result excerpt */
-  #pagefind-search
-    .pagefind-ui__result-excerpt {
-    color: color-mix(
-      in oklab,
-      var(--color-base-content) 65%,
-      transparent
-    );
+  #pagefind-search .pagefind-ui__result-excerpt {
+    color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
     line-height: 1.75;
   }
 
   /* Result tags */
-  #pagefind-search
-    .pagefind-ui__result-tag {
+  #pagefind-search .pagefind-ui__result-tag {
     border: 1px solid var(--color-base-300);
     border-radius: 999px;
     background: var(--color-base-200);
@@ -356,8 +302,7 @@ const t = useTranslations(locale);
   }
 
   /* Nested results */
-  #pagefind-search
-    .pagefind-ui__result-nested {
+  #pagefind-search .pagefind-ui__result-nested {
     border-inline-start-color: var(--color-base-300);
   }
 
@@ -370,20 +315,16 @@ const t = useTranslations(locale);
 
   /* Mobile */
   @media (max-width: 639px) {
-    #pagefind-search
-      .pagefind-ui__search-input {
+    #pagefind-search .pagefind-ui__search-input {
       min-height: 2.875rem;
       font-size: 16px;
     }
 
-    #pagefind-search
-      .pagefind-ui__result-title
-      a {
+    #pagefind-search .pagefind-ui__result-title a {
       font-size: 1rem;
     }
 
-    #pagefind-search
-      .pagefind-ui__result-excerpt {
+    #pagefind-search .pagefind-ui__result-excerpt {
       font-size: 0.875rem;
       line-height: 1.7;
     }
