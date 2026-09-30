@@ -11,7 +11,6 @@ import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
 
 import { getSortedPosts } from "@/utils/getSortedPosts";
-import { getPostUrl } from "@/utils/getPostPaths";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -26,17 +25,6 @@ const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
-
-/**
- * 首屏左栏显示的「最新一篇」。
- *
- * 为什么不复用「精选」或「最近文章」的第一篇：
- * 那两个区块在首屏下方紧接着就出现了，重复显示会显得啰嗦。
- * 这里取**整个列表的第一篇**（getSortedPosts 已按时间倒序），
- * 是"最新"这个语义本身 —— 和下面那个列表是包含关系，
- * 但读者的感受是"首屏先给一个入口"，不是重复。
- */
-const latestPost = sortedPosts.at(0);
 
 const homePath = getRelativeLocaleUrl(locale, "");
 ---
@@ -76,44 +64,21 @@ const homePath = getRelativeLocaleUrl(locale, "");
 
     {
       /*
-      布局：宽屏时两栏（左空右文），窄屏时单栏上下堆叠。
+      干净的「左图右文」—— 首屏只负责"我是谁"，不掺文章内容。
 
-      ⚠️ 文字在**右栏**、左栏留白 —— 这不是排版随意，是跟着图走的：
-      背景图里人物在中间偏左，文字放右边才不会压在她脸上。
+      ⚠️ 之前这里塞过一张「最新一篇」的小卡片，这次去掉了。原因：
+      首页只有一篇文章时，它和下面「最近文章」里那张卡**是同一篇** ——
+      同一屏出现两次，看着像出错。
+      而且左栏只有一张小卡片、还和右栏文字底端对齐，
+      两栏之间没有任何关系，读起来很散。
 
-      左栏那个「最新一篇」是为了填补空白 ——
-      否则整块左下角空空如也，看着像没做完。
+      现在的分工：
+        首屏  我是谁（标题 + 说明 + 入口）
+        下面  有什么内容（文章列表）
     */
     }
-    <div
-      class="content-shell relative z-10 grid gap-8 py-14 sm:py-20 lg:grid-cols-[1fr_minmax(0,30rem)] lg:items-end lg:py-24"
-    >
-      <!-- 左栏：留白 + 最新一篇 -->
-      <div class="order-2 lg:order-1">
-        {
-          latestPost && (
-            <a
-              href={getPostUrl(latestPost.id, latestPost.filePath, locale)}
-              class="hero__latest block max-w-sm p-4"
-            >
-              <span class="hero__latest-label font-mono text-xs">
-                {t.home.latestLabel}
-              </span>
-
-              <span class="hero__latest-title mt-2 block font-semibold">
-                {latestPost.data.title}
-              </span>
-
-              <span class="hero__latest-desc mt-1 line-clamp-2 block text-sm">
-                {latestPost.data.description}
-              </span>
-            </a>
-          )
-        }
-      </div>
-
-      <!-- 右栏：标题、说明、按钮 -->
-      <div class="order-1 lg:order-2">
+    <div class="content-shell hero__content">
+      <div class="hero__text">
         <div class="mb-5 flex flex-wrap items-center gap-2">
           <span class="badge badge-primary badge-soft">
             {t.home.badge}

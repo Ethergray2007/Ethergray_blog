@@ -41,7 +41,6 @@ export default {
       "Notes on algorithms, programming and computer graphics, plus the technical writing worth keeping around.",
     viewSource: "Source code",
     viewProfile: "Profile",
-    latestLabel: "Latest",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
     recentPosts: "Recent Posts",
