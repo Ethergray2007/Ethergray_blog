@@ -37,6 +37,26 @@ import {
 } from "./validation.ts";
 
 /**
+ * slug 的长度上限，要和数据库那列对齐（src/db/schema.ts 里的 varchar(200)）。
+ *
+ * ⚠️ 校验层只能管住**输入**长度，管不住**转换后**的长度 ——
+ *   slugify 里有几处替换是变长的，倍率不小。实测（node 里跑出来的）：
+ *
+ *     "%"  → "percent"    1 → 7
+ *     "$"  → "dollar"     1 → 6
+ *     "&"  → "and"        1 → 3
+ *     "|"  → "or"         1 → 2
+ *
+ *   所以 "&".repeat(200) 这串**合法输入**（恰好 200 字符，能通过校验）
+ *   会变成 600 字符的 slug，插入时数据库报
+ *   "value too long for type character varying(200)"，
+ *   接口回 500 而不是 422。
+ *
+ *   所以在出口这里截断。
+ */
+const POST_SLUG_MAX_LENGTH = 200;
+
+/**
  * 把标题转成可用的 slug。
  *
  * 中文标题会被 slugifyStr 保留成中文（所以网址里能直接看到中文）。
@@ -45,7 +65,16 @@ import {
 function toSlug(input: string): string {
   const slug = slugifyStr(input.trim());
 
-  return slug.length > 0 ? slug : "post";
+  if (slug.length === 0) {
+    return "post";
+  }
+
+  /*
+   * 按**码点**截断而不是 .slice()：
+   *   .slice() 数的是 UTF-16 码元，正好切在 emoji 中间会留下半个代理对，
+   *   Array.from() 按码点切就不会。对一个允许中文的 slug 来说这不是理论问题。
+   */
+  return Array.from(slug).slice(0, POST_SLUG_MAX_LENGTH).join("");
 }
 
 /** 校验 status 是不是允许的取值 */

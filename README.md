@@ -114,11 +114,11 @@ PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、�
 想一次跑完全部测试，用总入口：
 
 ```bash
-npm test   # 依次跑 7 组，前一组挂了就停
+npm test   # 依次跑 8 组，前一组挂了就停
 ```
 
 它跑的是 `db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
-`notes:test`、`projects:test` —— 全部不需要联网、不需要 `.env`，
+`notes:test`、`projects:test`、`toc:test` —— 全部不需要联网、不需要 `.env`，
 所以在任何机器上克隆下来就能跑。
 
 **一个容易误判的地方**：`npm test` 全绿**不等于**所有检查都真的跑过。
