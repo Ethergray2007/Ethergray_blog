@@ -1,5 +1,5 @@
 /**
- * 项目的读取与排序
+ * 项目的排序
  * ============================================================
  * 和友链、说说那边一样做成纯函数，方便单独测试。
  *
@@ -17,82 +17,39 @@
  */
 import type { CollectionEntry } from "astro:content";
 
-/** 页面渲染需要的形状 */
-export type Project = {
-  id: string;
-  title: string;
-  summary: string;
-  description: string;
-  status: string;
-  tags: string[];
-  /** 没有地址时是 null，页面据此决定要不要渲染链接 */
-  href: string | null;
-  featured: boolean;
-  /** 详情正文（Markdown 已转成 HTML） */
-  html: string;
-  order: number;
-};
+/** 一个项目 = 内容集合里的一条记录 */
+export type Project = CollectionEntry<"projects">;
 
 const DEFAULT_ORDER = 999;
 
 /**
- * 取一个项目**已经渲染好**的 HTML。
- *
- * ⚠️ 为什么取不到时要抛错，而不是给空字符串兜底。
- *
- * Astro 的 glob loader 对 **.mdx** 条目走的是"延迟渲染"分支，
- * 压根不会往条目上写 `rendered`（见 astro/dist/content/loaders/glob.js）。
- * 而 content.config.ts 里 projects 集合的 glob 是 `{md,mdx}` ——
- * 也就是说：往 src/content/projects/ 里放一个 .mdx，
- * **构建会成功、页面会打开、详情正文是空的**，一句提示都没有。
- * 这种"静默丢内容"比直接报错难查得多，所以宁可让构建当场失败。
- */
-function getRenderedHtml(entry: CollectionEntry<"projects">): string {
-  const html = entry.rendered?.html;
-
-  if (html === undefined) {
-    throw new Error(
-      `项目「${entry.id}」拿不到渲染结果：这个集合目前只支持 .md 文件。` +
-        `（.mdx 条目没有 entry.rendered，会被静默渲染成空白 —— 所以这里直接报错。）`
-    );
-  }
-
-  return html;
-}
-
-/**
- * 排序并整理成页面要用的形状。
- *
- * 排序规则和友链一致：
- *   1. 先按 order
+ * 排序规则：
+ *   1. 先按 order（小的在前）
  *   2. 相同则按标题（必须有第二排序键，否则顺序不稳定）
+ *
+ * 【为什么返回的是原始 entry，而不是"整理好的形状"】
+ * 这里原来把 entry 映射成 `{ title, summary, html, ... }`，正文取
+ * `entry.rendered.html` 交给页面 `set:html`。那是**绕过 Astro** 的写法：
+ * `rendered` 只对 .md 存在，.mdx 条目走"延迟渲染"分支，没有这个字段 ——
+ * 放一个 .mdx 进去，构建成功、页面能开、详情是空的，毫无提示。
+ *
+ * 现在这里只做排序，正文在页面里用 Astro 的正路渲染：
+ *     const { Content } = await render(entry)   →   <Content />
+ * href 的"空字符串当没有"也在页面里一句话判断（原来在这里归一成 null）。
  */
 export function getProjects(entries: CollectionEntry<"projects">[]): Project[] {
-  return entries
-    .map(entry => ({
-      id: entry.id,
-      title: entry.data.title,
-      summary: entry.data.summary,
-      description: entry.data.description,
-      status: entry.data.status,
-      tags: entry.data.tags ?? [],
-      /**
-       * 空字符串和 undefined 都归一成 null ——
-       * 页面里判断 href 时就不用写两种空值分支了。
-       */
-      href: entry.data.href?.trim() ? entry.data.href : null,
-      featured: entry.data.featured,
-      /**
-       * ⚠️ 拿不到就抛错，不要 `?? ""` 兜底（原因见下面 getRenderedHtml 的注释）
-       */
-      html: getRenderedHtml(entry),
-      order: entry.data.order ?? DEFAULT_ORDER,
-    }))
-    .sort((a, b) => {
-      if (a.order !== b.order) {
-        return a.order - b.order;
-      }
+  /**
+   * 先复制再排序：`sort()` 是**原地**修改数组的，
+   * 直接排入参会把调用方传进来的数组也改掉。
+   */
+  return [...entries].sort((a, b) => {
+    const orderA = a.data.order ?? DEFAULT_ORDER;
+    const orderB = b.data.order ?? DEFAULT_ORDER;
 
-      return a.title.localeCompare(b.title, "zh");
-    });
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+
+    return a.data.title.localeCompare(b.data.title, "zh");
+  });
 }

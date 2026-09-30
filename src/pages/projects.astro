@@ -17,7 +17,7 @@
  * 合成一个页面之后，每加一个项目都要动那个复杂文件，不划算。
  * ============================================================
  */
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -33,7 +33,21 @@ const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
 const entries = await getCollection("projects");
-const projects = getProjects(entries);
+
+/**
+ * 详情正文交给 Astro 渲染：`render(entry)` 返回 <Content /> 组件。
+ *
+ * 为什么不是读 entry.rendered.html 再 set:html：
+ *   rendered 只对 .md 存在（.mdx 走延迟渲染，没有这个字段），
+ *   用它就等于"只支持 .md，放了 .mdx 会静默渲染成空白"。
+ *   这里是 Astro 官方给集合条目的渲染方式，两种格式都能用。
+ */
+const projects = await Promise.all(
+  getProjects(entries).map(async entry => ({
+    entry,
+    Content: (await render(entry)).Content,
+  }))
+);
 ---
 
 <Layout
@@ -48,25 +62,25 @@ const projects = getProjects(entries);
         <p class="text-base-content-muted">{t.projects.empty}</p>
       ) : (
         <ul class="flex flex-col gap-6">
-          {projects.map(project => (
+          {projects.map(({ entry, Content }) => (
             <li class="card bg-base-200 p-6">
               <div class="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 class="text-xl font-bold">{project.title}</h2>
+                <h2 class="text-xl font-bold">{entry.data.title}</h2>
 
                 {/* 状态徽章 */}
                 <span class="badge badge-outline badge-sm">
-                  {project.status}
+                  {entry.data.status}
                 </span>
               </div>
 
               <p class="text-base-content-strong mt-2 leading-7">
-                {project.description}
+                {entry.data.description}
               </p>
 
               {/* 技术栈 */}
-              {project.tags.length > 0 && (
+              {entry.data.tags.length > 0 && (
                 <div class="mt-4 flex flex-wrap gap-2">
-                  {project.tags.map(tag => (
+                  {entry.data.tags.map(tag => (
                     <span class="badge badge-ghost badge-sm">{tag}</span>
                   ))}
                 </div>
@@ -75,11 +89,12 @@ const projects = getProjects(entries);
               {/*
                 只有确实有地址时才渲染链接 ——
                 指向 "#" 的"链接"比没有链接更让人困惑。
+                空白字符也算没有，所以先 trim 再判断。
               */}
-              {project.href && (
+              {entry.data.href?.trim() && (
                 <div class="mt-4">
                   <a
-                    href={project.href}
+                    href={entry.data.href}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="link link-primary text-sm"
@@ -90,15 +105,15 @@ const projects = getProjects(entries);
               )}
 
               {/*
-                详情正文（Markdown）。
-                内容是自己写的，不是用户输入，所以直接渲染 HTML 是安全的 ——
-                这一点值得写下来，因为"直接设 HTML"通常是个危险信号。
+                详情正文（Markdown / MDX）。
+                用 Astro 的 <Content /> 渲染（见上面 render 那段注释）——
+                比手写 set:html 少一类坑，也顺带支持了 .mdx。
+                没有正文的项目（body 是空的）不渲染这一块。
               */}
-              {project.html && (
-                <div
-                  class="prose prose-sm dark:prose-invert border-base-300 mt-4 max-w-none border-t pt-4"
-                  set:html={project.html}
-                />
+              {entry.body?.trim() && (
+                <div class="prose prose-sm dark:prose-invert border-base-300 mt-4 max-w-none border-t pt-4">
+                  <Content />
+                </div>
               )}
             </li>
           ))}

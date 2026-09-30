@@ -101,18 +101,33 @@ check(
 );
 
 /* ==================================================================
- * 3. 字段透传
+ * 3. 返回的是原始条目
  * ================================================================ */
-console.log("\n=== 3. 字段有没有丢 ===");
+console.log("\n=== 3. 返回的是原始条目 ===");
 
 const one = getNotes([
   note("a", "2026-09-30T10:00:00+08:00", ["博客", "开发"], "<p>正文</p>"),
 ])[0];
 
-check("id 正确透传", one.id === "a");
-check("渲染好的 HTML 正确透传", one.html === "<p>正文</p>");
-check("tags 正确透传", one.tags.join(",") === "博客,开发");
-check("date 是 Date 对象", one.date instanceof Date);
+check("id 是对的", one.id === "a");
+check("tags 在 data 上", one.data.tags.join(",") === "博客,开发");
+check("date 是 Date 对象", one.data.date instanceof Date);
+
+/**
+ * 排序函数不应该改动传进来的数组（`sort()` 是原地排序的）。
+ * 这条防的是"页面里 getCollection 的结果被悄悄改乱"。
+ */
+const input = [
+  note("b", "2026-09-25T10:00:00+08:00"),
+  note("c", "2026-09-30T21:20:00+08:00"),
+];
+const inputIdsBefore = input.map(n => n.id).join(",");
+getNotes(input);
+check(
+  "不改动传进来的数组",
+  input.map(n => n.id).join(",") === inputIdsBefore,
+  `${inputIdsBefore} → ${input.map(n => n.id).join(",")}`
+);
 
 /* ==================================================================
  * 4. 边界情况
@@ -122,28 +137,20 @@ console.log("\n=== 4. 边界情况 ===");
 check("空数组不报错", getNotes([]).length === 0);
 
 const noTags = getNotes([note("a", "2026-09-30T10:00:00+08:00")])[0];
-check("没写 tags 时是空数组（不是 undefined）", Array.isArray(noTags.tags) && noTags.tags.length === 0);
+check(
+  "没写 tags 时是空数组（不是 undefined）",
+  Array.isArray(noTags.data.tags) && noTags.data.tags.length === 0
+);
 
 /**
- * rendered 不存在时必须**报错**，不能悄悄给个空字符串。
+ * 正文不在这里处理了。
  *
- * 为什么会不存在：Astro 的 glob loader 对 .mdx 条目走"延迟渲染"分支，
- * 不会写 entry.rendered。而 content.config.ts 里 notes 的 glob 是 {md,mdx}。
- * 原来这里是 `?? ""` 兜底 —— 结果是放个 .mdx 进来说说页会**静默变成空白**，
- * 构建成功、没有警告，最难查的那种 bug。
+ * 原来 getNotes 会去读 entry.rendered.html，而它只对 .md 存在
+ * （.mdx 走延迟渲染，没这个字段），于是"放个 .mdx 进来会静默渲染成空白"。
+ * 现在正文由页面用 Astro 的 `await render(entry)` + <Content /> 渲染，
+ * 两种格式都支持 —— 所以这里没有"渲染"相关的断言可测了，
+ * 这是重构的目的，不是漏测。
  */
-let missingRenderedError = "";
-try {
-  getNotes([{ id: "a", data: { date: new Date(), tags: [] } } as never]);
-} catch (error) {
-  missingRenderedError = error instanceof Error ? error.message : String(error);
-}
-
-check(
-  "没有 rendered 时报错（而不是静默给空字符串）",
-  missingRenderedError.includes("a") && missingRenderedError.includes(".md"),
-  missingRenderedError || "（居然没报错）"
-);
 
 /* ==================================================================
  * 汇总
