@@ -107,6 +107,27 @@
 
       block.dataset.copyReady = "true";
 
+      /*
+       * 为什么要在代码块外面再包一层？
+       *
+       * 代码块自己有 overflow-x: auto（长行要能横向滚）。
+       * 按钮如果直接挂在它里面，"右边缘"指的是**内容**的右边缘，
+       * 横向滚动时按钮会跟着滚走 —— 实测滚动 426px，按钮从左下
+       * 飘到代码文字上面去。
+       *
+       * 包一层之后，外层不滚动，按钮相对外层定位，就永远待在
+       * 右上角。外层没有任何自己的样式，margin 会正常合并，
+       * 所以段落间距和包之前完全一样。
+       */
+      let holder = block.parentElement;
+
+      if (!holder?.classList.contains("code-block")) {
+        holder = document.createElement("div");
+        holder.className = "code-block";
+        block.before(holder);
+        holder.append(block);
+      }
+
       const button = document.createElement("button");
       button.type = "button";
       button.className = "code-copy-btn";
@@ -127,7 +148,7 @@
         }, 1500);
       });
 
-      block.append(button);
+      holder.append(button);
     });
   }
 
@@ -138,9 +159,29 @@
   document.addEventListener("astro:page-load", initCopyButtons);
 </script>
 
-<style>
-  /* 让按钮能绝对定位到代码块右上角 */
-  pre.astro-code {
+<!--
+  ⚠️ 这里必须写 is:global，不能是普通的 scoped 样式。
+
+  普通 <style> 会被 Astro 加上 data-astro-cid-xxx 属性选择器，
+  而那个属性只加在**组件模板里写出来的元素**上。
+  这个组件的模板是空的，代码块来自 Markdown、按钮来自下面的脚本，
+  两者都没有那个属性 —— 于是整段样式一条都匹配不上。
+
+  踩过的坑：产物里**根本没有** .code-copy-btn 这条规则（不是"被覆盖"，
+  是被整段丢掉）。表现是复制按钮变成一个没样式的原生按钮，
+  挤在代码内容末尾、被 overflow-x 裁掉一半，只看得见一个「复」字。
+  dev 和 build 都一样，因为作用域是编译期决定的。
+
+  写 is:global 之后选择器保持原样。pre.astro-code 和 .code-copy-btn
+  都只出现在文章页，不会污染别处。
+  （src/pages/search.astro 里的 #pagefind-search 出于同样原因是 is:global）
+-->
+<style is:global>
+  /*
+   * 外层容器。它自己不产生任何视觉，只负责"不滚动"，
+   * 这样按钮的右边缘才是屏幕上的右边缘（见上面脚本里的注释）。
+   */
+  .code-block {
     position: relative;
   }
 
@@ -166,7 +207,7 @@
       background-color 150ms ease;
   }
 
-  pre.astro-code:hover .code-copy-btn,
+  .code-block:hover .code-copy-btn,
   .code-copy-btn:focus-visible {
     opacity: 1;
   }
