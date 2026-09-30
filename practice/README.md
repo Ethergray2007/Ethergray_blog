@@ -91,29 +91,43 @@ npx tsc -p practice/tsconfig.json --noEmit 2>&1 | Select-String "solutions"
 
 ---
 
-## 附加工具：让 node 直接跑 src/utils 里的函数
+## 用 node 直接跑 src/ 里的代码
 
-`src/utils/` 里的函数按 Astro 的写法导入依赖，`node` 默认处理不了三种情况：
-
-| 情况 | 例子 | 为什么 node 不行 |
-| --- | --- | --- |
-| Astro 虚拟模块 | `import type { X } from "astro:content"` | 这个模块磁盘上不存在 |
-| 路径别名 | `import config from "@/config"` | node 不认识 `@/` |
-| 省略后缀 | `import { slugifyStr } from "./slugify"` | node 要求写全 `.ts` |
-
-[practice/node-ts-hook.mjs](node-ts-hook.mjs) 用一个 node 预加载钩子把这些接住，
-于是**不用起 Astro、不用装测试框架**就能验证纯逻辑：
+**不用起 Astro、不用装测试框架**，用 `node` 就能验证纯逻辑：
 
 ```bash
-node --import ./practice/node-ts-hook.mjs 你的脚本.ts
+node practice/tests/db.ts      # 数据层测试
+node practice/tests/api.ts     # 接口测试
+node practice/tests/auth.ts    # 登录访问控制测试
+node 你的临时脚本.ts            # 随手验证一个函数
 ```
 
-这正好配合 [AGENTS.md](../AGENTS.md) 里推荐的开发顺序：
-**先用 node 把纯函数跑通，再写组件。**
+（三个测试也可以一次跑完：`npm test`）
 
-> 注意：替身（[_virtual-astro-stub.mjs](_virtual-astro-stub.mjs)）只保证"能加载"，
-> 不保证行为正确。所以它只能用来验证纯逻辑，
-> 不能验证跟站点配置相关的行为。
+### 为什么这样能行
+
+`node` 直接执行 TypeScript 时处理不了 Astro 的三套写法，所以项目里有约定：
+
+| Astro 的写法 | node 为什么不行 | 我们怎么办 |
+| --- | --- | --- |
+| `import type { X } from "astro:content"` | 这个模块磁盘上不存在 | 不 import 它 |
+| `import config from "@/config"` | node 不认识 `@/` | 用相对路径 |
+| `import { x } from "./y"` | node 要求写全 `.ts` | 写全后缀 |
+
+这些约定**只针对 `src/db/`、`src/lib/`、`src/pages/api/` 这三个目录** ——
+它们要能脱离 Astro 单独跑（跑迁移、跑测试）。
+项目其他地方的 `.astro` 文件照常用 `@/` 别名和省略后缀，那是 Astro 的写法。
+
+### 一个已经删掉的历史包袱
+
+早先这里有个 `node-ts-hook.mjs`，用 node 的预加载钩子帮你自动补 `.ts` 后缀、
+把 `astro:content` 替换成空壳、把 `@/` 映射到 `src/`。
+
+**已经删掉了。** 因为后来把上面那三个目录的 import 全部改成显式相对路径，
+它要解决的问题就不存在了 —— 留着只是让人多一份要维护的东西。
+
+> 教训：兜底工具用久了容易变成"没人记得为什么存在"的包袱。
+> 改动根源（把后缀写全）比维护一层魔法更省事。
 
 ---
 

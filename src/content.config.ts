@@ -24,14 +24,13 @@ const posts = defineCollection({
     }),
 });
 
-const pages = defineCollection({
-  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/content/pages" }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string().optional(),
-    ogImage: z.string().optional(),
-    canonicalURL: z.string().optional(),
-  }),
-});
-
-export const collections = { posts, pages };
+/**
+ * 【为什么只有 posts 一个集合】
+ * AstroPaper 原本还有个 pages 集合（放 src/content/pages/about.md）。
+ * 那个文件是模板自带的介绍页，内容全是关于 AstroPaper 的，
+ * 而「关于」页面（src/pages/about.astro）的数据是直接写在文件里的、不读它 ——
+ * 整条链路都没人用，所以一起删掉了。
+ *
+ * 以后想用 Markdown 管理「关于」这类页面，再加回来即可。
+ */
+export const collections = { posts };
