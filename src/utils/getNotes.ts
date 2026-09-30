@@ -28,6 +28,35 @@ export type Note = {
 };
 
 /**
+ * 取一条说说**已经渲染好**的 HTML。
+ *
+ * ⚠️ 为什么取不到时要抛错，而不是给个空字符串兜底。
+ *
+ * Astro 的 glob loader 对 **.mdx** 条目走的是"延迟渲染"分支，
+ * 压根不会往条目上写 `rendered`（见 astro/dist/content/loaders/glob.js）。
+ * 而 content.config.ts 里 notes 集合的 glob 是 `{md,mdx}` ——
+ * 也就是说：往 src/content/notes/ 里放一个 .mdx，
+ * **构建会成功、页面会打开、正文是空的**，一句提示都没有。
+ * 这种"静默丢内容"比直接报错难查得多，所以这里宁可让构建当场失败。
+ *
+ * 真要用 .mdx 写说说，得改成在页面里 `await render(entry)` 拿 <Content />，
+ * 而不是读 entry.rendered（这个函数的测试是拿 node 直接跑的，
+ * 不能依赖 astro:content 的 render）。
+ */
+function getRenderedHtml(entry: CollectionEntry<"notes">): string {
+  const html = entry.rendered?.html;
+
+  if (html === undefined) {
+    throw new Error(
+      `说说「${entry.id}」拿不到渲染结果：这个集合目前只支持 .md 文件。` +
+        `（.mdx 条目没有 entry.rendered，会被静默渲染成空白 —— 所以这里直接报错。）`
+    );
+  }
+
+  return html;
+}
+
+/**
  * 按时间倒序排列（最新的在前）。
  *
  * @param entries 内容集合里的原始数据
@@ -40,7 +69,7 @@ export function getNotes(entries: CollectionEntry<"notes">[]): Note[] {
        * 说说的正文直接当内容用，不经过布局包装。
        * 这里取的是 Astro 已经渲染好的 HTML。
        */
-      html: entry.rendered?.html ?? "",
+      html: getRenderedHtml(entry),
       date: entry.data.date,
       tags: entry.data.tags ?? [],
     }))

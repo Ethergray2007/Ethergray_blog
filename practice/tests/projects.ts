@@ -130,10 +130,22 @@ check("空数组不报错", getProjects([]).length === 0);
 const noTags = getProjects([project("a", 1)]).at(0)!;
 check("没写 tags 时是空数组", Array.isArray(noTags.tags) && noTags.tags.length === 0);
 
-const noRendered = getProjects([
-  { id: "a", data: { ...project("a", 1).data } } as never,
-]).at(0)!;
-check("没有 rendered 时给空字符串，不崩", noRendered.html === "");
+/**
+ * rendered 不存在时必须**报错**，不能悄悄给个空字符串
+ * （原因同 notes：.mdx 条目没有 entry.rendered，静默变空最难查）。
+ */
+let missingRenderedError = "";
+try {
+  getProjects([{ id: "a", data: { ...project("a", 1).data } } as never]);
+} catch (error) {
+  missingRenderedError = error instanceof Error ? error.message : String(error);
+}
+
+check(
+  "没有 rendered 时报错（而不是静默给空字符串）",
+  missingRenderedError.includes("a") && missingRenderedError.includes(".md"),
+  missingRenderedError || "（居然没报错）"
+);
 
 /* ==================================================================
  * 汇总

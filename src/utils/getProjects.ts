@@ -36,6 +36,31 @@ export type Project = {
 const DEFAULT_ORDER = 999;
 
 /**
+ * 取一个项目**已经渲染好**的 HTML。
+ *
+ * ⚠️ 为什么取不到时要抛错，而不是给空字符串兜底。
+ *
+ * Astro 的 glob loader 对 **.mdx** 条目走的是"延迟渲染"分支，
+ * 压根不会往条目上写 `rendered`（见 astro/dist/content/loaders/glob.js）。
+ * 而 content.config.ts 里 projects 集合的 glob 是 `{md,mdx}` ——
+ * 也就是说：往 src/content/projects/ 里放一个 .mdx，
+ * **构建会成功、页面会打开、详情正文是空的**，一句提示都没有。
+ * 这种"静默丢内容"比直接报错难查得多，所以宁可让构建当场失败。
+ */
+function getRenderedHtml(entry: CollectionEntry<"projects">): string {
+  const html = entry.rendered?.html;
+
+  if (html === undefined) {
+    throw new Error(
+      `项目「${entry.id}」拿不到渲染结果：这个集合目前只支持 .md 文件。` +
+        `（.mdx 条目没有 entry.rendered，会被静默渲染成空白 —— 所以这里直接报错。）`
+    );
+  }
+
+  return html;
+}
+
+/**
  * 排序并整理成页面要用的形状。
  *
  * 排序规则和友链一致：
@@ -57,7 +82,10 @@ export function getProjects(entries: CollectionEntry<"projects">[]): Project[] {
        */
       href: entry.data.href?.trim() ? entry.data.href : null,
       featured: entry.data.featured,
-      html: entry.rendered?.html ?? "",
+      /**
+       * ⚠️ 拿不到就抛错，不要 `?? ""` 兜底（原因见下面 getRenderedHtml 的注释）
+       */
+      html: getRenderedHtml(entry),
       order: entry.data.order ?? DEFAULT_ORDER,
     }))
     .sort((a, b) => {

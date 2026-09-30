@@ -125,13 +125,25 @@ const noTags = getNotes([note("a", "2026-09-30T10:00:00+08:00")])[0];
 check("没写 tags 时是空数组（不是 undefined）", Array.isArray(noTags.tags) && noTags.tags.length === 0);
 
 /**
- * rendered 在某些情况下可能是 undefined（比如用的是自定义 loader）。
- * 这里确认不会因此崩掉，而是给个空字符串。
+ * rendered 不存在时必须**报错**，不能悄悄给个空字符串。
+ *
+ * 为什么会不存在：Astro 的 glob loader 对 .mdx 条目走"延迟渲染"分支，
+ * 不会写 entry.rendered。而 content.config.ts 里 notes 的 glob 是 {md,mdx}。
+ * 原来这里是 `?? ""` 兜底 —— 结果是放个 .mdx 进来说说页会**静默变成空白**，
+ * 构建成功、没有警告，最难查的那种 bug。
  */
-const noRendered = getNotes([
-  { id: "a", data: { date: new Date(), tags: [] } } as never,
-])[0];
-check("没有 rendered 时给空字符串，不崩", noRendered.html === "");
+let missingRenderedError = "";
+try {
+  getNotes([{ id: "a", data: { date: new Date(), tags: [] } } as never]);
+} catch (error) {
+  missingRenderedError = error instanceof Error ? error.message : String(error);
+}
+
+check(
+  "没有 rendered 时报错（而不是静默给空字符串）",
+  missingRenderedError.includes("a") && missingRenderedError.includes(".md"),
+  missingRenderedError || "（居然没报错）"
+);
 
 /* ==================================================================
  * 汇总
