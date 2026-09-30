@@ -1,3 +1,4 @@
+import { loadEnv } from "vite";
 import {
   defineConfig,
   envField,
@@ -17,6 +18,34 @@ import {
 } from "@shikijs/transformers";
 import { transformerFileName } from "./src/utils/transformers/fileName";
 import config from "./astro-paper.config";
+
+/**
+ * 把 .env 里的变量加载进 process.env。
+ * ============================================================
+ * 【为什么需要手动做这件事】
+ * Astro **不会**自动把 .env 注入 process.env。
+ * 它的 astro:env 机制是另一套（要 import 虚拟模块，且只在 Astro
+ * 运行时可用）。而我们的数据库代码要在**三种环境**下都能读到配置：
+ *
+ *   1. Astro 开发服务器 / 构建   ← 这个文件负责
+ *   2. 普通 node 脚本（db:setup、测试）← 脚本里有自己的加载器
+ *   3. Netlify Functions         ← 平台直接注入 process.env，不需要文件
+ *
+ * 用 Vite 自带的 loadEnv 读，不引入 dotenv 依赖。
+ *
+ * 只加载非 PUBLIC_ 开头的变量，避免把密钥意外暴露给客户端代码 ——
+ * 虽然客户端代码本来也读不到 process.env，但这样更保险。
+ */
+const fileEnv = loadEnv(
+  process.env.NODE_ENV ?? "development",
+  process.cwd(),
+  ""
+);
+
+for (const [key, value] of Object.entries(fileEnv)) {
+  // 已经存在的环境变量优先 —— 线上平台注入的值不应该被本地文件覆盖
+  process.env[key] ??= value;
+}
 
 export default defineConfig({
   site: config.site.url,

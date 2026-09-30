@@ -188,7 +188,8 @@ export function authRoutes() {
        * 登录  POST /api/login
        * ----------------------------------------------------- */
       .post("/login", async rawCtx => {
-        const { db, request, set } = asContext(rawCtx);
+        const ctx = asContext(rawCtx);
+        const { db, request, set } = ctx;
 
         /**
          * 先读并校验数据格式。
@@ -196,8 +197,11 @@ export function authRoutes() {
          * 登录接口的校验放在前面是对的 ——
          * 它本身就是鉴权入口，不存在"未登录"一说。
          * 而且先校验能省掉一次无谓的 scrypt 计算。
+         *
+         * 第二个参数传 ctx.body：Elysia 在运行时可能已经解析过请求体了，
+         * 那时 request.bodyUsed 会是 true，必须用它的结果。
          */
-        const parsed = await readJsonBody(request);
+        const parsed = await readJsonBody(request, ctx.body);
 
         if (!parsed.ok) {
           set.status = 400;

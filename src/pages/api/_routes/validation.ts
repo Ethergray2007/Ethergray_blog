@@ -77,21 +77,34 @@ export function isPlainObject(
 }
 
 /**
- * 读取并解析请求体。
+ * 取得请求体（已解析成对象）。
  *
- * 【为什么自己读，不用 Elysia 的 ctx.body】
- * Elysia 只在声明了 `body: t.Object(...)` 时才解析请求体。
- * 而声明它会让校验发生在**处理函数之前**，于是未登录的人会先收到
- * 422「字段不对」而不是 401「请先登录」—— 顺序不对，还泄露了字段要求。
+ * 【为什么要写成"优先用 ctx.body"】
+ * 实测 Elysia 在 Astro 运行时里会自动解析 JSON 请求体放进 ctx.body，
+ * 同时把 request.body 标记为已消费。这时如果自己去读 request，会拿到：
  *
- * 改成自己读之后：三行代码，什么时候解析、解析失败怎么回，
- * 全部由我们决定。
+ *     Body is unusable: Body has already been read
  *
- * @returns 成功返回 { ok: true, data }；失败返回 { ok: false, error }
+ * 而在纯 node 环境直接调用 app.handle() 时，ctx.body 是 undefined、
+ * request.body 也还没被读 —— 这时才需要自己读。
+ *
+ * 所以两种来源都要支持。用 request.bodyUsed 判断，而不是猜。
+ *
+ * 【为什么不干脆声明 body: t.Object(...) 让 Elysia 校验】
+ * 那样校验会发生在处理函数**之前**：未登录的人提交缺字段的数据，
+ * 会先收到 422「字段不对」而不是 401「请先登录」——
+ * 语义不对，还泄露了这个接口需要哪些字段。
  */
 export async function readJsonBody(
-  request: Request
+  request: Request,
+  preParsedBody?: unknown
 ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+  // 情况一：body 已经被上层读过了
+  if (request.bodyUsed) {
+    return { ok: true, data: preParsedBody ?? {} };
+  }
+
+  // 情况二：还没读过，自己读
   const text = await request.text();
 
   // 空 body 当成空对象，这样"全部字段可选"的 PATCH 请求不用额外处理

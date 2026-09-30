@@ -54,6 +54,28 @@ export function createApi(db: Db) {
         }
 
         /**
+         * 请求体解析失败。
+         *
+         * 【为什么会有这个分支】
+         * Elysia 看到 `content-type: application/json` 就会尝试解析请求体。
+         * 但 DELETE 这类请求**通常没有 body** —— 于是它去 JSON.parse("")，
+         * 抛出一个 ParseError，消息是含糊的 "Bad Request"。
+         *
+         * 如果不单独处理，它会被下面的兜底分支当成"未知服务器错误"返回 500，
+         * 让人以为是服务器挂了，实际上是调用方发了一个没有 body 的 DELETE。
+         *
+         * 实测触发方式：DELETE /api/posts/1 且带上 Content-Type: application/json
+         */
+        if (code === "PARSE") {
+          set.status = 400;
+          return {
+            error:
+              "请求体无法解析。如果这个请求本来就不需要 body，请不要设置 Content-Type。",
+            code: API_ERROR.badRequest,
+          };
+        }
+
+        /**
          * 其余都是真出错。
          * 开发时把真实错误抛出来方便调试；线上只回一句人话，
          * 避免把数据库结构、文件路径之类的信息泄露给访问者。

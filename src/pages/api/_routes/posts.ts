@@ -139,8 +139,14 @@ export function postRoutes() {
 
         const { db, request, set } = asContext(rawCtx);
 
-        // 鉴权过了才读和校验数据 —— 未登录的人不该知道这个接口要哪些字段
-        const parsed = await readJsonBody(request);
+        /**
+         * 鉴权过了才读和校验数据 —— 未登录的人不该知道这个接口要哪些字段。
+         *
+         * 第二个参数传 ctx.body：Elysia 在 Astro 运行时里可能已经解析过
+         * 请求体了（那时 request.bodyUsed 已经是 true），必须用它的结果，
+         * 否则会报 "Body has already been read"。
+         */
+        const parsed = await readJsonBody(request, asContext(rawCtx).body);
 
         if (!parsed.ok) {
           set.status = 400;
@@ -207,7 +213,8 @@ export function postRoutes() {
           return unauthorized();
         }
 
-        const { db, request, set, params } = asContext(rawCtx);
+        const ctx = asContext(rawCtx);
+        const { db, request, set, params } = ctx;
         const id = parseId(params.id);
 
         if (id === null) {
@@ -215,8 +222,8 @@ export function postRoutes() {
           return { error: "文章 id 必须是正整数。", code: "BAD_REQUEST" };
         }
 
-        // 鉴权过了才读和校验数据
-        const parsed = await readJsonBody(request);
+        // 鉴权过了才读和校验数据。ctx.body 的说明见 POST /posts 那段注释
+        const parsed = await readJsonBody(request, ctx.body);
 
         if (!parsed.ok) {
           set.status = 400;

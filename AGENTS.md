@@ -213,20 +213,29 @@ error.cause.message; // 'duplicate key value violates ...' ← 真正的原因
 
 和 `src/db/` 一样，这一层要能在 Astro 之外跑测试（`npm run api:test`）。
 
-**2. 每个处理函数自己检查登录，不用 `onBeforeHandle`**
+**2. 接法用 Elysia 官方推荐的 Astro 集成模式**
+
+[官方文档](https://elysiajs.com/integrations/astro)给的写法是：
+
+```ts
+const handle = ({ request }: { request: Request }) => app.handle(request);
+export const GET = handle;
+export const POST = handle;
+```
+
+我们用 `export const ALL = handler` 是它的通配版本，把所有方法一次接住。
+另按官方要求：Elysia 放在 `pages/api/[...path].ts` 里时必须加
+`prefix: "/api"`，否则路由匹配不上。
+
+**3. 每个处理函数自己检查登录，不用 `onBeforeHandle`**
 
 看起来重复，但这是实测后的选择，原因见下面。
 
-**3. 校验写在处理函数内部，不用 `body: t.Object(...)`**
+**4. 请求体用 `ctx.body`，不要自己读 request**
 
-用 Elysia 的 body 声明会让校验发生在处理函数**之前**，后果是：
-未登录的人提交一份缺字段的数据，会先收到 422「字段不对」
-而不是 401「请先登录」—— 语义不对，还泄露了这个接口需要哪些字段。
+见下面"Elysia 的几个坑"里的说明。这是踩了很久才定位到的。
 
-现在改用 typebox 的 `Value.Check`（Elysia 内部用的就是它），
-在读 body 之后的代码里手动校验，顺序完全可控。
-
-**4. 整个 API 层只有一处类型断言**
+**5. 整个 API 层只有一处类型断言**
 
 `context.ts` 里的 `asContext()`。Elysia 的 handler 参数类型是深度推导的，
 我们没声明 schema、db 又是自己 decorate 的，它推不出完整形状。
@@ -235,20 +244,49 @@ error.cause.message; // 'duplicate key value violates ...' ← 真正的原因
 
 ### Elysia 的几个坑（都实测过）
 
-**`onBeforeHandle` 不适合做鉴权守卫**
+**`ctx.body` 会自动解析 —— 别再自己去读 request**
+
+这个是**踩了很久才定位到的**，也是最容易再犯的一条。
+
+Elysia 看到 `content-type: application/json` 就会**自动解析请求体**
+放进 `ctx.body`，同时把 `request.body` 标记成已消费
+（`request.bodyUsed === true`）。这时如果代码再去读 request：
+
+```
+TypeError: Body is unusable: Body has already been read
+```
+
+现象很有迷惑性：
+
+- 所有带 body 的接口（POST / PATCH）返回 500，**GET 全部正常**
+- 用 PGlite 跑的 API 测试**全部通过** —— 因为测试里直接调
+  `app.handle()` 时 Elysia 不解析 body，`request.bodyUsed` 还是 false
+- 只有在 Astro 运行时里才复现
+
+所以正确写法是 `readJsonBody(request, ctx.body)` —— 见
+`validation.ts`，它用 `request.bodyUsed` 判断该用哪个来源。
+
+**但 `onBeforeHandle` / `preHandler` 都不适合做鉴权守卫**
 
 它绑定时就把上下文类型固定了，导致注册函数必须精确匹配那个类型，
 很容易写出"路由注册不上、所有请求 404"的情况，而且报错信息帮不上忙。
+
+**注意：`onBeforeHandle` 那条坑曾经误导过我**
+
+排查期间一直以为"所有请求 404"是钩子造成的，后来发现真正原因是
+我的探测脚本用了 `http://x` 这种**单字母主机名**，Elysia 匹配不上路由。
+换成 `http://localhost` 就正常了。所以看到 404 先确认请求本身的 URL 是否正常。
 
 **`ctx.cookie` 在某些调用路径下是 `undefined`**
 
 所以直接读 `request.headers.get("cookie")` 自己解析
 （见 `auth.ts` 的 `readCookie`）。几行代码，行为完全可预测。
 
-**`ctx.body` 只有在声明了 `body` schema 时才存在**
+**还有一条：DELETE 请求不要带 `Content-Type: application/json`**
 
-删掉声明后 `ctx.body` 就是 `undefined`。所以现在自己读请求体
-（见 `validation.ts` 的 `readJsonBody`）。
+Elysia 会据此去解析 body，但 DELETE 没有 body，于是 `JSON.parse("")`
+抛 `ParseError`（消息是含糊的 `Bad Request`）。
+错误处理器里已经把 `PARSE` 单独映射成 400，见 `_routes/index.ts`。
 
 **插件必须用 `.use()` 组合，不能把 app 当参数传**
 

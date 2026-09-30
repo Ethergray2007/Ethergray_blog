@@ -154,7 +154,15 @@ console.log("\n=== 3. 建表 ===");
  */
 const { spawnSync } = await import("node:child_process");
 
-const migrate = spawnSync("npx", ["drizzle-kit", "migrate"], {
+/**
+ * 注意：命令写成一整个字符串，而不是「命令 + 参数数组」。
+ *
+ * 在 Windows 上 npx 是 .cmd 批处理，必须经由 shell 才能执行，
+ * 所以 shell 是必需的。而 Node 对「shell + 参数数组」的组合会告警
+ * （DEP0190）—— 因为参数是拼接而非转义，有注入风险。
+ * 合并成一个字符串就不触发这个告警，而且这里本来也没有外部输入。
+ */
+const migrate = spawnSync("npx drizzle-kit migrate", {
   stdio: "inherit",
   shell: true,
 });

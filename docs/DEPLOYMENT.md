@@ -68,6 +68,38 @@ Neon 那边已经用 PgBouncer 做了池化。我们客户端也设了 `max: 1`
 
 ---
 
+## 关于数据库驱动：一个已知的偏离
+
+**Neon 官方为 Serverless 平台推荐的是 HTTP 版驱动**
+（[出处](https://neon.com/docs/connect/choose-connection)）：
+
+| 环境 | 官方推荐驱动 |
+| --- | --- |
+| 长驻服务器（VPS / Docker） | `pg` 或 `postgres.js` |
+| **Netlify / Deno Deploy / Cloudflare** | **`@neondatabase/serverless`** |
+
+**我们目前用的是 `postgres`（TCP 版）。** 这是有意的取舍，不是疏忽：
+
+### 为什么先用 TCP 版
+
+- Drizzle 对 `postgres-js` 的支持最成熟，换成 HTTP 驱动要同时换
+  Drizzle 的驱动适配层，改动面不小
+- 已经配合了连接池连接串 + `max: 1`，连接数风险已经被压住
+- 本地和线上都实测通过了
+
+### 什么时候该换成 HTTP 驱动
+
+出现下面任一情况就值得换：
+
+```text
+□ Netlify 日志里出现 "too many connections" 或连接相关错误
+□ 并发请求变多（比如以后开放评论），TCP 连接不够用
+□ 冷启动明显变慢，且确认是建连接导致的
+□ 想用 Neon 的分支功能做预览环境隔离
+```
+
+不出现就先不动 —— **能跑通的代码不要为了"更符合推荐"而重写**。
+
 ## 区域选择：让数据库和函数在同一个地方
 
 这是**最容易忽略、影响最大**的一点。

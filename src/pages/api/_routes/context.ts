@@ -38,6 +38,22 @@ export type ApiContext = {
 
   /** 路径参数，例如 /api/posts/:id 里的 id */
   params: Record<string, string | undefined>;
+
+  /**
+   * Elysia 自动解析好的请求体。
+   *
+   * Elysia 发现 `content-type: application/json` 时会**自动解析**
+   * 并放在这里，同时把 request.body 标记为已消费（bodyUsed = true）。
+   *
+   * 所以想拿请求体，优先用它，不要自己去读 request ——
+   * 那时 body 已经被读过了，会报：
+   *     Body is unusable: Body has already been read
+   *
+   * 注意：这个行为依赖运行环境。在纯 node 里直接调用 app.handle()
+   * 时它可能是 undefined，所以读取逻辑写成了兼容两种情况的
+   * readBody()（见 validation.ts）。
+   */
+  body?: unknown;
 };
 
 /**
