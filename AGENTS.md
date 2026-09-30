@@ -495,17 +495,30 @@ TypeError: Body is unusable: Body has already been read
 所有带 body 的接口 500 而 GET 正常，排查了很久。改成
 `readJsonBody(request, ctx.body)` 之后解决了。
 
-**后来接入 Better Auth 时，`readJsonBody()` 整个被删掉了 ——
-因为登录不再需要自己解析请求体。** 那之后 POST / PATCH 都正常。
+**后来接入 Better Auth 时，登录那条路径不再需要它了** ——
+但 `readJsonBody()` **并没有被删掉**，它还在 `validation.ts` 里，
+被文章接口的 POST / PATCH 使用（`posts.ts`）。
 
-所以这条坑的现状是：**不要再自己读 request body**。
-如果将来确实需要读，先确认 `request.bodyUsed`。
+所以这条坑的现状是：**不要再自己去读 request body**。
+如果确实需要读，走 `readJsonBody(request, ctx.body)` ——
+它用 `request.bodyUsed` 判断该用哪个来源，而不是猜。
 
 **`onBeforeHandle` / `preHandler` 不适合做鉴权守卫**
 
 它绑定时就把上下文类型固定了，注册函数必须精确匹配那个类型。
 而且数据校验可能先于它执行，导致未登录时返回 422 而不是 401。
 现在每个处理函数第一行自己调用 `resolveUser`，没有隐式规则。
+
+**`guard` + `resolve` 也解决不了这个问题 —— 别照着技能文档改回来**
+
+它们是 Elysia 官方推荐的"消除重复鉴权"写法（想一下少写几行检查），
+但对本项目不成立：`resolve` 跑在校验**之后**（见技能
+`elysiajs/references/lifecycle.md` 的 "Resolve" 一节），
+用它做鉴权，校验就会先跑 —— 未登录的人照样先收到 422。
+
+所以"每个处理函数自己检查登录"不是将就，是为了
+**401 优先于 422** 的有意选择。同一个理由也写在
+`src/pages/api/_routes/validation.ts` 的文件头里。
 
 **看到 404 先怀疑请求 URL 本身**
 

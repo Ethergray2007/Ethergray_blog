@@ -16,20 +16,20 @@
  *
  * 代价是要自己写一行 `if (!Value.Check(...))`，
  * 换来的是错误顺序可控。
+ *
+ * 【那 guard + resolve 也解决不了这个问题】
+ * 它们是 Elysia 官方推荐的"消除重复鉴权"写法（每个 handler 里少写一行
+ * 检查），但对本项目同一个理由不成立：
+ *   guard 的作用是"一次声明、多个路由共用"，而它声明的 schema 与
+ *   resolve 的时机都在校验之后 —— 想用它做鉴权，校验就会先跑。
+ *   结果还是未登录的人收到 422。
+ * 所以"每个处理函数自己检查登录"不是将就，是**为了 401 优先于 422**
+ * 的有意选择。技能文档（elysiajs/references/route.md）把 resolve 写成
+ * 最佳实践，那是通用场景的建议，不适用于这里的顺序要求。
  * ============================================================
  */
 import { Type, type Static, type TSchema } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
-
-/* ------------------------------------------------------------------
- * 登录
- * ----------------------------------------------------------------- */
-export const loginSchema = Type.Object({
-  username: Type.String({ minLength: 1, maxLength: 64 }),
-  password: Type.String({ minLength: 1, maxLength: 200 }),
-});
-
-export type LoginBody = Static<typeof loginSchema>;
 
 /* ------------------------------------------------------------------
  * 新建文章：标题必填
