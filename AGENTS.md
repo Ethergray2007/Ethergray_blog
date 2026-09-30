@@ -207,6 +207,78 @@ error.cause.message; // 'duplicate key value violates ...' ← 真正的原因
 那是 gel-core 的 API。需要 NULL 排序时改写 SQL，或者（更好）
 用数据库约束消除 NULL 的存在。
 
+### API 层（src/pages/api/）的约定
+
+**1. 相对导入写全 `.ts` 后缀**
+
+和 `src/db/` 一样，这一层要能在 Astro 之外跑测试（`npm run api:test`）。
+
+**2. 每个处理函数自己检查登录，不用 `onBeforeHandle`**
+
+看起来重复，但这是实测后的选择，原因见下面。
+
+**3. 校验写在处理函数内部，不用 `body: t.Object(...)`**
+
+用 Elysia 的 body 声明会让校验发生在处理函数**之前**，后果是：
+未登录的人提交一份缺字段的数据，会先收到 422「字段不对」
+而不是 401「请先登录」—— 语义不对，还泄露了这个接口需要哪些字段。
+
+现在改用 typebox 的 `Value.Check`（Elysia 内部用的就是它），
+在读 body 之后的代码里手动校验，顺序完全可控。
+
+**4. 整个 API 层只有一处类型断言**
+
+`context.ts` 里的 `asContext()`。Elysia 的 handler 参数类型是深度推导的，
+我们没声明 schema、db 又是自己 decorate 的，它推不出完整形状。
+把断言收在一处之后，其他地方的所有属性访问都受类型检查 ——
+拼错 `set.headers` 会立刻报错，而不是运行时才 500。
+
+### Elysia 的几个坑（都实测过）
+
+**`onBeforeHandle` 不适合做鉴权守卫**
+
+它绑定时就把上下文类型固定了，导致注册函数必须精确匹配那个类型，
+很容易写出"路由注册不上、所有请求 404"的情况，而且报错信息帮不上忙。
+
+**`ctx.cookie` 在某些调用路径下是 `undefined`**
+
+所以直接读 `request.headers.get("cookie")` 自己解析
+（见 `auth.ts` 的 `readCookie`）。几行代码，行为完全可预测。
+
+**`ctx.body` 只有在声明了 `body` schema 时才存在**
+
+删掉声明后 `ctx.body` 就是 `undefined`。所以现在自己读请求体
+（见 `validation.ts` 的 `readJsonBody`）。
+
+**插件必须用 `.use()` 组合，不能把 app 当参数传**
+
+```ts
+// ❌ 泛型逆变报错 + 实测路由注册不上
+export function registerXxxRoutes(app: Elysia<any>) { app.get(...) }
+
+// ✅ 标准插件写法
+export function xxxRoutes() { return new Elysia({ name: "xxx" }).get(...) }
+// 使用时：new Elysia({ prefix: "/api" }).use(xxxRoutes())
+```
+
+**`Elysia<any>` 在参数位置不兼容**
+
+Elysia 的类型在参数位置是逆变的，`Elysia<any>` 接不住
+`Elysia<"/api", ...>`。要么用插件写法，要么用它导出的 `AnyElysia`。
+
+### HTTP 头的字符限制
+
+HTTP 头按规范只能包含字节（0~255）。往里面塞中文时，
+Node 的 `fetch` 会在**发请求之前**就抛 ByteString 错误：
+
+```
+TypeError: Cannot convert argument to a ByteString because the
+character at index 8 has a value of 20266 which is greater than 255
+```
+
+写测试时注意：Cookie、User-Agent 这类头的值只能用 ASCII。
+浏览器也不会发出这种请求，所以这不是被测代码的问题。
+
 ### 目录结构
 
 ```text

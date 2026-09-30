@@ -103,3 +103,49 @@ npm run db:test        # 跑数据层测试
 
 **`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
 PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
+
+## 🔌 API
+
+用 [Elysia](https://elysiajs.com/) 写，跑在 Astro 的 API 路由里
+（`src/pages/api/[...path].ts` 接住所有 `/api/*`）。
+**不是独立服务** —— 一个仓库、一次部署、没有跨域问题。
+
+```bash
+npm run api:test       # 跑 API 测试（同样用内存数据库，55 项断言）
+```
+
+### 接口一览
+
+| 方法     | 路径             | 说明                         | 需要登录 |
+| -------- | ---------------- | ---------------------------- | -------- |
+| `GET`    | `/api/health`    | 健康检查，用来确认服务端能跑 | 否       |
+| `POST`   | `/api/login`     | 登录，成功后设置 Cookie      | 否       |
+| `POST`   | `/api/logout`    | 登出，清除 Cookie            | 否       |
+| `GET`    | `/api/me`        | 当前登录用户                 | 是       |
+| `GET`    | `/api/posts`     | 全部文章（含草稿）           | 是       |
+| `GET`    | `/api/posts/:id` | 单篇文章                     | 是       |
+| `POST`   | `/api/posts`     | 新建                         | 是       |
+| `PATCH`  | `/api/posts/:id` | 修改（只改传了的字段）       | 是       |
+| `DELETE` | `/api/posts/:id` | 删除                         | 是       |
+
+### 错误格式
+
+所有接口出错时返回同样的形状，前端只写一次处理逻辑：
+
+```json
+{ "error": "给用户看的中文说明", "code": "MACHINE_READABLE_CODE" }
+```
+
+常用状态码：`400` 请求体不是合法 JSON · `401` 未登录或密码错 ·
+`404` 找不到 · `409` slug 已被占用 · `422` 字段格式不对 ·
+`429` 登录尝试过多被临时锁定
+
+### 环境变量
+
+| 变量             | 用途                 | 怎么生成                                                                   |
+| ---------------- | -------------------- | -------------------------------------------------------------------------- |
+| `DATABASE_URL`   | 数据库连接串         | 从 Neon 等项目复制                                                         |
+| `SESSION_SECRET` | 签发登录状态用的密钥 | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+
+⚠️ `SESSION_SECRET` 泄露 = 任何人都能伪造管理员身份。不要用短密码，
+不要提交到 git（`.env` 已在 `.gitignore` 里）。

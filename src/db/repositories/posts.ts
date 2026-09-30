@@ -87,6 +87,21 @@ export async function getPostBySlug(
 }
 
 /**
+ * 按 id 查单篇文章。
+ *
+ * 后台是按 id 编辑的（这样改 slug 时链接不会失效），所以需要这个。
+ *
+ * 为什么不复用"列出全部再过滤"：
+ *   那是把所有数据读进内存里筛。现在只有几篇文章看不出差别，
+ *   但这是个会随文章数变慢的写法，不值得为了少写几行而留下。
+ */
+export async function getPostById(db: Db, id: number): Promise<PostRow | null> {
+  const rows = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
+
+  return rows[0] ?? null;
+}
+
+/**
  * 新建文章。
  *
  * status 为 published 而 publishedAt 为空时，自动补上当前时间 ——

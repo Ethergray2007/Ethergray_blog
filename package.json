@@ -18,6 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:test": "node practice/tests/db.ts",
+    "api:test": "node practice/tests/api.ts",
+    "session:test": "node practice/tests/session.ts",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint ."
@@ -31,6 +33,7 @@
     "astro": "^7.3.5",
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.45.3",
+    "elysia": "^1.4.30",
     "github-slugger": "^2.0.0",
     "lodash.kebabcase": "^4.1.1",
     "postgres": "^3.4.9",
