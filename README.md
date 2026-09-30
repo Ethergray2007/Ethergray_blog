@@ -111,6 +111,23 @@ npm run db:test        # 跑数据层测试
 **`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
 PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
 
+想一次跑完全部测试，用总入口：
+
+```bash
+npm test   # 依次跑 7 组，前一组挂了就停
+```
+
+它跑的是 `db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
+`notes:test`、`projects:test` —— 全部不需要联网、不需要 `.env`，
+所以在任何机器上克隆下来就能跑。
+
+**一个容易误判的地方**：`npm test` 全绿**不等于**所有检查都真的跑过。
+`feed:test` 里有一组"真实构建产物"检查（`dist/rss.xml`、`dist/atom.xml`），
+`dist/` 不存在时它会打印 `⏭️ 不存在（先跑 npm run build）` 然后跳过 ——
+这是有意的（不该逼着人先构建才能跑测试），但意味着**刚克隆下来跑
+`npm test` 看到的绿色，少了那几条**。想验全就按 `npm run build` → `npm test`
+的顺序跑，或者看输出里有没有那行 `⏭️`。
+
 ### 第一次配置
 
 ```bash
@@ -168,7 +185,7 @@ http://localhost:4321/admin
 （见 `src/pages/api/session/[...path].ts`）。
 
 ```bash
-npm run api:test       # 跑 API 测试（用内存数据库，39 项断言）
+npm run api:test       # 跑 API 测试（用内存数据库，44 项断言）
 ```
 
 ### 接口一览
