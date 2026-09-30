@@ -157,6 +157,56 @@ Test-Path -LiteralPath "src\pages\posts\[...slug]\index.astro"
 已知例子：`CopyCodeButton.astro` 里的 `document.execCommand` —— 它在
 `astro check` 里是 deprecated 提示，但 `tsc` 不认，用 `@ts-expect-error` 会构建失败。
 
+### 数据库层（src/db/）的三条特殊约定
+
+**1. 相对导入必须写全 `.ts` 后缀**
+
+项目其他地方都省略后缀，但 `src/db/` 不行 —— 这一层要在 Astro 之外
+单独跑测试（`npm run db:test`），而 Node 直接执行 TS 时不支持省略后缀，
+会报 MODULE_NOT_FOUND。
+
+**2. 仓库函数接收 db 参数，不在文件顶部建连接**
+
+```ts
+export async function listPublishedPosts(db: Db, limit?: number)
+```
+
+这样测试时可以塞一个内存数据库（PGlite）进来，不碰线上数据。
+
+**3. 能用数据库约束表达的规则，就不要只写在代码里**
+
+例子：`posts_published_requires_date` 检查约束保证"已发布必有发布时间"。
+放到数据库层之后，查询里就不用写 `nulls last` 之类的兜底逻辑，
+而且不管从哪个入口写入都绕不过去。
+
+### 几个踩过的坑
+
+**`Buffer.from(x, "hex")` 对非法输入不报错，静默返回空 Buffer**
+
+这会导致 `timingSafeEqual(空, 空) === true`，也就是**任何密码都能登录**。
+十六进制串必须先自己校验格式（见 `src/db/password.ts` 的 `isHex`）。
+
+**`promisify` 处理不了有重载的函数**
+
+`promisify(scrypt)` 报 "Expected 3 arguments, but got 4" ——
+scrypt 有多个重载，promisify 只推断出其中一个。手写一层 Promise。
+
+**Drizzle 的错误被包装了一层**
+
+```ts
+error.message; // "Failed query: insert into ..."        ← 看不到原因
+error.cause.message; // 'duplicate key value violates ...' ← 真正的原因
+```
+
+断言约束是否生效时要顺着 `cause` 找，不能只看 `message`。
+第一次跑测试时这里表现为"约束没生效"，其实是**断言写错了** ——
+改断言之前先打印真实的错误对象结构。
+
+**Drizzle 0.45 的 `desc()` 没有 `nullsLast()` 方法**
+
+那是 gel-core 的 API。需要 NULL 排序时改写 SQL，或者（更好）
+用数据库约束消除 NULL 的存在。
+
 ### 目录结构
 
 ```text

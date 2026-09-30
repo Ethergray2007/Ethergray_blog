@@ -84,3 +84,22 @@ npm run learn          # 看题目
 npm run learn:check    # 判你的答案
 npm run learn:answers  # 判标准答案（用来确认练习册本身没坏）
 ```
+
+## 🗄️ 数据库 / Database
+
+用 PostgreSQL + Drizzle ORM。表结构定义在 `src/db/schema.ts`。
+
+```bash
+npm run db:generate    # 改完 schema 后生成迁移文件
+npm run db:migrate     # 把迁移应用到数据库
+npm run db:studio      # 打开可视化界面查看数据
+npm run db:test        # 跑数据层测试
+```
+
+连接串放在环境变量 `DATABASE_URL` 里：
+
+- 本地：项目根目录建 `.env` 文件，写入 `DATABASE_URL=postgresql://...`
+- 线上：Netlify 后台 → Site configuration → Environment variables
+
+**`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
+PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
