@@ -58,27 +58,27 @@ Personal blog built with **Astro**.
 
 每个功能都做成**自包含**的：删除时不需要动别的地方，照着下表删就行。
 
-| 功能           | 相关文件                                                                                           | 怎么删                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 文章目录       | `src/utils/getTableOfContents.ts`<br>`src/pages/posts/[...slug]/_components/TableOfContents.astro` | 删这 2 个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                   |
-| 数学公式       | `src/styles/katex.css`<br>`astro.config.ts` 里的 `remarkMath` / `rehypeKatex`                      | 删 `katex.css` 和 `global.css` 里 import 它那行；删配置里两个插件；卸载 `remark-math rehype-katex katex` |
-| 图表 Mermaid   | `astro.config.ts` 里的 `mermaid()` 集成                                                            | 删那个集成和它的 import；卸载 `astro-mermaid mermaid`                                                    |
-| Atom 订阅      | `src/pages/atom.xml.ts`<br>`src/utils/escapeXml.ts`                                                | 删这两个文件，再删 `Layout.astro` 里 `application/atom+xml` 那个 `<link>`                                |
-| 友链页         | `src/pages/friends.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`                   | 照 `getFriends.ts` 文件头写的 6 步做                                                                     |
-| 说说 /notes    | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                         | 照 `getNotes.ts` 文件头写的 6 步做                                                                       |
-| 项目 /projects | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`                | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 里那份独立数据）                           |
-| 近况页 /now    | `src/pages/now.astro`                                                                              | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮                              |
-| 代码块复制     | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                       | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                   |
-| 评论区         | 没有内置                                                                                           | ——                                                                                                       |
-| Pagefind 搜索  | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                           | 改成 `search: false`，页面自动跳 404                                                                     |
-| 归档页         | `src/pages/archives/`                                                                              | `features.showArchives` 改成 `false`                                                                     |
-| 动态 OG 图     | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                  | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                   |
-| 主题切换       | `src/scripts/theme.ts`                                                                             | `features.lightAndDarkMode` 改成 `false`                                                                 |
-| 分享按钮       | `astro-paper.config.ts` 的 `shareLinks`                                                            | 把数组清空：`shareLinks: []`                                                                             |
-| 编辑本页链接   | `astro-paper.config.ts` 的 `features.editPost`                                                     | 改成 `{ enabled: false }`                                                                                |
-| 在线写作后台   | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                      | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                      |
-| 练习册         | `practice/`                                                                                        | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                 |
-| 学习路线       | `docs/`                                                                                            | 整个目录删掉                                                                                             |
+| 功能           | 相关文件                                                                            | 怎么删                                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 文章目录       | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                       | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                      |
+| 数学公式       | `src/styles/katex.css`<br>`astro.config.ts` 里的 `remarkMath` / `rehypeKatex`       | 删 `katex.css` 和 `global.css` 里 import 它那行；删配置里两个插件；卸载 `remark-math rehype-katex katex` |
+| 图表 Mermaid   | `astro.config.ts` 里的 `mermaid()` 集成                                             | 删那个集成和它的 import；卸载 `astro-mermaid mermaid`                                                    |
+| Atom 订阅      | `src/pages/atom.xml.ts`<br>`src/utils/escapeXml.ts`                                 | 删这两个文件，再删 `Layout.astro` 里 `application/atom+xml` 那个 `<link>`                                |
+| 友链页         | `src/pages/friends.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`    | 照 `getFriends.ts` 文件头写的 6 步做                                                                     |
+| 说说 /notes    | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`          | 照 `getNotes.ts` 文件头写的 6 步做                                                                       |
+| 项目 /projects | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/` | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 里那份独立数据）                           |
+| 近况页 /now    | `src/pages/now.astro`                                                               | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮                              |
+| 代码块复制     | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                        | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                   |
+| 评论区         | 没有内置                                                                            | ——                                                                                                       |
+| Pagefind 搜索  | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`            | 改成 `search: false`，页面自动跳 404                                                                     |
+| 归档页         | `src/pages/archives/`                                                               | `features.showArchives` 改成 `false`                                                                     |
+| 动态 OG 图     | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                   | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                   |
+| 主题切换       | `src/scripts/theme.ts`                                                              | `features.lightAndDarkMode` 改成 `false`                                                                 |
+| 分享按钮       | `astro-paper.config.ts` 的 `shareLinks`                                             | 把数组清空：`shareLinks: []`                                                                             |
+| 编辑本页链接   | `astro-paper.config.ts` 的 `features.editPost`                                      | 改成 `{ enabled: false }`                                                                                |
+| 在线写作后台   | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                       | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                      |
+| 练习册         | `practice/`                                                                         | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                 |
+| 学习路线       | `docs/`                                                                             | 整个目录删掉                                                                                             |
 
 ## 📚 学习资料 / Learning
 
@@ -114,11 +114,11 @@ PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、�
 想一次跑完全部测试，用总入口：
 
 ```bash
-npm test   # 依次跑 8 组，前一组挂了就停
+npm test   # 依次跑 7 组，前一组挂了就停
 ```
 
 它跑的是 `db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
-`notes:test`、`projects:test`、`toc:test` —— 全部不需要联网、不需要 `.env`，
+`notes:test`、`projects:test` —— 全部不需要联网、不需要 `.env`，
 所以在任何机器上克隆下来就能跑。
 
 **一个容易误判的地方**：`npm test` 全绿**不等于**所有检查都真的跑过。

@@ -85,7 +85,7 @@ const {
   hideEditPost,
 } = post.data;
 
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 
 let ogImageUrl: string | undefined;
 
@@ -175,8 +175,8 @@ const ogImage = ogImageUrl
       </div>
     </header>
 
-    <!-- 目录：标题少于两个时组件自己会隐藏 -->
-    <TableOfContents body={post.body ?? ""} />
+    <!-- 目录：标题列表直接用 Astro 提取的 headings（见组件的文件头说明） -->
+    <TableOfContents {headings} />
 
     <!-- Article content -->
     <article

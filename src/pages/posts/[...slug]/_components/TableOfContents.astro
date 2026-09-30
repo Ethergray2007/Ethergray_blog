@@ -2,32 +2,56 @@
 /**
  * 文章目录（TOC）
  * ============================================================
- * 自包含模块：提取标题 + 渲染列表，只依赖 getTableOfContents.ts。
+ * 自包含模块：标题列表由 Astro 提供，这里只负责渲染。
+ *
+ * 【为什么不自己解析 Markdown 标题】
+ * 这里原来调 `getTableOfContents(post.body)`：拿正文正则扫 ## / ###，
+ * 再用 github-slugger 算锚点 id。那是**重造轮子**，而且是个会漂移的轮子 ——
+ * id 必须和 Astro 写进 HTML 的完全一致，任何语法差异都会变成"点了不动"：
+ *   · 标题里带链接：Astro 用渲染后的文字算（参考-mdn），
+ *     正则拿到的是原文（参考-mdnhttpsmdnio）
+ *   · 还有代码块、行内 HTML、转义字符、收尾井号……
+ *     每多支持一种写法就多一个坑，最后光"把 Markdown 拆成纯文本"
+ *     就写了 60 行。
+ *
+ * Astro 的 `render(post)` 本来就返回
+ *     headings: { depth, slug, text }[]
+ * 其中 slug 就是它写进 `<h2 id="...">` 的那个值。直接用它，
+ * 上面那一整类问题从根上不存在 —— 少一个文件、少一套会过时的规则。
  *
  * 想删掉目录功能？
  *   1. 删掉这个文件
- *   2. 删掉文章页里的 <TableOfContents ... /> 那一行
- *   3. 删掉 src/utils/getTableOfContents.ts
- *   4. 删掉 i18n 里的 post.toc（可选，留着也不影响）
+ *   2. 删掉文章页里的 <TableOfContents /> 那一行
+ *   3. 删掉 i18n 里的 post.toc（可选，留着也不影响）
  * ============================================================
  */
-import { getTableOfContents } from "@/utils/getTableOfContents";
+import type { MarkdownHeading } from "astro";
 import { useTranslations } from "@/i18n";
 
 type Props = {
-  /** 文章正文（Markdown 原文），传 post.body 即可 */
-  body: string;
+  /** 直接传 render(post) 的 headings */
+  headings: MarkdownHeading[];
 };
 
-const { body } = Astro.props;
+const { headings } = Astro.props;
 
 const t = useTranslations(Astro.currentLocale);
-const headings = getTableOfContents(body);
+
+/**
+ * 只留 h2 / h3。
+ *
+ * h1 是文章标题本身，放进目录没意义；
+ * h4 及更深在侧栏里会挤成一团，也去掉。
+ * （Astro 给的 headings 含全部层级，筛选是我们的事。）
+ */
+const visibleHeadings = headings.filter(
+  heading => heading.depth === 2 || heading.depth === 3
+);
 ---
 
 {
-  /* 标题少于两个就不显示目录，避免占地方 */
-  headings.length > 0 && (
+  /* 少于两条就不显示目录，避免占地方 */
+  visibleHeadings.length > 1 && (
     <details class="card card-border bg-base-100 group mb-6 shadow-sm sm:mb-8">
       <summary class="cursor-pointer list-none p-4 font-semibold select-none sm:px-5">
         <span class="inline-flex items-center gap-2">{t.post.toc}</span>
@@ -35,10 +59,10 @@ const headings = getTableOfContents(body);
 
       <nav class="px-4 pb-4 sm:px-5" aria-label={t.post.toc}>
         <ul class="border-base-300 space-y-2 border-s ps-4 text-sm">
-          {headings.map(heading => (
+          {visibleHeadings.map(heading => (
             <li class:list={[{ "ps-4": heading.depth === 3 }]}>
               <a
-                href={`#${heading.id}`}
+                href={`#${heading.slug}`}
                 class="text-base-content-strong hover:text-primary link-hover transition-colors"
               >
                 {heading.text}
