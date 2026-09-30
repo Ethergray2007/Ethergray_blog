@@ -79,13 +79,20 @@ const homePath = getRelativeLocaleUrl(locale, "");
         </p>
 
         <div class="mt-6 flex flex-wrap gap-3">
+          {
+            /*
+            指向仓库首页而不是 #readme ——
+            README 是给开发者看的，访客点进去会一头雾水；
+            仓库首页至少能看到这是个什么项目。
+          */
+          }
           <a
-            href="https://github.com/Ethergray2007/Ethergray_blog#readme"
+            href="https://github.com/Ethergray2007/Ethergray_blog"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
           >
-            {t.home.viewReadme}
+            {t.home.viewSource}
           </a>
 
           <a

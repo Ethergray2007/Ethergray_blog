@@ -40,7 +40,7 @@ export interface UIStrings {
     /** 首页补充介绍段落 */
     heroMore: string;
     /** 首页按钮：查看仓库说明 */
-    viewReadme: string;
+    viewSource: string;
     /** 首页按钮：进入个人主页 */
     viewProfile: string;
     featured: string;

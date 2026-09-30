@@ -35,11 +35,11 @@ export default {
   home: {
     socialLinks: "社交链接",
     badge: "博客",
-    heroTitle: "欢迎",
-    heroLead: "欢迎来到我的博客。",
+    heroTitle: "记录学习的地方",
+    heroLead: "一个个人博客，写技术，也写学习过程本身。",
     heroMore:
-      "这里记录算法、编程、图形学学习过程，以及值得长期保留的技术内容。",
-    viewReadme: "查看 README",
+      "这里记录算法、编程、图形学的学习过程，以及值得长期保留的技术内容。",
+    viewSource: "博客源码",
     viewProfile: "个人主页",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
