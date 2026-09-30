@@ -77,8 +77,21 @@ try {
    * 第一次写这个脚本时就踩了这个坑。
    */
   staged = execSync("git diff --cached --name-status", { encoding: "utf8" });
-} catch {
-  console.error("  读不到暂存区（是不是不在 git 仓库里？）");
+} catch (error) {
+  /**
+   * 【为什么要把真实错误打出来】
+   * 这里原本写的是 `catch {` 加一句"是不是不在 git 仓库里？"。
+   * 结果在受限沙箱里跑时，真实原因是
+   *     spawnSync C:\WINDOWS\system32\cmd.exe EPERM
+   * —— Node 捕获子进程输出要开管道，而沙箱不允许。
+   * 脚本却报"不在 git 仓库里"，把人往完全错误的方向带（查了半天）。
+   *
+   * 教训和 validation.ts 里那条一样：**别把真实错误换成自己猜的原因**。
+   * 打印原始信息，让人自己判断。
+   */
+  console.error("  读不到暂存区。原始错误：");
+  console.error(`    ${error instanceof Error ? error.message : String(error)}`);
+  console.error("  （如果错误里有 EPERM，那是环境限制，不是 git 仓库的问题）");
   process.exit(1);
 }
 
