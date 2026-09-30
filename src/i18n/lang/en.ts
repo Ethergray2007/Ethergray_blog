@@ -10,6 +10,8 @@ export default {
     search: "Search",
     now: "Now",
     friends: "Friends",
+    notes: "Notes",
+    projects: "Projects",
   },
   post: {
     publishedAt: "Published at",
@@ -71,6 +73,12 @@ export default {
 
     friendsTitle: "Friends",
     friendsDesc: "Blogs I read, and the people I've met along the way.",
+
+    notesTitle: "Notes",
+    notesDesc: "Short fragments, not full articles.",
+
+    projectsTitle: "Projects",
+    projectsDesc: "Things I'm building and learning.",
   },
   friends: {
     empty: "No links yet.",
@@ -79,6 +87,13 @@ export default {
     howToDesc:
       "Add my site to your links page first, then let me know and I'll add yours.",
     contactHint: "You'll find ways to reach me on the About page.",
+  },
+  notes: {
+    empty: "No notes yet.",
+  },
+  projects: {
+    empty: "No projects yet.",
+    viewSource: "View source",
   },
   a11y: {
     skipToContent: "Skip to content",

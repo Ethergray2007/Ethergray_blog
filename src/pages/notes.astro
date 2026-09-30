@@ -1,0 +1,89 @@
+---
+/**
+ * 说说 / 碎片  /notes
+ * ============================================================
+ * 自包含：只依赖 src/utils/getNotes.ts 和内容集合 src/content/notes/。
+ *
+ * 想删掉这个页面？
+ *   照 src/utils/getNotes.ts 文件头写的 6 步做。
+ *
+ * 【和文章列表的区别】
+ * 文章列表是"目录"：标题 + 摘要 + 链接，点进去看全文。
+ * 这里是"时间线"：内容直接摊开，不用点进去 —— 因为每条都很短。
+ *
+ * 这个区别决定了排版：文章用卡片，说说用一条一条的列表加时间轴。
+ * ============================================================
+ */
+import { getCollection } from "astro:content";
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Footer from "@/components/Footer.astro";
+import Main from "@/components/Main.astro";
+import Datetime from "@/components/Datetime.astro";
+
+import { getNotes } from "@/utils/getNotes";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const entries = await getCollection("notes");
+const notes = getNotes(entries);
+---
+
+<Layout
+  title={`${t.pages.notesTitle} | ${config.site.title}`}
+  description={t.pages.notesDesc}
+>
+  <Header />
+  <Breadcrumb />
+  <Main pageTitle={t.pages.notesTitle} pageDesc={t.pages.notesDesc}>
+    {
+      notes.length === 0 ? (
+        <p class="text-base-content/60">{t.notes.empty}</p>
+      ) : (
+        /*
+          时间轴排版：左边一条竖线，每条一个小圆点。
+          用 border-l 画线、绝对定位放圆点，不引入任何依赖。
+        */
+        <ol class="border-base-300 ml-2 border-l">
+          {notes.map(note => (
+            <li class="relative pb-10 pl-6 last:pb-0">
+              {/* 时间轴上的小圆点 */}
+              <span
+                class="bg-base-100 border-base-300 absolute -left-[5px] mt-1.5 size-[9px] rounded-full border-2"
+                aria-hidden="true"
+              />
+
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Datetime
+                  pubDatetime={note.date}
+                  timezone={config.site.timezone}
+                  size="sm"
+                />
+                {note.tags.map(tag => (
+                  <span class="badge badge-ghost badge-sm">{tag}</span>
+                ))}
+              </div>
+
+              {/*
+                正文直接渲染 HTML。
+                内容是我们自己写的 Markdown，不是用户输入，
+                所以这里不需要额外转义 —— 但这一点值得写下来，
+                因为"直接设 innerHTML"通常是个危险信号。
+              */}
+              <div
+                class="prose prose-sm sm:prose-base dark:prose-invert mt-2 max-w-2xl"
+                set:html={note.html}
+              />
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </Main>
+  <Footer />
+</Layout>

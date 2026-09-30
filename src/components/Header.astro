@@ -131,6 +131,34 @@ const isDarkInitially = false;
             </a>
           </li>
 
+          <!-- Notes -->
+          <li>
+            <a
+              href={getRelativeLocaleUrl(locale, "notes")}
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/notes") },
+              ]}
+              aria-current={isActive("/notes") ? "page" : undefined}
+            >
+              {t.nav.notes}
+            </a>
+          </li>
+
+          <!-- Projects -->
+          <li>
+            <a
+              href={getRelativeLocaleUrl(locale, "projects")}
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/projects") },
+              ]}
+              aria-current={isActive("/projects") ? "page" : undefined}
+            >
+              {t.nav.projects}
+            </a>
+          </li>
+
           <!-- Archives -->
           {
             features.showArchives && (
@@ -293,6 +321,32 @@ const isDarkInitially = false;
             data-mobile-menu-link
           >
             {t.nav.friends}
+          </a>
+        </li>
+
+        <!-- Notes -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "notes")}
+            class:list={{
+              "menu-active": isActive("/notes"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.notes}
+          </a>
+        </li>
+
+        <!-- Projects -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "projects")}
+            class:list={{
+              "menu-active": isActive("/projects"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.projects}
           </a>
         </li>
 

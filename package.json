@@ -23,7 +23,9 @@
     "auth:test": "node practice/tests/auth.ts",
     "feed:test": "node practice/tests/feed.ts",
     "friends:test": "node practice/tests/friends.ts",
-    "test": "npm run db:test && npm run api:test && npm run auth:test && npm run feed:test && npm run friends:test",
+    "notes:test": "node practice/tests/notes.ts",
+    "projects:test": "node practice/tests/projects.ts",
+    "test": "npm run db:test && npm run api:test && npm run auth:test && npm run feed:test && npm run friends:test && npm run notes:test && npm run projects:test",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint ."

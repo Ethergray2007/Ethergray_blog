@@ -10,6 +10,10 @@ export interface UIStrings {
     now: string;
     /** /friends 页面（友链） */
     friends: string;
+    /** /notes 页面（说说） */
+    notes: string;
+    /** /projects 页面（项目） */
+    projects: string;
   };
   post: {
     publishedAt: string;
@@ -85,6 +89,14 @@ export interface UIStrings {
     /** /friends 页面（友链） */
     friendsTitle: string;
     friendsDesc: string;
+
+    /** /notes 页面（说说） */
+    notesTitle: string;
+    notesDesc: string;
+
+    /** /projects 页面（项目） */
+    projectsTitle: string;
+    projectsDesc: string;
   };
   /** 友链页面上用到的零散文案 */
   friends: {
@@ -98,6 +110,18 @@ export interface UIStrings {
     howToDesc: string;
     /** 往下怎么联系我 */
     contactHint: string;
+  };
+  /** 说说页面上用到的零散文案 */
+  notes: {
+    /** 一条都没有时显示 */
+    empty: string;
+  };
+  /** 项目页面上用到的零散文案 */
+  projects: {
+    /** 一个都没有时显示 */
+    empty: string;
+    /** 「查看源码」链接的文字 */
+    viewSource: string;
   };
   a11y: {
     skipToContent: string;

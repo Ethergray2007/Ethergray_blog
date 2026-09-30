@@ -10,6 +10,8 @@ export default {
     search: "搜索",
     now: "近况",
     friends: "友链",
+    notes: "说说",
+    projects: "项目",
   },
 
   post: {
@@ -76,6 +78,12 @@ export default {
 
     friendsTitle: "友链",
     friendsDesc: "我常看的博客，以及一路认识的人。",
+
+    notesTitle: "说说",
+    notesDesc: "随手记的一些碎片，不成文章。",
+
+    projectsTitle: "项目",
+    projectsDesc: "我在做和在学的东西。",
   },
 
   friends: {
@@ -84,6 +92,15 @@ export default {
     howToTitle: "想交换友链？",
     howToDesc: "先把我的站点加到你的友链页，然后告诉我，我就会把你的加到这里。",
     contactHint: "联系方式在「关于」页面上。",
+  },
+
+  notes: {
+    empty: "还没有说说。",
+  },
+
+  projects: {
+    empty: "还没有项目。",
+    viewSource: "查看源码",
   },
 
   a11y: {
