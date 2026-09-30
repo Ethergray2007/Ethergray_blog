@@ -139,6 +139,45 @@ docs: 记录 git 推送报 schannel 的解法
 最后一条值得说明：**提交信息记录的是"这次改了什么"，
 不是"我在哪个阶段"**。半年后看 `git log` 的人不关心阶段编号。
 
+### 临时脚本一律用 `_` 开头
+
+**这是踩了三次同一个坑之后定的约定。**
+
+```text
+❌ 第一次  把提交信息写到根目录的 COMMIT_MSG.txt，被 git add -A 收了
+❌ 第二次  同样的错又犯一遍
+❌ 第三次  写了 practice/_layout-survey.ts（调研别人博客布局用的），
+          名字里带下划线，但当时 .gitignore 里没有对应规则
+```
+
+前两次的教训是"提交前要检查"，于是有了 `scripts/commit-check.ts`。
+但它只能拦**已经列进模式的名字**（`^_diag`、`^_probe`…）——
+换个名字就绕过去了，第三次就是这么漏的。
+
+**所以现在改成按约定办，不靠列举**：
+
+```text
+在 practice/ 下临时写的验证 / 调研脚本，一律用 _ 开头。
+
+   practice/_layout-survey.ts      ✅ 被忽略
+   practice/_contrast-check.ts     ✅ 被忽略
+   practice/layout-survey.ts       ❌ 会被提交
+```
+
+配套两道关（都要在）：
+
+```text
+.gitignore                practice/_*      ← 从源头不跟踪
+scripts/commit-check.ts   /^_/            ← 万一被手动 add 了也拦得住
+```
+
+**为什么用下划线**：项目里已经有这个约定 ——
+`src/pages/**/_components/` 就是"下划线开头 = 不是路由"。
+同一个符号表示"内部/临时的东西"，不用记两套规则。
+
+**正式文件不受影响**：`practice/tests/*.ts`、`practice/lesson-*.ts`
+都是正经内容，照样进仓库。
+
 ### 提交前先跑检查器
 
 ```bash
