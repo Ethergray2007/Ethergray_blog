@@ -38,7 +38,6 @@
     "@astrojs/sitemap": "^3.7.4",
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@yunyoujun/ak-ui": "^1.1.0",
     "astro": "^7.3.5",
     "astro-mermaid": "^2.1.0",
     "better-auth": "^1.7.6",
