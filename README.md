@@ -77,6 +77,7 @@ Personal blog built with **Astro**.
 ## 📚 学习资料 / Learning
 
 - [学习路线：TypeScript → Astro](docs/LEARNING-ROADMAP.md) —— 每个知识点对应仓库里的哪个文件
+- [部署指南](docs/DEPLOYMENT.md) —— 环境变量、连接池、区域选择（要点都查过官方文档）
 - [TypeScript 练习册](practice/README.md) —— 8 节课，能自动判分
 
 ```bash

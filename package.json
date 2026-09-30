@@ -17,6 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:setup": "node scripts/db-setup.ts",
     "db:test": "node practice/tests/db.ts",
     "api:test": "node practice/tests/api.ts",
     "session:test": "node practice/tests/session.ts",

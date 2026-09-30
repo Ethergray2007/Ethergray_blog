@@ -1,15 +1,14 @@
 /**
  * 测试专用：把迁移文件应用到内存数据库
  * ============================================================
- * 为什么需要这个：
- *   PGlite 是一个全新的空数据库，里面什么表都没有。
- *   测试前必须先把 drizzle/ 里的迁移跑一遍，才有和线上一样的表结构。
+ * 【只在测试里用】
+ *   PGlite 是全新的空数据库，测试前必须先把 drizzle/ 里的迁移跑一遍，
+ *   才有和线上一样的表结构。
  *
- * 这个文件放在 src 下（而不是 test 下）是有意的：
- *   它只依赖 node:fs 和 node:path，任何地方都能用，
- *   不影响 Astro 构建（没有页面会 import 它）。
- *
- * 正式环境不需要它：线上用 `npm run db:migrate`（drizzle-kit）来建表。
+ *   ⚠️ 不要用它给真实数据库建表。
+ *   它只执行 SQL、**不记账**（drizzle-kit 有一张表记录哪些迁移跑过了）。
+ *   用它建完表之后再跑 `npm run db:migrate`，会因为表已存在而报错。
+ *   真实数据库一律走 `npm run db:migrate`。
  * ============================================================
  */
 import { readFile, readdir } from "node:fs/promises";
@@ -19,17 +18,42 @@ import path from "node:path";
  * drizzle 生成的迁移文件里，多条语句用这个注释分隔。
  * 见 drizzle/0000_*.sql 里的 `--> statement-breakpoint`。
  *
- * PGlite 的 exec() 不能一次执行多条语句，所以要按它切开逐条跑。
+ * 必须切开逐条执行：一次发多条语句时，只有部分驱动支持。
  */
 const STATEMENT_BREAKPOINT = "--> statement-breakpoint";
 
 /** 迁移文件所在目录（相对项目根目录） */
 const MIGRATIONS_DIR = "drizzle";
 
-/** 最小可用的数据库接口 —— 只要有 exec 就够，不要求完整的 PGlite 类型 */
+/**
+ * 能执行原始 SQL 的对象。
+ *
+ * 两种数据库的接口不一样，所以两个方法都写成可选：
+ *   PGlite        有 exec(sql)
+ *   postgres-js   有 unsafe(sql)
+ * 由下面的 runStatement 挑一个用。
+ */
 export type ExecutableDb = {
-  exec: (sql: string) => Promise<unknown>;
+  exec?: (sql: string) => Promise<unknown>;
+  unsafe?: (sql: string) => Promise<unknown>;
 };
+
+/** 根据拿到的是哪种客户端，选对应的方法执行 SQL */
+async function runStatement(db: ExecutableDb, sql: string): Promise<void> {
+  if (typeof db.exec === "function") {
+    await db.exec(sql);
+    return;
+  }
+
+  if (typeof db.unsafe === "function") {
+    await db.unsafe(sql);
+    return;
+  }
+
+  throw new Error(
+    "传进来的数据库对象既没有 exec() 也没有 unsafe()，无法执行 SQL。"
+  );
+}
 
 /**
  * 按文件名顺序，把所有迁移应用到给定的数据库。
@@ -55,7 +79,7 @@ export async function applyMigrations(
       .filter(part => part.length > 0);
 
     for (const statement of statements) {
-      await db.exec(statement);
+      await runStatement(db, statement);
     }
   }
 

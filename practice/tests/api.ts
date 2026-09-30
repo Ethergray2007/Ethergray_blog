@@ -70,12 +70,14 @@ type ApiResponse = {
 /**
  * 发一个请求。
  *
- * @param cookie 要带上的 Cookie。模拟浏览器保存下来的登录凭证
+ * @param cookie 要带上的 Cookie，模拟浏览器保存下来的登录凭证
+ * @param origin 请求的源。默认 http（本地开发），
+ *               传 https 可以验证 Secure 属性是否加上
  */
 async function call(
   method: string,
   path: string,
-  options: { body?: unknown; cookie?: string } = {}
+  options: { body?: unknown; cookie?: string; origin?: string } = {}
 ): Promise<ApiResponse> {
   const headers: Record<string, string> = {};
 
@@ -88,7 +90,7 @@ async function call(
   }
 
   const response = await app.handle(
-    new Request(`http://localhost${path}`, {
+    new Request(`${options.origin ?? "http://localhost"}${path}`, {
       method,
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
@@ -188,6 +190,32 @@ check(
   "Cookie 带 SameSite（防 CSRF）",
   login.setCookie?.toLowerCase().includes("samesite") === true
 );
+
+/**
+ * Secure 属性必须跟着**协议**走，不能跟着 NODE_ENV 走。
+ *
+ * 原因：本地开发是 http，Netlify Functions 运行时也不保证
+ * NODE_ENV=production。用 NODE_ENV 判断的话：
+ *   线上可能漏加 Secure
+ *   本地可能误加 Secure，浏览器直接丢掉 Cookie，导致永远登不上
+ */
+check(
+  "http 请求下不加 Secure（否则本地登不上）",
+  login.setCookie?.toLowerCase().includes("secure") === false,
+  login.setCookie ?? "(无)"
+);
+
+const httpsLogin = await call("POST", "/api/login", {
+  origin: "https://example.com",
+  body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
+});
+check(
+  "https 请求下会加 Secure",
+  httpsLogin.setCookie?.toLowerCase().includes("secure") === true,
+  httpsLogin.setCookie ?? "(无)"
+);
+
+resetAllFailures();
 
 const loginCookie = sessionCookie!;
 resetAllFailures();

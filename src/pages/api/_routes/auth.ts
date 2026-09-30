@@ -74,8 +74,35 @@ export function readCookie(request: Request, name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * 判断当前请求是不是走的 https。
+ *
+ * 【为什么不用 NODE_ENV === "production"】
+ * 实测不可靠：本地开发时它是 undefined，而 Netlify Functions
+ * 运行时也**不保证**把它设成 "production"。
+ * 靠它决定 Cookie 的 Secure 属性会出两种坏情况：
+ *   线上忘了加 Secure（少一层防护）
+ *   本地因为是 http 却带了 Secure，浏览器直接丢掉 Cookie —— 登录永远失败
+ *
+ * 直接从请求的 URL 判断，不依赖任何环境约定：谁在访问、什么协议，
+ * 请求自己最清楚。
+ */
+function isSecureRequest(request: Request): boolean {
+  try {
+    return new URL(request.url).protocol === "https:";
+  } catch {
+    // URL 解析不出来时保守处理：不加 Secure。
+    // 宁可在 https 下少一层防护，也不要让本地开发完全登不上。
+    return false;
+  }
+}
+
 /** 构造设置 Cookie 的响应头 */
-function buildSetCookie(value: string, maxAgeSeconds: number): string {
+function buildSetCookie(
+  request: Request,
+  value: string,
+  maxAgeSeconds: number
+): string {
   const attributes = [
     `${SESSION_COOKIE}=${value}`,
     `Max-Age=${maxAgeSeconds}`,
@@ -86,8 +113,7 @@ function buildSetCookie(value: string, maxAgeSeconds: number): string {
     "SameSite=Lax",
   ];
 
-  // 只在 https 下发送。本地开发是 http，所以放行
-  if (process.env.NODE_ENV === "production") {
+  if (isSecureRequest(request)) {
     attributes.push("Secure");
   }
 
@@ -95,7 +121,7 @@ function buildSetCookie(value: string, maxAgeSeconds: number): string {
 }
 
 /** 构造删除 Cookie 的响应头（值清空 + 立即过期） */
-function buildClearCookie(): string {
+function buildClearCookie(request: Request): string {
   const attributes = [
     `${SESSION_COOKIE}=`,
     "Max-Age=0",
@@ -104,7 +130,7 @@ function buildClearCookie(): string {
     "SameSite=Lax",
   ];
 
-  if (process.env.NODE_ENV === "production") {
+  if (isSecureRequest(request)) {
     attributes.push("Secure");
   }
 
@@ -225,6 +251,7 @@ export function authRoutes() {
         clearFailures(ip);
 
         set.headers["set-cookie"] = buildSetCookie(
+          request,
           createSessionToken(user),
           SESSION_MAX_AGE_SECONDS
         );
@@ -236,9 +263,9 @@ export function authRoutes() {
        * 登出  POST /api/logout
        * ----------------------------------------------------- */
       .post("/logout", rawCtx => {
-        const { set } = asContext(rawCtx);
+        const { request, set } = asContext(rawCtx);
 
-        set.headers["set-cookie"] = buildClearCookie();
+        set.headers["set-cookie"] = buildClearCookie(request);
 
         return { ok: true };
       })
