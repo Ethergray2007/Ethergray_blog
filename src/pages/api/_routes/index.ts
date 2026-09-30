@@ -97,8 +97,20 @@ export function createApi(
          * 其余都是真出错。
          * 开发时把真实错误抛出来方便调试；线上只回一句人话，
          * 避免把数据库结构、文件路径之类的信息泄露给访问者。
+         *
+         * ⚠️ 判断用 import.meta.env.PROD（构建时定死的常量），
+         *   不要用 process.env.NODE_ENV。
+         *
+         *   原因：NODE_ENV 是**运行时**读的，而这个项目跑在 Netlify Functions 上，
+         *   那边到底有没有注入 NODE_ENV 不由我们决定。原来的写法是
+         *   `NODE_ENV !== "production"` —— 一旦线上没注入，线上就会走进
+         *   这个"开发分支"，把 SQL 报错原文回给任何访问者。这是 fail-open。
+         *
+         *   import.meta.env.PROD 由 Vite 在构建时替换成字面量 true/false，
+         *   不可能"猜错"。`?.` 是为了让这个文件在 Astro 之外也能跑
+         *   （npm run api:test 是用 node 直接执行的，那里没有 import.meta.env）。
          */
-        const isDev = process.env.NODE_ENV !== "production";
+        const isDev = !import.meta.env?.PROD;
 
         set.status = 500;
 
