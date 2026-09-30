@@ -118,6 +118,48 @@ npm run build        # 4. 最慢，但最接近真实运行环境
 
 ## 这个项目特有的坑
 
+### 推送代码：必须走代理，而且可能要关掉证书吊销检查
+
+这台机器直连 github.com 会超时，必须走本地代理：
+
+```bash
+git -c http.proxy=http://127.0.0.1:7892 \
+    -c https.proxy=http://127.0.0.1:7892 \
+    push Ethergray_blog <branch>
+```
+
+**如果报这个错**：
+
+```
+schannel: failed to receive handshake, SSL/TLS connection failed
+```
+
+先确认代理本身是通的（浏览器能开 github 就说明通），然后加上
+`-c http.schannelCheckRevoke=false`：
+
+```bash
+git -c http.schannelCheckRevoke=false \
+    -c http.proxy=http://127.0.0.1:7892 \
+    -c https.proxy=http://127.0.0.1:7892 \
+    push Ethergray_blog <branch>
+```
+
+原因是 Windows 的 git 用系统自带的 schannel 做 TLS，
+它会去查证书吊销列表 —— 走代理时这一步容易失败，于是整个握手就断了。
+`schannelCheckRevoke=false` 只是跳过这个检查，不影响传输加密。
+
+**这个错会骗人**：一开始会以为是节点断了，但实测代理能正常访问
+github.com，问题只在 git 这一侧。
+
+### 分支约定：推 main 前必须问
+
+```text
+develop  → Netlify 的 Deploy Preview（带密码保护，只有本人能看）
+main     → 生产环境，所有人都能访问
+```
+
+**推送到 main 必须先获得确认。** develop 可以随便推。
+
 ### Windows + PowerShell
 
 路径里有 `[...slug]` 这种方括号时，PowerShell 会把它们当**通配符**，
