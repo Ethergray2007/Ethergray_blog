@@ -2,7 +2,6 @@
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
-import IconArchive from "@/assets/icons/IconArchive.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
@@ -81,42 +80,6 @@ const isDarkInitially = false;
             </a>
           </li>
 
-          <!-- Tags -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "tags")}
-              class:list={["font-medium", { "menu-active": isActive("/tags") }]}
-              aria-current={isActive("/tags") ? "page" : undefined}
-            >
-              {t.nav.tags}
-            </a>
-          </li>
-
-          <!-- About -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "about")}
-              class:list={[
-                "font-medium",
-                { "menu-active": isActive("/about") },
-              ]}
-              aria-current={isActive("/about") ? "page" : undefined}
-            >
-              {t.nav.about}
-            </a>
-          </li>
-
-          <!-- Now -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "now")}
-              class:list={["font-medium", { "menu-active": isActive("/now") }]}
-              aria-current={isActive("/now") ? "page" : undefined}
-            >
-              {t.nav.now}
-            </a>
-          </li>
-
           <!-- Friends -->
           <li>
             <a
@@ -159,23 +122,26 @@ const isDarkInitially = false;
             </a>
           </li>
 
-          <!-- Archives -->
           {
-            features.showArchives && (
-              <li>
-                <a
-                  href={getRelativeLocaleUrl(locale, "archives")}
-                  class:list={{
-                    "menu-active": isActive("/archives"),
-                  }}
-                  class="btn btn-ghost btn-square"
-                  title={t.nav.archives}
-                  aria-label={t.nav.archives}
-                >
-                  <IconArchive class="size-5" />
-                </a>
-              </li>
-            )
+            /*
+            ============================================================
+            这里原本还有「标签」「关于」「近况」三个文字链接，
+            以及一个「归档」图标按钮，现在都去掉了。
+
+            判断依据：那 7 个链接不是同一类东西 ——
+              内容类型（站点主体）    文章 说说 项目 友链
+              辅助页面（只看一次）    关于 近况 标签 归档
+
+            后者移到页脚（见 Footer.astro）。理由：
+              · 顶部是导航，作用是"去哪"，不是"全部入口的清单"
+              · 页脚本来就有空间（原来只有版权 + 社交图标），
+                而且"关于""归档"这类链接放页脚是通行做法
+              · 顶部从 10 个可点元素降到 6 个
+
+            ⚠️ 那三个页面本身没有被删，只是入口换了位置。
+            直接访问 /about、/now、/tags、/archives 仍然正常。
+            ============================================================
+          */
           }
 
           <!-- Search -->
@@ -272,45 +238,6 @@ const isDarkInitially = false;
           </a>
         </li>
 
-        <!-- Tags -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "tags")}
-            class:list={{
-              "menu-active": isActive("/tags"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.tags}
-          </a>
-        </li>
-
-        <!-- About -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "about")}
-            class:list={{
-              "menu-active": isActive("/about"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.about}
-          </a>
-        </li>
-
-        <!-- Now -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "now")}
-            class:list={{
-              "menu-active": isActive("/now"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.now}
-          </a>
-        </li>
-
         <!-- Friends -->
         <li>
           <a
@@ -350,22 +277,11 @@ const isDarkInitially = false;
           </a>
         </li>
 
-        <!-- Archives -->
         {
-          features.showArchives && (
-            <li>
-              <a
-                href={getRelativeLocaleUrl(locale, "archives")}
-                class:list={{
-                  "menu-active": isActive("/archives"),
-                }}
-                data-mobile-menu-link
-              >
-                <IconArchive class="size-5" />
-                {t.nav.archives}
-              </a>
-            </li>
-          )
+          /*
+          这里原本还有「标签」「关于」「近况」「归档」四项。
+          它们移到了页脚 —— 理由见桌面端导航那段注释。
+        */
         }
 
         <!-- Search -->

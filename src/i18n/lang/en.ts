@@ -51,6 +51,7 @@ export default {
     copyright: "Copyright",
     copyrightLine: "Copyright © {{year}} {{author}}",
     allRightsReserved: "All rights reserved.",
+    secondaryNav: "Secondary navigation",
   },
   pages: {
     tagTitle: "Tag",

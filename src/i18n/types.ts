@@ -65,6 +65,14 @@ export interface UIStrings {
      */
     copyrightLine: string;
     allRightsReserved: string;
+    /**
+     * 页脚那组次要导航的无障碍名称。
+     *
+     * 读屏软件靠它把这一组链接和页面别的内容区分开
+     * （会念成「次要导航，导航区域」）。
+     * 没有它的话，用户只能听到一串没有上下文的光秃秃链接。
+     */
+    secondaryNav: string;
   };
   pages: {
     tagTitle: string;

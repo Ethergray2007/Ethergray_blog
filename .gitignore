@@ -32,3 +32,8 @@ pnpm-debug.log*
 
 # 本项目专用的 npm 缓存（避免写全局缓存目录，也避免误提交）
 .npm-cache/
+
+# 首屏背景图的**原图**（约 6 MB，本地素材，不进仓库）
+# 成品是 public/hero-bg.jpg（约 108 KB，已提交）
+# 想换图：把新图放到这个位置，然后跑 node scripts/make-hero-bg.ts
+src/assets/images/hero-bg.png

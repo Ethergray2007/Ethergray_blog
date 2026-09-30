@@ -1,5 +1,6 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+import { getRelativeLocaleUrl } from "astro:i18n";
 
 import Socials from "./Socials.astro";
 import config from "@/config";
@@ -11,8 +12,39 @@ type Props = {
 
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
+const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(Astro.currentLocale);
 const currentYear = new Date().getFullYear();
+
+/**
+ * 次要导航。
+ *
+ * 【为什么这些东西在页脚而不是顶部】
+ * 顶部导航栏原本有 7 个文字链接 + 1 个归档图标，太挤了。
+ * 而那 7 个不是同一类东西：
+ *
+ *   内容类型（站点主体）  文章 说说 项目 友链   ← 留在顶部
+ *   辅助页面（看一次就够） 关于 近况 标签 归档   ← 移到这里
+ *
+ * 页脚本来就有空间（原来只有版权和社交图标），而且
+ * 「关于」「归档」这类链接放页脚是通行做法 ——
+ * 需要的人会往下找，不需要的人也不会被占用视线。
+ *
+ * 归档按功能开关决定显不显示（和顶部原来那个图标按钮同一个条件）。
+ */
+const secondaryLinks = [
+  { href: getRelativeLocaleUrl(locale, "tags"), label: t.nav.tags },
+  ...(config.features?.showArchives !== false
+    ? [
+        {
+          href: getRelativeLocaleUrl(locale, "archives"),
+          label: t.nav.archives,
+        },
+      ]
+    : []),
+  { href: getRelativeLocaleUrl(locale, "now"), label: t.nav.now },
+  { href: getRelativeLocaleUrl(locale, "about"), label: t.nav.about },
+];
 
 // 版权行在语言文件里拼好，避免模板里多个表达式相邻把空格吃掉
 // （否则会渲染成 “© 2026Ethergray”）。
@@ -44,9 +76,37 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
       </p>
     </div>
 
-    <!-- Social links -->
-    <div class="flex items-center">
-      <Socials />
+    <!-- 次要导航 + 社交链接 -->
+    <div class="flex flex-col items-center gap-4 sm:items-end">
+      {
+        /*
+        次要导航。
+        用 nav 标签而不是 div —— 读屏软件靠它识别"这是一组导航链接"，
+        并且能跳进来单独浏览。
+      */
+      }
+      <nav aria-label={t.footer.secondaryNav}>
+        <ul
+          class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
+        >
+          {
+            secondaryLinks.map(link => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-base-content-muted hover:text-primary transition-colors"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <div class="flex items-center">
+        <Socials />
+      </div>
     </div>
   </div>
 </footer>

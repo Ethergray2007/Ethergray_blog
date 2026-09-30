@@ -2,6 +2,7 @@
 @import "./theme.css";
 @import "./typography.css";
 @import "./katex.css";
+@import "./hero.css";
 @import "rehype-callouts/theme/obsidian";
 
 @plugin "daisyui";

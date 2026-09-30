@@ -55,6 +55,7 @@ export default {
     copyright: "版权所有",
     copyrightLine: "版权所有 © {{year}} {{author}}",
     allRightsReserved: "保留所有权利。",
+    secondaryNav: "次要导航",
   },
 
   pages: {

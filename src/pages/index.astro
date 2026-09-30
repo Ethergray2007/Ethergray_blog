@@ -32,83 +32,106 @@ const homePath = getRelativeLocaleUrl(locale, "");
 <Layout>
   <Header />
 
+  {
+    /*
+    ============================================================
+    首屏
+    ============================================================
+    ⚠️ 它在 <main> **外面**，这是有意的。
+
+    因为 main 用的是 content-shell（max-w-5xl 限宽 + 左右留白），
+    背景图放进去会被限制成一条竖条 —— 看起来是"一个卡片"，
+    而不是"一个首屏"。移出来之后背景才能铺满整个屏幕宽度。
+
+    容器（限宽 + 留白）改到内部那层，这样文字仍然和下方的
+    文章列表对齐，不会因为铺满而跑到屏幕最左边。
+    ============================================================
+  */
+  }
+  <section id="hero">
+    {
+      /*
+      背景图（.hero__bg 的 background-image）+ 压暗层，两层都绝对定位铺满。
+      文字那层用 z-10 压在上面（见下面那个 div）。
+
+      背景图为什么用 CSS 而不是 <img>：见 src/styles/hero.css 里的说明 ——
+      一句话是"离线压好的 108 KB 比构建时处理 6 MB 原图更划算"。
+    */
+    }
+    <div class="hero__bg" aria-hidden="true"></div>
+
+    <div class="hero__scrim" aria-hidden="true"></div>
+
+    <div class="content-shell relative z-10 py-14 sm:py-20 lg:py-24">
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <span class="badge badge-primary badge-soft">
+          {t.home.badge}
+        </span>
+
+        <a
+          target="_blank"
+          rel="noreferrer"
+          href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
+          class="btn btn-ghost btn-sm gap-2"
+          aria-label="RSS Feed"
+          title="RSS Feed"
+        >
+          <IconRss class="size-4" />
+          RSS
+        </a>
+      </div>
+
+      <h1
+        class="hero__title max-w-3xl text-4xl font-black sm:text-5xl lg:text-6xl"
+      >
+        {t.home.heroTitle}
+      </h1>
+
+      <p class="hero__lead mt-4 max-w-2xl text-lg leading-8 sm:text-xl">
+        {t.home.heroLead}
+      </p>
+
+      <p class="hero__more mt-2 max-w-2xl leading-7">
+        {t.home.heroMore}
+      </p>
+
+      <div class="mt-7 flex flex-wrap gap-3">
+        {
+          /*
+          指向仓库首页而不是 #readme ——
+          README 是给开发者看的，访客点进去会一头雾水；
+          仓库首页至少能看到这是个什么项目。
+        */
+        }
+        <a
+          href="https://github.com/Ethergray2007/Ethergray_blog"
+          target="_blank"
+          rel="noreferrer"
+          class="btn btn-primary"
+        >
+          {t.home.viewSource}
+        </a>
+
+        <a
+          href={getRelativeLocaleUrl(locale, "profile")}
+          class="btn btn-outline"
+        >
+          {t.home.viewProfile}
+        </a>
+
+        <a href={getRelativeLocaleUrl(locale, "now")} class="btn btn-outline">
+          {t.nav.now}
+        </a>
+      </div>
+    </div>
+  </section>
+
   <main
     id="main-content"
     data-layout="index"
     data-home-path={homePath}
-    class="content-shell py-8 sm:py-10 lg:py-12"
+    class="content-shell pb-8 sm:pb-10 lg:pb-12"
   >
-    <!-- Hero -->
-    <section
-      id="hero"
-      class="card border-base-300 bg-base-100 border shadow-sm"
-    >
-      <div class="card-body p-6 sm:p-8 lg:p-10">
-        <div class="mb-4 flex flex-wrap items-center gap-2">
-          <span class="badge badge-primary badge-soft">
-            {t.home.badge}
-          </span>
-
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
-            class="btn btn-ghost btn-sm gap-2"
-            aria-label="RSS Feed"
-            title="RSS Feed"
-          >
-            <IconRss class="size-4" />
-            RSS
-          </a>
-        </div>
-
-        <h1
-          class="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl"
-        >
-          {t.home.heroTitle}
-        </h1>
-
-        <p
-          class="text-base-content-strong mt-4 max-w-2xl text-lg leading-8 sm:text-xl"
-        >
-          {t.home.heroLead}
-        </p>
-
-        <p class="text-base-content-muted mt-2 max-w-2xl leading-7">
-          {t.home.heroMore}
-        </p>
-
-        <div class="mt-6 flex flex-wrap gap-3">
-          {
-            /*
-            指向仓库首页而不是 #readme ——
-            README 是给开发者看的，访客点进去会一头雾水；
-            仓库首页至少能看到这是个什么项目。
-          */
-          }
-          <a
-            href="https://github.com/Ethergray2007/Ethergray_blog"
-            target="_blank"
-            rel="noreferrer"
-            class="btn btn-primary"
-          >
-            {t.home.viewSource}
-          </a>
-
-          <a
-            href={getRelativeLocaleUrl(locale, "profile")}
-            class="btn btn-outline"
-          >
-            {t.home.viewProfile}
-          </a>
-
-          <a href={getRelativeLocaleUrl(locale, "now")} class="btn btn-outline">
-            {t.nav.now}
-          </a>
-        </div>
-      </div>
-    </section>
-
     <!-- Featured -->
     {
       featuredPosts.length > 0 && (
