@@ -43,7 +43,7 @@ const notes = getNotes(entries);
   <Main pageTitle={t.pages.notesTitle} pageDesc={t.pages.notesDesc}>
     {
       notes.length === 0 ? (
-        <p class="text-base-content/60">{t.notes.empty}</p>
+        <p class="text-base-content-muted">{t.notes.empty}</p>
       ) : (
         /*
           时间轴排版：左边一条竖线，每条一个小圆点。

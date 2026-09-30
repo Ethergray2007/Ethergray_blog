@@ -8,11 +8,64 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --font-app: var(--font-google-sans-code);
+
+  /*
+   * 文字层级 —— 三档，只有三档。
+   *
+   * 【为什么要有这套东西】
+   * 之前全站用了 9 种透明度：/35 /40 /45 /50 /55 /60 /65 /70 /75。
+   * 而实际上"卡片摘要"用 /65、"页描述"用 /60、"标签计数"用 /50、
+   * "目录"用 /70 —— 这四个的**意图完全一样**（都是次要文字），
+   * 却用了四个不同的值。
+   *
+   * 后果不是"颜色不对"，而是**层级读不出来**：
+   * /55 和 /60 的差别肉眼几乎看不出，等于没有分档。
+   * 而"分档不清"正是页面显得业余的最常见原因。
+   *
+   * 【三档的分工】
+   *   strong  接近正文。用于：页面说明、卡片摘要这类"要读"的文字
+   *   muted   明显更淡。用于：页脚、辅助说明
+   *   faint   最淡。用于：日期、计数、序号这类元数据
+   *
+   * 【为什么用 color-mix 而不是第一版的 /60 写法】
+   * 因为这样才能把值收在一处。
+   *
+   *   第一版（弃用）：--color-text-muted: rgb(from …) —— 不行，
+   *     Tailwind 4 只为 --color-* 命名空间生成**单色**工具类
+   *     （bg-xxx / text-xxx），不会自动生成 /60 这种透明度变体。
+   *     所以想用 text-text-muted/60 是行不通的。
+   *
+   *   现在这种：把不透明度做成独立变量，
+   *     工具类里引用它 → 改一个数字，全站跟着变。
+   */
+  --text-strong: color-mix(
+    in oklab,
+    var(--foreground) var(--text-strong-opacity),
+    transparent
+  );
+  --text-muted: color-mix(
+    in oklab,
+    var(--foreground) var(--text-muted-opacity),
+    transparent
+  );
+  --text-faint: color-mix(
+    in oklab,
+    var(--foreground) var(--text-faint-opacity),
+    transparent
+  );
 }
 
-/* Light theme values */
+/*
+ * 三档的不透明度。
+ *
+ * ⚠️ 浅色和深色刻意用不同的值，而不是共用一套：
+ * 深色背景上的文字在相同不透明度下**看起来更淡**
+ * （因为是从亮色往深色里混），所以深色模式要调高一点才一样清楚。
+ * 这是对比度问题，不是审美偏好。
+ */
 :root,
 [data-theme="light"] {
+  /* Light theme values */
   --background: #fdfdfd;
   --foreground: #282728;
   --accent: #006cac;
@@ -20,9 +73,13 @@
   --muted: #e6e6e6;
   --muted-foreground: #6b7280;
   --border: #ece9e9;
+
+  /* 文字三档的不透明度 */
+  --text-strong-opacity: 78%;
+  --text-muted-opacity: 55%;
+  --text-faint-opacity: 42%;
 }
 
-/* Dark theme values */
 [data-theme="dark"] {
   --background: #212737;
   --foreground: #eaedf3;
@@ -31,4 +88,30 @@
   --muted: #343f60;
   --muted-foreground: #afb9ca;
   --border: #ab4b08;
+
+  /* 深色背景上要更实一点才看得清 */
+  --text-strong-opacity: 82%;
+  --text-muted-opacity: 58%;
+  --text-faint-opacity: 45%;
+}
+
+/**
+ * 三档工具类。
+ *
+ * 为什么用 @utility 注册、而不是直接写 `.xxx { color: … }`：
+ * 只有 @utility 注册的类才会进入 Tailwind 的 utilities 层，
+ * 从而和别的工具类**按同样的规则排序**。直接写普通 class 的话，
+ * 它会被放到别的层里，导致 hover:text-primary 之类的悬停态
+ * 覆盖不掉它 —— 表现为"悬停颜色不变"。
+ */
+@utility text-base-content-strong {
+  color: var(--text-strong);
+}
+
+@utility text-base-content-muted {
+  color: var(--text-muted);
+}
+
+@utility text-base-content-faint {
+  color: var(--text-faint);
 }

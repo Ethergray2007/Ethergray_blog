@@ -45,7 +45,7 @@ const projects = getProjects(entries);
   <Main pageTitle={t.pages.projectsTitle} pageDesc={t.pages.projectsDesc}>
     {
       projects.length === 0 ? (
-        <p class="text-base-content/60">{t.projects.empty}</p>
+        <p class="text-base-content-muted">{t.projects.empty}</p>
       ) : (
         <ul class="flex flex-col gap-6">
           {projects.map(project => (
@@ -59,7 +59,7 @@ const projects = getProjects(entries);
                 </span>
               </div>
 
-              <p class="text-base-content/70 mt-2 leading-7">
+              <p class="text-base-content-strong mt-2 leading-7">
                 {project.description}
               </p>
 

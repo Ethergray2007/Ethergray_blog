@@ -85,7 +85,7 @@ const topTagsByYear = new Map(
 
                 {/* 这一年的标签小结：让读者一眼看出主题分布 */}
                 {(topTagsByYear.get(year) ?? []).length > 0 && (
-                  <span class="text-base-content/50 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <span class="text-base-content-faint flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                     {(topTagsByYear.get(year) ?? []).map(({ tag, tagName }) => (
                       <a
                         href={getRelativeLocaleUrl(locale, `tags/${tag}/`)}

@@ -122,7 +122,7 @@ const updatedAtText = (() => {
 
   <Main pageTitle={t.pages.nowTitle} pageDesc={t.pages.nowDesc}>
     <!-- 更新日期 -->
-    <p class="text-base-content/55 mb-8 text-sm">
+    <p class="text-base-content-muted mb-8 text-sm">
       最后更新：{updatedAtText}
     </p>
 
@@ -138,7 +138,7 @@ const updatedAtText = (() => {
               <ul class="space-y-3">
                 {section.items.map(item =>
                   typeof item === "string" ? (
-                    <li class="text-base-content/75 flex gap-3 leading-7">
+                    <li class="text-base-content-strong flex gap-3 leading-7">
                       <span class="text-primary shrink-0" aria-hidden="true">
                         —
                       </span>
@@ -151,8 +151,10 @@ const updatedAtText = (() => {
                       </span>
                       <span>
                         <span class="font-semibold">{item.label}</span>
-                        <span class="text-base-content/50"> · </span>
-                        <span class="text-base-content/75">{item.text}</span>
+                        <span class="text-base-content-faint"> · </span>
+                        <span class="text-base-content-strong">
+                          {item.text}
+                        </span>
                       </span>
                     </li>
                   )
@@ -164,7 +166,7 @@ const updatedAtText = (() => {
       }
     </div>
 
-    <p class="text-base-content/50 mt-10 text-sm leading-7">
+    <p class="text-base-content-faint mt-10 text-sm leading-7">
       这个页面不定期更新。内容风格参考了
       <a
         href="https://nownownow.com/about"

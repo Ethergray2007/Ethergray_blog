@@ -45,7 +45,7 @@ const friends = getFriends(entries);
   <Main pageTitle={t.pages.friendsTitle} pageDesc={t.pages.friendsDesc}>
     {
       friends.length === 0 ? (
-        <p class="text-base-content/60">{t.friends.empty}</p>
+        <p class="text-base-content-muted">{t.friends.empty}</p>
       ) : (
         <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {friends.map(friend => (
@@ -77,7 +77,7 @@ const friends = getFriends(entries);
                     <span class="block truncate font-semibold">
                       {friend.title}
                     </span>
-                    <p class="text-base-content/60 mt-1 line-clamp-2 text-sm">
+                    <p class="text-base-content-muted mt-1 line-clamp-2 text-sm">
                       {friend.description}
                     </p>
                   </div>
