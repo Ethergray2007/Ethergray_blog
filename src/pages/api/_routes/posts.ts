@@ -23,7 +23,11 @@ import {
 import { POST_STATUS } from "../../../db/schema.ts";
 import { slugifyStr } from "../../../utils/slugify.ts";
 
-import { resolveCurrentUser, unauthorized } from "./auth.ts";
+import {
+  resolveUserFromSession,
+  unauthorized,
+  type ResolveUser,
+} from "./auth.ts";
 import { asContext } from "./context.ts";
 import {
   createPostSchema,
@@ -60,25 +64,23 @@ function parseId(raw: string | undefined): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-/**
- * 检查登录状态。
- *
- * 【为什么每个处理函数自己调一次，而不是用 onBeforeHandle 统一拦截】
- * 我原本用 onBeforeHandle 做全局守卫，遇到两个问题：
- *   1. 数据校验发生在守卫之前，未登录时会先收到 422（"字段不对"）
- *      而不是 401（"请先登录"）—— 语义不对，还泄露了字段要求
- *   2. ctx.cookie 在部分路径下是 undefined，行为不可预测
- *
- * 现在每个处理函数第一行就取一次用户，没有框架的隐式规则。
- * 代价是每个函数多一行，换来的是"扫一眼就知道有没有鉴权"。
- */
-async function requireUser(
-  rawCtx: unknown
-): Promise<{ id: number; username: string } | null> {
-  return resolveCurrentUser(asContext(rawCtx));
-}
+export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
+  /**
+   * 取当前登录用户，未登录返回 null。
+   *
+   * 【为什么每个处理函数自己调一次，而不是用 onBeforeHandle 统一拦截】
+   * 我原本用 onBeforeHandle 做全局守卫，遇到两个问题：
+   *   1. 数据校验发生在守卫之前，未登录时会先收到 422（"字段不对"）
+   *      而不是 401（"请先登录"）—— 语义不对，还泄露了字段要求
+   *   2. ctx.cookie 在部分路径下是 undefined，行为不可预测
+   *
+   * 现在每个处理函数第一行就取一次用户，没有框架的隐式规则。
+   * 代价是每个函数多一行，换来的是"扫一眼就知道有没有鉴权"。
+   */
+  async function requireUser(rawCtx: unknown) {
+    return resolveUser(asContext(rawCtx));
+  }
 
-export function postRoutes() {
   return (
     new Elysia({ name: "posts" })
       /** -------------------------------------------------------

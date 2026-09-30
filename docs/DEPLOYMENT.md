@@ -12,13 +12,32 @@
 | 变量 | 值 |
 | --- | --- |
 | `DATABASE_URL` | Neon 给**连接池**连接串（见下方"必须用连接池"） |
-| `SESSION_SECRET` | 和 `.env` 里同一个值 |
+| `BETTER_AUTH_SECRET` | 和 `.env` 里同一个值 |
+| `GITHUB_CLIENT_ID` | **线上那个** OAuth App 的 Client ID |
+| `GITHUB_CLIENT_SECRET` | **线上那个** OAuth App 的 Client secret |
+| `GITHUB_OWNER_ID` | 你的 GitHub 用户 id（和本地填同一个数字） |
 
-生成 `SESSION_SECRET`：
+生成 `BETTER_AUTH_SECRET`：
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
+
+### ⚠️ OAuth App 要建两个
+
+GitHub 要求回调地址**完全匹配**，而本地和线上地址不同：
+
+```text
+本地  http://localhost:4321/api/session/callback/github
+线上  https://你的域名/api/session/callback/github
+```
+
+所以去 [GitHub 开发者设置](https://github.com/settings/developers) 建**两个**
+OAuth App，一个填本地地址、一个填线上地址。它们各有各的 Client ID 和
+secret —— 别把线上的填进本地 `.env`，否则回调地址对不上，登录会失败。
+
+（线上那个 App 的 Homepage URL 填你的域名；本地那个填
+`http://localhost:4321`。）
 
 ### ⚠️ 不要写进 `netlify.toml`
 
@@ -28,8 +47,7 @@ Netlify 文档明确说明（[出处](https://docs.netlify.com/build/functions/e
 > are **not available to serverless functions**.
 
 `netlify.toml` 里的变量只在构建阶段可见。我们的 API 是运行时跑的
-Netlify Function，所以 `DATABASE_URL` 和 `SESSION_SECRET` **必须**
-在后台 UI 里配。
+Netlify Function，所以上面这些**必须**在后台 UI 里配。
 
 ### 改完要重新部署
 
@@ -140,9 +158,11 @@ Netlify 后台改：**Cloud compute → Functions → Region**，然后重新部
 ```text
 □ Neon 项目建在 US East（跟 Netlify 函数的默认区域一致）
 □ 复制的连接串主机名里带 -pooler
-□ Netlify 后台配了 DATABASE_URL 和 SESSION_SECRET
+□ GitHub 上建了**线上专用的** OAuth App，回调地址填线上域名
+□ Netlify 后台配了 5 个变量：DATABASE_URL / BETTER_AUTH_SECRET /
+  GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_OWNER_ID
 □ 推送到 main 之前，先在 develop 的预览站上验证
-□ 本地跑过四条检查 + 三套测试
+□ 本地跑过四条检查 + 两套测试
 ```
 
 ---

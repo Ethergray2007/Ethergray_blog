@@ -1,178 +1,73 @@
 /**
- * 认证路由：登录 / 登出 / 查询当前用户
+ * 认证路由
  * ============================================================
- * 三条规则贯穿这个文件：
+ * 【这个文件现在很薄，是有意的】
+ * 登录流程本身（GitHub OAuth、state 防 CSRF、PKCE、会话 Cookie 的
+ * 签名与加密）全部交给 Better Auth，挂在 /api/session/* 下
+ * （见 src/pages/api/session/[...path].ts）。
  *
- * 1. **失败信息不区分原因**
- *    "用户名不存在"和"密码错误"都返回同一句话。
- *    否则攻击者能靠错误信息枚举出哪些用户名是有效的。
+ * 这里只保留三件我们自己的事：
+ *   1. 把"当前登录用户是谁"做成一个函数（可注入，方便测试）
+ *   2. /api/me      给后台一个稳定的"查登录状态"接口
+ *   3. /api/logout  一个语义清楚的登出接口
  *
- * 2. **成功和失败的耗时也要接近**
- *    users 仓库里对不存在的用户也会走一遍密码校验，
- *    避免通过响应快慢判断用户名是否存在。
+ * 为什么不直接调 Better Auth 的 /api/session/sign-out：
+ *   我们的接口名更直白。而且以后想换认证方案时，
+ *   前端 src/utils/adminApi.ts 一行都不用改。
  *
- * 3. **Cookie 一律 HttpOnly + SameSite**
- *    即使页面有 XSS 漏洞，脚本也读不到登录凭证。
- *
- * 【为什么直接读写 Cookie 头，而不用 ctx.cookie】
- * 实测 Elysia 在部分调用路径下 ctx.cookie 会是 undefined，
- * 排查成本很高。而解析 Cookie 头只有几行代码，行为完全可预测。
- * 这里选可预测。
- *
- * 【为什么分成 authRoutes() / postRoutes() 两个插件】
- * Elysia 的标准组合方式是"每个模块返回一个实例，最后 .use() 拼起来"。
- * 用 app 当参数传进去会因为泛型逆变报类型错误。
+ * 【所有权检查在哪里】
+ * 在 Better Auth 的配置里（src/lib/auth.ts），不是主人的 GitHub 账号
+ * 会被直接拒绝，连登录状态都不会建立。
  * ============================================================
  */
 import { Elysia } from "elysia";
 
-import { authenticate } from "../../../db/repositories/users.ts";
-import {
-  clearFailures,
-  getLockRemainingSeconds,
-  LOGIN_LOCK_MINUTES,
-  LOGIN_MAX_FAILURES,
-  recordFailure,
-} from "../../../lib/rate-limit.ts";
-import {
-  createSessionToken,
-  SESSION_COOKIE,
-  SESSION_MAX_AGE_SECONDS,
-  verifySessionToken,
-} from "../../../lib/session.ts";
+import { auth } from "../../../lib/auth.ts";
 
 import { asContext, type ApiContext } from "./context.ts";
-import { loginSchema, readJsonBody, validate } from "./validation.ts";
 
-/**
- * 从 Cookie 请求头里取出某个 Cookie 的值。
- *
- * 请求头格式形如 "a=1; session=xxx.yyy; b=2"，
- * 所以按 ";" 切开、再按**第一个** "=" 分成名字和值。
- * 用 indexOf 而不是 split("=")，因为值本身可能包含 "="。
- */
-export function readCookie(request: Request, name: string): string | undefined {
-  const header = request.headers.get("cookie");
-
-  if (!header) {
-    return undefined;
-  }
-
-  for (const part of header.split(";")) {
-    const trimmed = part.trim();
-    const eq = trimmed.indexOf("=");
-
-    if (eq === -1) {
-      continue;
-    }
-
-    if (trimmed.slice(0, eq) === name) {
-      return trimmed.slice(eq + 1);
-    }
-  }
-
-  return undefined;
-}
-
-/**
- * 判断当前请求是不是走的 https。
- *
- * 【为什么不用 NODE_ENV === "production"】
- * 实测不可靠：本地开发时它是 undefined，而 Netlify Functions
- * 运行时也**不保证**把它设成 "production"。
- * 靠它决定 Cookie 的 Secure 属性会出两种坏情况：
- *   线上忘了加 Secure（少一层防护）
- *   本地因为是 http 却带了 Secure，浏览器直接丢掉 Cookie —— 登录永远失败
- *
- * 直接从请求的 URL 判断，不依赖任何环境约定：谁在访问、什么协议，
- * 请求自己最清楚。
- */
-function isSecureRequest(request: Request): boolean {
-  try {
-    return new URL(request.url).protocol === "https:";
-  } catch {
-    // URL 解析不出来时保守处理：不加 Secure。
-    // 宁可在 https 下少一层防护，也不要让本地开发完全登不上。
-    return false;
-  }
-}
-
-/** 构造设置 Cookie 的响应头 */
-function buildSetCookie(
-  request: Request,
-  value: string,
-  maxAgeSeconds: number
-): string {
-  const attributes = [
-    `${SESSION_COOKIE}=${value}`,
-    `Max-Age=${maxAgeSeconds}`,
-    "Path=/",
-    // HttpOnly：浏览器 JS 读不到，挡住 XSS 偷凭证
-    "HttpOnly",
-    // SameSite=Lax：跨站跳转不带 Cookie，挡住基础 CSRF
-    "SameSite=Lax",
-  ];
-
-  if (isSecureRequest(request)) {
-    attributes.push("Secure");
-  }
-
-  return attributes.join("; ");
-}
-
-/** 构造删除 Cookie 的响应头（值清空 + 立即过期） */
-function buildClearCookie(request: Request): string {
-  const attributes = [
-    `${SESSION_COOKIE}=`,
-    "Max-Age=0",
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-  ];
-
-  if (isSecureRequest(request)) {
-    attributes.push("Secure");
-  }
-
-  return attributes.join("; ");
-}
-
-/**
- * 从请求里解析出当前登录用户。
- *
- * 任何一步失败都返回 null，不抛异常 ——
- * "没登录"是正常状态，不是错误。
- */
-export async function resolveCurrentUser(
-  ctx: ApiContext
-): Promise<{ id: number; username: string } | null> {
-  const token = readCookie(ctx.request, SESSION_COOKIE);
-
-  if (!token) {
-    return null;
-  }
-
-  const payload = verifySessionToken(token);
-
-  if (!payload) {
-    return null;
-  }
-
+/** 登录用户的形状 */
+export type CurrentUser = {
   /**
-   * 到数据库确认这个用户还存在。
-   *
-   * 为什么不在签名里直接信任：
-   *   如果用户被删掉了，那张旧 Cookie 在 7 天内仍能通过签名校验。
-   *   查一次库就杜绝了这种情况。
+   * 无状态模式下这是 Better Auth 生成的字符串，不是数据库自增数字。
+   * 我们只拿它当身份标识，不做算术，所以是 string。
    */
-  const user = await ctx.db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.id, payload.id),
-  });
+  id: string;
+  /** 显示名 */
+  username: string;
+};
 
-  return user ? { id: user.id, username: user.username } : null;
-}
+/**
+ * 判断请求是否来自已登录的博主。
+ *
+ * 【为什么做成可传入的参数，而不是直接读全局】
+ * 测试时没法走真实的 GitHub OAuth 流程（那要浏览器、要 GitHub 服务器）。
+ * 把这个函数作为参数传进去，测试就能换成"永远已登录"或"永远未登录"
+ * 的替身，专心测**我们自己的接口逻辑**。
+ *
+ * 这就是"依赖注入" —— 见 src/pages/api/_routes/index.ts 顶部对 createApi 的说明。
+ */
+export type ResolveUser = (ctx: ApiContext) => Promise<CurrentUser | null>;
 
-/** 统一的 401 响应，文章路由也会复用 */
+/**
+ * 生产环境用的实现：问 Better Auth 当前是谁。
+ *
+ * 无状态模式下它只解 Cookie、不查数据库，所以这个调用很便宜。
+ */
+export const resolveUserFromSession: ResolveUser = async ctx => {
+  const session = await auth.api.getSession({ headers: ctx.request.headers });
+
+  if (!session) {
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    username: session.user.name || session.user.email || "管理员",
+  };
+};
+
+/** 统一的 401 响应，文章路由会复用 */
 export function unauthorized(): Response {
   return Response.json(
     { error: "请先登录。", code: "UNAUTHORIZED" },
@@ -181,106 +76,30 @@ export function unauthorized(): Response {
 }
 
 /** 认证相关的路由 */
-export function authRoutes() {
+export function authRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
   return (
     new Elysia({ name: "auth" })
-      /** -------------------------------------------------------
-       * 登录  POST /api/login
-       * ----------------------------------------------------- */
-      .post("/login", async rawCtx => {
-        const ctx = asContext(rawCtx);
-        const { db, request, set } = ctx;
-
-        /**
-         * 先读并校验数据格式。
-         *
-         * 登录接口的校验放在前面是对的 ——
-         * 它本身就是鉴权入口，不存在"未登录"一说。
-         * 而且先校验能省掉一次无谓的 scrypt 计算。
-         *
-         * 第二个参数传 ctx.body：Elysia 在运行时可能已经解析过请求体了，
-         * 那时 request.bodyUsed 会是 true，必须用它的结果。
-         */
-        const parsed = await readJsonBody(request, ctx.body);
-
-        if (!parsed.ok) {
-          set.status = 400;
-          return { error: parsed.error, code: "BAD_REQUEST" };
-        }
-
-        const invalid = validate(loginSchema, parsed.data);
-
-        if (invalid) {
-          set.status = 422;
-          return { error: invalid, code: "BAD_REQUEST" };
-        }
-
-        const body = parsed.data as { username: string; password: string };
-
-        /**
-         * 限流的 key 用 IP。取不到就退化成 "unknown" ——
-         * 所有人共用一个计数，宁可误伤也不能不限流。
-         */
-        const ip =
-          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-          request.headers.get("x-real-ip") ??
-          "unknown";
-
-        const lockedSeconds = getLockRemainingSeconds(ip);
-
-        if (lockedSeconds > 0) {
-          set.status = 429;
-
-          return {
-            error: `尝试次数过多，请 ${Math.ceil(lockedSeconds / 60)} 分钟后再试。`,
-            code: "TOO_MANY_ATTEMPTS",
-          };
-        }
-
-        const user = await authenticate(db, body.username, body.password);
-
-        if (!user) {
-          recordFailure(ip);
-
-          set.status = 401;
-
-          return {
-            error: "用户名或密码不正确。",
-            code: "INVALID_CREDENTIALS",
-            lockMinutes: LOGIN_LOCK_MINUTES,
-            maxAttempts: LOGIN_MAX_FAILURES,
-          };
-        }
-
-        clearFailures(ip);
-
-        set.headers["set-cookie"] = buildSetCookie(
-          request,
-          createSessionToken(user),
-          SESSION_MAX_AGE_SECONDS
-        );
-
-        return { ok: true, user: { id: user.id, username: user.username } };
-      })
-
-      /** -------------------------------------------------------
-       * 登出  POST /api/logout
-       * ----------------------------------------------------- */
-      .post("/logout", rawCtx => {
-        const { request, set } = asContext(rawCtx);
-
-        set.headers["set-cookie"] = buildClearCookie(request);
-
-        return { ok: true };
-      })
-
-      /** -------------------------------------------------------
-       * 当前登录状态  GET /api/me
-       * ----------------------------------------------------- */
+      /** 当前登录状态 */
       .get("/me", async rawCtx => {
-        const user = await resolveCurrentUser(asContext(rawCtx));
+        const user = await resolveUser(asContext(rawCtx));
 
         return user ? { user } : unauthorized();
+      })
+
+      /**
+       * 登出
+       *
+       * 转发给 Better Auth 的 sign-out，由它负责清 Cookie。
+       * asResponse: true 让我们直接拿到它构造好的 Response（带 Set-Cookie），
+       * 原样返回给浏览器即可。
+       */
+      .post("/logout", async rawCtx => {
+        const { request } = asContext(rawCtx);
+
+        return auth.api.signOut({
+          headers: request.headers,
+          asResponse: true,
+        });
       })
   );
 }

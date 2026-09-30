@@ -24,11 +24,6 @@ import {
   listPublishedPosts,
   updatePost,
 } from "../../src/db/repositories/posts.ts";
-import {
-  authenticate,
-  createUser,
-  getUserByUsername,
-} from "../../src/db/repositories/users.ts";
 
 /* ---------- 准备一个干净的测试数据库 ---------- */
 const client = new PGlite();
@@ -173,33 +168,15 @@ try {
 }
 
 /* ============================================================
- * 用户仓库
+ * 用户相关测试已移除
+ * ============================================================
+ * 登录改用 Better Auth 的无状态模式（见 src/lib/auth.ts）：
+ * 登录状态存在加密 Cookie 里，服务端验证时不查数据库，
+ * 所以 users 表和它的仓库函数都不存在了。
+ *
+ * 这部分逻辑现在由 Better Auth 负责，它有自己的测试，
+ * 我们不需要重复测一遍。
  * ========================================================== */
-console.log("\n=== 用户仓库 ===");
-
-const user = await createUser(db, "ethergray", "我的登录密码");
-check("创建用户", user.id > 0);
-check("数据库里存的是哈希，不是明文", user.passwordHash !== "我的登录密码");
-check("哈希格式正确", user.passwordHash.startsWith("scrypt$"));
-check("返回结果里没有明文密码字段", !("password" in user));
-
-check("按用户名查到用户", (await getUserByUsername(db, "ethergray"))?.id === user.id);
-check("查不到的用户返回 null", (await getUserByUsername(db, "ghost")) === null);
-
-check("正确密码登录成功", (await authenticate(db, "ethergray", "我的登录密码"))?.id === user.id);
-check("错误密码登录失败", (await authenticate(db, "ethergray", "错误密码")) === null);
-check("不存在的用户登录失败", (await authenticate(db, "ghost", "任意")) === null);
-
-try {
-  await createUser(db, "ethergray", "另一个密码");
-  check("重复用户名应该被拒绝", false, "居然创建成功了");
-} catch (error) {
-  check(
-    "重复用户名被拒绝",
-    errorChainContains(error, "users_username_unique"),
-    error instanceof Error ? error.message.split("\n")[0] : String(error)
-  );
-}
 
 /* ============================================================
  * 数据库层的检查约束

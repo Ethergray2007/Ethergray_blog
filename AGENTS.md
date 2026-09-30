@@ -184,7 +184,10 @@ export async function listPublishedPosts(db: Db, limit?: number)
 **`Buffer.from(x, "hex")` 对非法输入不报错，静默返回空 Buffer**
 
 这会导致 `timingSafeEqual(空, 空) === true`，也就是**任何密码都能登录**。
-十六进制串必须先自己校验格式（见 `src/db/password.ts` 的 `isHex`）。
+十六进制串必须先自己校验格式。
+
+（这个坑是在自己写密码校验时踩到的。现在登录改用 Better Auth，
+`src/db/password.ts` 已经删掉 —— 但这条教训适用于任何手写校验的地方。）
 
 **`promisify` 处理不了有重载的函数**
 
@@ -227,13 +230,13 @@ export const POST = handle;
 另按官方要求：Elysia 放在 `pages/api/[...path].ts` 里时必须加
 `prefix: "/api"`，否则路由匹配不上。
 
-**3. 每个处理函数自己检查登录，不用 `onBeforeHandle`**
+**3. 登录交给 Better Auth，不要自己写**
 
-看起来重复，但这是实测后的选择，原因见下面。
+见下面「认证」那一节。
 
-**4. 请求体用 `ctx.body`，不要自己读 request**
+**4. 每个处理函数自己检查登录，不用 `onBeforeHandle`**
 
-见下面"Elysia 的几个坑"里的说明。这是踩了很久才定位到的。
+看起来重复，但是有原因的（见下面「Elysia 的坑」）。
 
 **5. 整个 API 层只有一处类型断言**
 
@@ -242,58 +245,82 @@ export const POST = handle;
 把断言收在一处之后，其他地方的所有属性访问都受类型检查 ——
 拼错 `set.headers` 会立刻报错，而不是运行时才 500。
 
+**6. 依赖通过参数注入，方便测试**
+
+```ts
+createApi(db, resolveUser)      // 数据库 + 怎么判断登录用户
+createApi(db, alwaysLoggedIn)   // 测试：假装已登录
+createApi(db, neverLoggedIn)    // 测试：假装未登录
+```
+
+这样 API 测试不需要真实数据库，也不需要走 GitHub OAuth 流程。
+
+### 认证（Better Auth）
+
+**不要自己写登录。** 这一点有明确的理由和代价核算：
+
+自己写一套 GitHub OAuth + 会话 Cookie 要 800 多行安全代码
+（state 防 CSRF、PKCE、HMAC 签名、防时序攻击……），
+每一行写错都可能变成漏洞。改用 Better Auth 之后只剩 286 行（含注释）。
+
+- 配置：`src/lib/auth.ts`（约 12 行有效配置）
+- 挂载：`src/pages/api/session/[...path].ts`
+- 前端：`src/utils/adminApi.ts` 里的 `authClient`
+
+**用的是无状态模式**（配置里不传 `database`），所以：
+- 登录状态存在**加密** Cookie 里，服务端验证时不查数据库
+- `users` 表被删掉了 —— 数据库里不存任何用户信息
+- 代价：没法"立刻踢掉某个会话"。要作废全部登录就改
+  `session.cookieCache.version` 再部署
+
+**为什么用 Better Auth 而不是别的**：
+[Astro 官方文档推荐](https://docs.astro.build/en/guides/authentication/)它，
+而且它官方支持 Elysia。
+
+**⚠️ 别再去装 Arctic 或 Lucia**：
+Arctic 在 2026 年 7 月弃用、Lucia 在 2025 年 3 月弃用，
+作者现在建议"自己写一段单文件实现"。所以那个方向不要走回头路。
+
 ### Elysia 的几个坑（都实测过）
 
-**`ctx.body` 会自动解析 —— 别再自己去读 request**
+**`ctx.body` 会自动解析，`request.body` 会被标记为已读**
 
-这个是**踩了很久才定位到的**，也是最容易再犯的一条。
-
-Elysia 看到 `content-type: application/json` 就会**自动解析请求体**
-放进 `ctx.body`，同时把 `request.body` 标记成已消费
-（`request.bodyUsed === true`）。这时如果代码再去读 request：
+Elysia 看到 `content-type: application/json` 就会自动解析请求体放进
+`ctx.body`，同时把 `request.body` 标记成已消费。这时再去读 request：
 
 ```
 TypeError: Body is unusable: Body has already been read
 ```
 
-现象很有迷惑性：
+⚠️ **这段历史要记住，因为它的结论被推翻过一次**：
 
-- 所有带 body 的接口（POST / PATCH）返回 500，**GET 全部正常**
-- 用 PGlite 跑的 API 测试**全部通过** —— 因为测试里直接调
-  `app.handle()` 时 Elysia 不解析 body，`request.bodyUsed` 还是 false
-- 只有在 Astro 运行时里才复现
+当时我们自己写了个 `readJsonBody()` 去读 request，撞上这个问题，
+所有带 body 的接口 500 而 GET 正常，排查了很久。改成
+`readJsonBody(request, ctx.body)` 之后解决了。
 
-所以正确写法是 `readJsonBody(request, ctx.body)` —— 见
-`validation.ts`，它用 `request.bodyUsed` 判断该用哪个来源。
+**后来接入 Better Auth 时，`readJsonBody()` 整个被删掉了 ——
+因为登录不再需要自己解析请求体。** 那之后 POST / PATCH 都正常。
 
-**但 `onBeforeHandle` / `preHandler` 都不适合做鉴权守卫**
+所以这条坑的现状是：**不要再自己读 request body**。
+如果将来确实需要读，先确认 `request.bodyUsed`。
 
-它绑定时就把上下文类型固定了，导致注册函数必须精确匹配那个类型，
-很容易写出"路由注册不上、所有请求 404"的情况，而且报错信息帮不上忙。
+**`onBeforeHandle` / `preHandler` 不适合做鉴权守卫**
 
-**注意：`onBeforeHandle` 那条坑曾经误导过我**
+它绑定时就把上下文类型固定了，注册函数必须精确匹配那个类型。
+而且数据校验可能先于它执行，导致未登录时返回 422 而不是 401。
+现在每个处理函数第一行自己调用 `resolveUser`，没有隐式规则。
 
-排查期间一直以为"所有请求 404"是钩子造成的，后来发现真正原因是
-我的探测脚本用了 `http://x` 这种**单字母主机名**，Elysia 匹配不上路由。
-换成 `http://localhost` 就正常了。所以看到 404 先确认请求本身的 URL 是否正常。
+**看到 404 先怀疑请求 URL 本身**
 
-**`ctx.cookie` 在某些调用路径下是 `undefined`**
+排查期间我一直以为"所有请求 404"是钩子或 `.use()` 组合方式的问题，
+还为此改过架构。**真正原因是我的探测脚本用了 `http://x` 这种
+单字母主机名**，Elysia 匹配不上路由。换成 `http://localhost` 就正常。
 
-所以直接读 `request.headers.get("cookie")` 自己解析
-（见 `auth.ts` 的 `readCookie`）。几行代码，行为完全可预测。
+**教训：先确认输入本身是否合法，再怀疑框架。**
 
-**还有一条：DELETE 请求不要带 `Content-Type: application/json`**
-
-Elysia 会据此去解析 body，但 DELETE 没有 body，于是 `JSON.parse("")`
-抛 `ParseError`（消息是含糊的 `Bad Request`）。
-错误处理器里已经把 `PARSE` 单独映射成 400，见 `_routes/index.ts`。
-
-**插件必须用 `.use()` 组合，不能把 app 当参数传**
+**插件用 `.use()` 组合**
 
 ```ts
-// ❌ 泛型逆变报错 + 实测路由注册不上
-export function registerXxxRoutes(app: Elysia<any>) { app.get(...) }
-
 // ✅ 标准插件写法
 export function xxxRoutes() { return new Elysia({ name: "xxx" }).get(...) }
 // 使用时：new Elysia({ prefix: "/api" }).use(xxxRoutes())
@@ -302,7 +329,25 @@ export function xxxRoutes() { return new Elysia({ name: "xxx" }).get(...) }
 **`Elysia<any>` 在参数位置不兼容**
 
 Elysia 的类型在参数位置是逆变的，`Elysia<any>` 接不住
-`Elysia<"/api", ...>`。要么用插件写法，要么用它导出的 `AnyElysia`。
+`Elysia<"/api", ...>`。用插件写法，或者用它导出的 `AnyElysia`。
+
+**`.mount()` 会把整棵子树交出去**
+
+Better Auth 用 `.mount()` 挂载时独占一个路径前缀。
+我们因此给它单独开了 `/api/session/*`（而不是让它占用 `/api/auth/*`），
+这样它和 `/api/posts` 之类互不干扰。
+
+### 测试的边界：只测我们自己的代码
+
+API 测试里有 `alwaysLoggedIn` / `neverLoggedIn` 两个替身，
+**不走真实的 GitHub OAuth 流程**。
+
+为什么不测：那要浏览器、要 GitHub 服务器，跑不了。
+而且测的是 Better Auth 自己 —— 它有自己的测试，我们再测一遍没意义，
+它一升级我们的测试还会碎。
+
+所以测试只覆盖**我们写的部分**：访问控制、文章增删改查、
+参数校验、状态码、错误格式。
 
 ### HTTP 头的字符限制
 

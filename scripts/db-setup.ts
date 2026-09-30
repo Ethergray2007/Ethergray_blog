@@ -81,30 +81,65 @@ function report(label: string, ok: boolean, hint = ""): boolean {
 
 await loadEnvFile();
 
-console.log("\n=== 1. 检查环境变量 ===");
+/**
+ * 只想建表、还没配 GitHub 的时候用：
+ *   npm run db:setup -- --db-only
+ *
+ * 为什么需要这个开关：建表只需要 DATABASE_URL，
+ * 和 GitHub 有关的三个变量一点关系都没有。
+ * 硬要一起检查的话，会逼着人先去建 OAuth App 才能建表 —— 顺序不合理。
+ */
+const dbOnly = process.argv.includes("--db-only");
 
-const hasDatabaseUrl = report(
-  "DATABASE_URL 已配置",
-  Boolean(process.env.DATABASE_URL),
-  "从 Neon 控制台复制连接串，填到 .env 里"
+console.log(
+  `\n=== 1. 检查环境变量${dbOnly ? "（只查数据库相关，--db-only）" : ""} ===`
 );
 
-const hasSessionSecret = report(
-  "SESSION_SECRET 已配置",
-  Boolean(process.env.SESSION_SECRET),
-  '生成方法：node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
-);
+/**
+ * 这几项缺任何一项，登录或数据库就用不了。
+ * 检查顺序按"用户需要动手的程度"排：自己动手的放前面。
+ */
+const checks: Array<[string, boolean, string]> = [
+  [
+    "DATABASE_URL",
+    Boolean(process.env.DATABASE_URL),
+    "从 Neon 控制台复制连接串（主机名要带 -pooler），填到 .env 里",
+  ],
+  ...(dbOnly
+    ? []
+    : ([
+        [
+          "BETTER_AUTH_SECRET",
+          Boolean(process.env.BETTER_AUTH_SECRET),
+          '生成方法：node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+        ],
+        [
+          "GITHUB_CLIENT_ID",
+          Boolean(process.env.GITHUB_CLIENT_ID),
+          "在 https://github.com/settings/developers 建一个 OAuth App，复制 Client ID",
+        ],
+        [
+          "GITHUB_CLIENT_SECRET",
+          Boolean(process.env.GITHUB_CLIENT_SECRET),
+          "同一个 OAuth App 页面里生成 Client secret",
+        ],
+        [
+          "GITHUB_OWNER_ID",
+          Boolean(process.env.GITHUB_OWNER_ID),
+          "访问 https://api.github.com/users/你的用户名 ，把 id 字段的数字填进来",
+        ],
+      ] as Array<[string, boolean, string]>)),
+];
 
-const adminUsername = process.env.ADMIN_USERNAME?.trim() || "ethergray";
-const adminPassword = process.env.ADMIN_PASSWORD?.trim() || "";
+let allOk = true;
 
-const hasAdminPassword = report(
-  `ADMIN_PASSWORD 已配置（用户名：${adminUsername}）`,
-  adminPassword.length >= 8,
-  "至少 8 位。这是你以后登录后台用的密码，别设得太简单"
-);
+for (const [name, ok, hint] of checks) {
+  if (!report(name, ok, hint)) {
+    allOk = false;
+  }
+}
 
-if (!hasDatabaseUrl || !hasSessionSecret || !hasAdminPassword) {
+if (!allOk) {
   console.error("\n请先把上面标 ❌ 的项目补上，然后重新运行 npm run db:setup\n");
   process.exit(1);
 }
@@ -115,9 +150,6 @@ if (!hasDatabaseUrl || !hasSessionSecret || !hasAdminPassword) {
  * 静态 import 会被提升到文件顶部，那时 .env 还没加载。
  */
 const { createDb } = await import("../src/db/client.ts");
-const { createUser, getUserByUsername } = await import(
-  "../src/db/repositories/users.ts"
-);
 
 console.log("\n=== 2. 连接数据库 ===");
 
@@ -181,17 +213,6 @@ if (migrate.status !== 0) {
   process.exit(1);
 }
 
-console.log("\n=== 4. 创建管理员账号 ===");
-
-const existing = await getUserByUsername(db, adminUsername);
-
-if (existing) {
-  console.log(`  ℹ️  账号「${adminUsername}」已存在，不重复创建，也不改密码`);
-} else {
-  const user = await createUser(db, adminUsername, adminPassword);
-  console.log(`  ✅ 已创建账号「${user.username}」（id=${user.id}）`);
-}
-
 console.log(
   [
     "",
@@ -200,11 +221,14 @@ console.log(
     "",
     "接下来：",
     "  npm run dev",
-    "  然后访问 http://localhost:4321/api/me",
-    "  应该返回 401（因为还没登录）—— 说明 API 是通的",
+    "  然后访问 http://localhost:4321/admin",
+    "  点「用 GitHub 登录」，用你自己的账号授权即可",
     "",
-    "⚠️ 登录成功后，可以把 .env 里的 ADMIN_PASSWORD 那行删掉。",
-    "   账号已经建好了，不需要再留着明文密码。",
+    "⚠️ 只有 GITHUB_OWNER_ID 指定的那个账号能登录成功，",
+    "   其他 GitHub 账号会被拒绝（这是有意的）。",
+    "",
+    "💡 不需要创建管理员账号 —— 登录走 GitHub，",
+    "   第一次登录时自动完成，数据库里不用存用户。",
     "",
   ].join("\n")
 );

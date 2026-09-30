@@ -1,20 +1,25 @@
 /**
  * API 应用装配
  * ============================================================
- * 所有路由直接定义在这一个实例上，不用 .use() 组合插件。
+ * 把各模块的路由拼成一个 Elysia 应用，并统一处理错误。
  *
- * 【为什么不拆成插件再组合】
- * 我原本把路由拆成 authRoutes / postRoutes 两个 Elysia 插件，再用
- * `.use()` 拼起来。实测那样写路由**注册不上**（所有请求都返回 404），
- * 排查了很久也没定位到确切原因。
+ * 【为什么做成 createApi(db, resolveUser) 而不是导出成品 app】
+ * 这样测试时可以把内存数据库（PGlite）和"假装已登录"的替身传进来，
+ * 不需要真实的数据库和 GitHub 账号。
  *
- * 与其和框架的组装规则较劲，不如老实用扁平结构：
- * 路由函数仍然写在 _routes/ 里，这里只是把它们"登记"上来。
- * 代价是多了几行，换来的是行为可预测 —— 这比省几行重要得多。
+ * 【组合方式】
+ * 每个模块导出一个返回 Elysia 实例的函数，这里用 .use() 拼起来 ——
+ * 这是 Elysia 的标准插件写法（也是官方文档推荐的）。
+ *
+ * ⚠️ 排查笔记：曾经有段时间路由全部返回 404，我一度以为
+ *   是 .use() 组合方式的问题，还为此改成了扁平结构。
+ *   后来发现真正原因是**探测脚本用了 http://x 这种单字母主机名**，
+ *   Elysia 匹配不上路由。换成正常主机名就对了。
+ *   所以看到 404 先确认请求的 URL 本身是否正常，别急着改架构。
  *
  * 想删掉整个 API？
  *   1. 删掉 src/pages/api/ 目录
- *   2. 删掉 src/lib/session.ts、src/lib/rate-limit.ts、src/lib/api-errors.ts
+ *   2. 删掉 src/lib/auth.ts 和 src/lib/api-errors.ts
  *   3. 删掉 src/db/ 目录（如果连数据库也不要了）
  * ============================================================
  */
@@ -23,10 +28,21 @@ import { Elysia } from "elysia";
 import type { Db } from "../../../db/client.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
 
-import { authRoutes } from "./auth.ts";
+import {
+  authRoutes,
+  resolveUserFromSession,
+  type ResolveUser,
+} from "./auth.ts";
 import { postRoutes } from "./posts.ts";
 
-export function createApi(db: Db) {
+/**
+ * @param db          数据库连接。测试时传内存数据库
+ * @param resolveUser 怎么判断当前登录用户。测试时传替身
+ */
+export function createApi(
+  db: Db,
+  resolveUser: ResolveUser = resolveUserFromSession
+) {
   return (
     new Elysia({ prefix: "/api" })
       /** 把数据库放进上下文，供所有路由使用 */
@@ -54,23 +70,22 @@ export function createApi(db: Db) {
         }
 
         /**
-         * 请求体解析失败。
+         * 请求体解析失败（比如提交了不合法的 JSON）。
          *
-         * 【为什么会有这个分支】
-         * Elysia 看到 `content-type: application/json` 就会尝试解析请求体。
-         * 但 DELETE 这类请求**通常没有 body** —— 于是它去 JSON.parse("")，
-         * 抛出一个 ParseError，消息是含糊的 "Bad Request"。
+         * 不单独处理的话，会被下面的兜底分支当成"未知服务器错误"返回 500。
+         * 但这是调用方发错了数据，属于"请求有问题"，应该是 4xx。
          *
-         * 如果不单独处理，它会被下面的兜底分支当成"未知服务器错误"返回 500，
-         * 让人以为是服务器挂了，实际上是调用方发了一个没有 body 的 DELETE。
-         *
-         * 实测触发方式：DELETE /api/posts/1 且带上 Content-Type: application/json
+         * ⚠️ 排查笔记：这里曾经写过一个很自信但**错误**的注释，
+         *   说"DELETE 带 content-type 就会走到这里"。
+         *   后来发现真正原因是当时我们自己的 readJsonBody() 抢先读掉了
+         *   请求体，导致后续出错 —— 和 content-type 无关。
+         *   那段代码随 Better Auth 一起删掉之后，带 content-type 的 DELETE
+         *   完全正常（有测试锁着这个行为）。
          */
         if (code === "PARSE") {
           set.status = 400;
           return {
-            error:
-              "请求体无法解析。如果这个请求本来就不需要 body，请不要设置 Content-Type。",
+            error: "请求体无法解析，请检查提交的内容是否是合法 JSON。",
             code: API_ERROR.badRequest,
           };
         }
@@ -95,15 +110,11 @@ export function createApi(db: Db) {
       /**
        * 各个模块的路由。
        *
-       * 每个模块导出一个返回 Elysia 实例的函数，这里用 .use() 拼起来 ——
-       * 这是 Elysia 的标准插件写法。
-       *
-       * 试过"把 app 当参数传进注册函数（registerXxx(app)）"，
-       * 会因为 Elysia 的泛型在参数位置逆变而报类型错误，
-       * 而且实测路由注册不上（所有请求都 404）。插件写法两边都正常。
+       * 每个模块导出一个返回 Elysia 实例的函数，这里用 .use() 拼起来。
+       * 把 resolveUser 传下去，是为了让测试能替换掉登录判断。
        */
-      .use(authRoutes())
-      .use(postRoutes())
+      .use(authRoutes(resolveUser))
+      .use(postRoutes(resolveUser))
   );
 }
 

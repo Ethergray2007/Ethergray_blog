@@ -151,7 +151,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
 />
 
 <script>
-  import { adminApi, NotLoggedInError } from "@/utils/adminApi";
+  import { postsApi, NotLoggedInError } from "@/utils/adminApi";
 
   type EditorConfig = {
     isNew: boolean;
@@ -227,7 +227,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     }
 
     try {
-      const post = await adminApi.getPost(currentId);
+      const post = await postsApi.get(currentId);
 
       if (titleInput) titleInput.value = post.title;
       if (slugInput) slugInput.value = post.slug;
@@ -265,8 +265,8 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     try {
       const post =
         currentId === null
-          ? await adminApi.createPost(data)
-          : await adminApi.updatePost(currentId, data);
+          ? await postsApi.create(data)
+          : await postsApi.update(currentId, data);
 
       /**
        * 新建成功后记住 id，这样再点保存就是"更新"而不是又建一篇。

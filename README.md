@@ -109,22 +109,28 @@ PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、�
 ### 第一次配置
 
 ```bash
-Copy-Item .env.example .env   # 然后填三个值（文件里有说明）
-npm run db:setup              # 建表 + 创建管理员账号
+Copy-Item .env.example .env   # 按文件里的说明填
+npm run db:setup              # 检查配置 → 连库 → 建表
 ```
 
-`npm run db:setup` 会先检查配置是否齐全，缺什么就明确告诉你缺什么，
-然后连库、建表、创建账号。**可以重复运行**，已存在的账号不会被覆盖。
+`npm run db:setup` 会先检查配置是否齐全，缺什么就明确告诉你缺什么。
+**可以重复运行**，已经建好的表不会被重建。
+
+只想建表、GitHub 还没配好时，用这个（会跳过 GitHub 相关检查）：
+
+```bash
+npm run db:setup -- --db-only
+```
 
 ## ✍️ 在线写作后台
 
-配好数据库之后，启动 `npm run dev`，访问：
+启动 `npm run dev`，访问：
 
 ```text
 http://localhost:4321/admin
 ```
 
-用 `.env` 里 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 那组账号登录。
+**用 GitHub 账号登录**，不需要密码。
 
 ```text
 /admin              登录
@@ -132,6 +138,17 @@ http://localhost:4321/admin
 /admin/posts/new    写新文章
 /admin/posts/123    编辑第 123 篇
 ```
+
+只有 `.env` 里 `GITHUB_OWNER_ID` 指定的那个账号能登录成功，
+其他 GitHub 账号即使完成了授权也会被拒绝。
+
+### 为什么用 GitHub 登录，不用密码
+
+- **不用记密码**，也就不会忘、不会泄露
+- **数据库里不存任何用户信息**（连 users 表都没有），没有被拖库的风险
+- 登录由 [Better Auth](https://better-auth.com/) 处理 —— 这是
+  [Astro 官方文档推荐](https://docs.astro.build/en/guides/authentication/)的方案，
+  用的是它的**无状态模式**：登录状态存在加密 Cookie 里，服务端验证时不查库
 
 后台页面是**按需渲染**的（`prerender = false`），而博客正文页仍然是
 构建时生成的静态 HTML —— 读者访问的部分没有变慢。
@@ -142,9 +159,11 @@ http://localhost:4321/admin
 （`src/pages/api/[...path].ts` 接住所有 `/api/*`）。
 **不是独立服务** —— 一个仓库、一次部署、没有跨域问题。
 
+登录相关的接口在 `/api/session/*`，由 Better Auth 提供
+（见 `src/pages/api/session/[...path].ts`）。
+
 ```bash
-npm run api:test       # 跑 API 测试（同样用内存数据库，57 项断言）
-npm run session:test   # 跑会话安全测试（24 项断言）
+npm run api:test       # 跑 API 测试（用内存数据库，39 项断言）
 ```
 
 ### 接口一览
@@ -152,8 +171,8 @@ npm run session:test   # 跑会话安全测试（24 项断言）
 | 方法     | 路径             | 说明                         | 需要登录 |
 | -------- | ---------------- | ---------------------------- | -------- |
 | `GET`    | `/api/health`    | 健康检查，用来确认服务端能跑 | 否       |
-| `POST`   | `/api/login`     | 登录，成功后设置 Cookie      | 否       |
-| `POST`   | `/api/logout`    | 登出，清除 Cookie            | 否       |
+| `*`      | `/api/session/*` | 登录相关（Better Auth 提供） | 部分     |
+| `POST`   | `/api/logout`    | 登出，清除登录状态           | 否       |
 | `GET`    | `/api/me`        | 当前登录用户                 | 是       |
 | `GET`    | `/api/posts`     | 全部文章（含草稿）           | 是       |
 | `GET`    | `/api/posts/:id` | 单篇文章                     | 是       |
@@ -169,16 +188,20 @@ npm run session:test   # 跑会话安全测试（24 项断言）
 { "error": "给用户看的中文说明", "code": "MACHINE_READABLE_CODE" }
 ```
 
-常用状态码：`400` 请求体不是合法 JSON · `401` 未登录或密码错 ·
-`404` 找不到 · `409` slug 已被占用 · `422` 字段格式不对 ·
-`429` 登录尝试过多被临时锁定
+常用状态码：`400` 请求体不合法 · `401` 未登录 ·
+`404` 找不到 · `409` slug 已被占用 · `422` 字段格式不对
 
 ### 环境变量
 
-| 变量             | 用途                 | 怎么生成                                                                   |
-| ---------------- | -------------------- | -------------------------------------------------------------------------- |
-| `DATABASE_URL`   | 数据库连接串         | 从 Neon 等项目复制                                                         |
-| `SESSION_SECRET` | 签发登录状态用的密钥 | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+完整说明见 `.env.example`，这里只列清单：
 
-⚠️ `SESSION_SECRET` 泄露 = 任何人都能伪造管理员身份。不要用短密码，
+| 变量                   | 用途                           |
+| ---------------------- | ------------------------------ |
+| `DATABASE_URL`         | 数据库连接串（要带 `-pooler`） |
+| `BETTER_AUTH_SECRET`   | 登录状态加密用的密钥           |
+| `GITHUB_CLIENT_ID`     | GitHub OAuth App 的 Client ID  |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App 的密钥        |
+| `GITHUB_OWNER_ID`      | 只允许这个 GitHub 用户登录     |
+
+⚠️ `BETTER_AUTH_SECRET` 和 `GITHUB_CLIENT_SECRET` 泄露 = 别人能冒充你登录。
 不要提交到 git（`.env` 已在 `.gitignore` 里）。

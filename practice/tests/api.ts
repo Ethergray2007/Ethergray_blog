@@ -1,16 +1,23 @@
 /**
  * API 集成测试
  * ============================================================
- * 用真实的 HTTP 请求打真实的 Elysia 应用，只把数据库换成内存版。
+ * 用真实的 HTTP 请求打真实的 Elysia 应用，只把两处换成测试替身：
+ *   · 数据库    → 内存版（PGlite，不碰线上数据）
+ *   · 登录判断  → 假的（不走 GitHub OAuth，那需要浏览器和真实网络）
  *
- * 为什么用真实请求而不是直接调函数：
- *   直接调函数测不到 Cookie 是否真的写进响应头、
- *   状态码对不对、校验中间件有没有拦住请求。
- *   而这些恰恰是最容易出错的地方。
+ * 【为什么测的是"我们自己的代码"而不是整套认证】
+ * 登录流程（GitHub OAuth、会话 Cookie 的签名与加密）由 Better Auth 负责，
+ * 它有官方的测试工具和自己的测试。我们再去测一遍没有意义，
+ * 而且它一升级我们的测试就会碎。
+ *
+ * 所以这里只测我们写的部分：
+ *   · 未登录时接口是否一律拒绝（401）
+ *   · 已登录时文章增删改查是否正确
+ *   · 参数校验、状态码、错误格式
+ *   · 路由不存在时返回 404 而不是 500
  *
  * 跑法：
- *   node practice/tests/api.ts
- *   （需要 SESSION_SECRET，脚本会自己设一个测试用的）
+ *   npm run api:test
  * ============================================================
  */
 import { PGlite } from "@electric-sql/pglite";
@@ -18,31 +25,44 @@ import { drizzle } from "drizzle-orm/pglite";
 
 import { applyMigrations } from "../../src/db/migrate-for-test.ts";
 import * as schema from "../../src/db/schema.ts";
-import { createUser } from "../../src/db/repositories/users.ts";
 import { createApi } from "../../src/pages/api/_routes/index.ts";
-import { resetAllFailures } from "../../src/lib/rate-limit.ts";
+import type { ResolveUser } from "../../src/pages/api/_routes/auth.ts";
 
 /* ------------------------------------------------------------------
- * 测试环境准备
+ * 测试替身
  * ----------------------------------------------------------------- */
 
+/** 假装已登录的博主 */
+const FAKE_USER = { id: "test-user-id", username: "ethergray" };
+
 /**
- * 会话密钥。
- * 必须在 import session.ts **之前**设好 —— 不过它是函数内读的，
- * 所以这里设就够了。用固定值让测试可复现。
+ * 「永远已登录」。
+ *
+ * 真实实现要解 Better Auth 的加密 Cookie，测试里没法造出合法的 Cookie
+ * （那需要走完整的 GitHub 授权流程）。所以这里直接返回一个用户。
  */
-process.env.SESSION_SECRET = "test-secret-for-api-tests-0123456789abcdef";
+const alwaysLoggedIn: ResolveUser = async () => FAKE_USER;
+
+/** 「永远未登录」，用来验证访问控制 */
+const neverLoggedIn: ResolveUser = async () => null;
+
+/* ------------------------------------------------------------------
+ * 准备数据库和两个应用实例
+ * ----------------------------------------------------------------- */
 
 const client = new PGlite();
 const db = drizzle(client, { schema });
 await applyMigrations(client);
 
-/** 建一个管理员账号，密码故意用中文和特殊字符 */
-const ADMIN_USERNAME = "ethergray";
-const ADMIN_PASSWORD = "测试密码!@#123";
-await createUser(db, ADMIN_USERNAME, ADMIN_PASSWORD);
-
-const app = createApi(db);
+/**
+ * 准备两个应用：
+ *   authedApp    所有请求都当作已登录 —— 用来测业务逻辑
+ *   anonApp      所有请求都当作未登录 —— 用来测访问控制
+ *
+ * 分开建比在一个应用里切换更清楚，也不会互相干扰。
+ */
+const authedApp = createApi(db, alwaysLoggedIn);
+const anonApp = createApi(db, neverLoggedIn);
 
 /* ------------------------------------------------------------------
  * 断言与请求工具
@@ -63,363 +83,297 @@ function check(name: string, ok: boolean, detail = "") {
 type ApiResponse = {
   status: number;
   body: Record<string, unknown> | null;
-  /** 响应头里的 Set-Cookie 值，用来模拟浏览器的 Cookie 行为 */
-  setCookie: string | null;
 };
 
 /**
  * 发一个请求。
  *
- * @param cookie 要带上的 Cookie，模拟浏览器保存下来的登录凭证
- * @param origin 请求的源。默认 http（本地开发），
- *               传 https 可以验证 Secure 属性是否加上
+ * ⚠️ 主机名必须写正常的域名形式。
+ *    用 "http://x" 这种单字母主机名时 Elysia 匹配不上路由，
+ *    所有请求都会变成 404 —— 这个坑我踩过，排查了很久。
  */
 async function call(
+  app: { handle: (request: Request) => Promise<Response> },
   method: string,
   path: string,
-  options: { body?: unknown; cookie?: string; origin?: string } = {}
+  body?: unknown
 ): Promise<ApiResponse> {
-  const headers: Record<string, string> = {};
-
-  if (options.body !== undefined) {
-    headers["content-type"] = "application/json";
-  }
-
-  if (options.cookie) {
-    headers.cookie = options.cookie;
-  }
-
   const response = await app.handle(
-    new Request(`${options.origin ?? "http://localhost"}${path}`, {
+    new Request(`http://localhost${path}`, {
       method,
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      headers: body === undefined ? {} : { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
     })
   );
 
-  const text = await response.text();
-
-  let body: Record<string, unknown> | null = null;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = { raw: text };
-  }
-
   return {
     status: response.status,
-    body,
-    setCookie: response.headers.get("set-cookie"),
+    body: (await response.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null,
   };
 }
 
-/** 从 Set-Cookie 里提取出 "session=xxx" 这一段，供后续请求携带 */
-function extractSessionCookie(setCookie: string | null): string | null {
-  if (!setCookie) return null;
+/** 已登录状态下的请求 */
+const asUser = (method: string, path: string, body?: unknown) =>
+  call(authedApp, method, path, body);
 
-  const match = /(session=[^;]+)/.exec(setCookie);
-
-  return match ? match[1]! : null;
-}
+/** 未登录状态下的请求 */
+const asGuest = (method: string, path: string, body?: unknown) =>
+  call(anonApp, method, path, body);
 
 /* ==================================================================
  * 1. 未登录时的访问控制
  * ================================================================ */
 console.log("\n=== 1. 未登录时的访问控制 ===");
 
-for (const [method, path] of [
-  ["GET", "/api/posts"],
-  ["GET", "/api/posts/1"],
-  ["POST", "/api/posts"],
-  ["PATCH", "/api/posts/1"],
-  ["DELETE", "/api/posts/1"],
-] as const) {
-  const res = await call(method, path, { body: method === "GET" ? undefined : {} });
-  check(
-    `${method} ${path} 未登录返回 401`,
-    res.status === 401,
-    `实际 ${res.status}：${JSON.stringify(res.body)}`
-  );
-}
-
-const me = await call("GET", "/api/me");
-check("GET /api/me 未登录返回 401", me.status === 401);
-
-/* ==================================================================
- * 2. 登录
- * ================================================================ */
-console.log("\n=== 2. 登录 ===");
-
-const wrongPassword = await call("POST", "/api/login", {
-  body: { username: ADMIN_USERNAME, password: "错的密码" },
-});
-check("密码错误返回 401", wrongPassword.status === 401);
 check(
-  "错误信息不透露是用户名还是密码错",
-  String(wrongPassword.body?.error).includes("用户名或密码"),
-  JSON.stringify(wrongPassword.body)
-);
-
-const wrongUser = await call("POST", "/api/login", {
-  body: { username: "不存在的用户", password: "随便" },
-});
-check("用户不存在返回 401", wrongUser.status === 401);
-check(
-  "与密码错误返回**同一句**话",
-  wrongUser.body?.error === wrongPassword.body?.error,
-  `"${wrongUser.body?.error}" vs "${wrongPassword.body?.error}"`
-);
-
-const missingField = await call("POST", "/api/login", { body: { username: "x" } });
-check("缺字段返回 422（校验拦住了）", missingField.status === 422);
-
-const login = await call("POST", "/api/login", {
-  body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
-});
-check("正确密码登录成功", login.status === 200);
-check("返回用户名", (login.body?.user as { username?: string })?.username === ADMIN_USERNAME);
-
-const sessionCookie = extractSessionCookie(login.setCookie);
-check("响应里带了 session Cookie", sessionCookie !== null);
-check(
-  "Cookie 是 HttpOnly（JS 读不到）",
-  login.setCookie?.toLowerCase().includes("httponly") === true,
-  login.setCookie ?? "(无)"
+  "GET /api/posts 未登录返回 401",
+  (await asGuest("GET", "/api/posts")).status === 401
 );
 check(
-  "Cookie 带 SameSite（防 CSRF）",
-  login.setCookie?.toLowerCase().includes("samesite") === true
+  "GET /api/posts/1 未登录返回 401",
+  (await asGuest("GET", "/api/posts/1")).status === 401
 );
+check(
+  "POST /api/posts 未登录返回 401",
+  (await asGuest("POST", "/api/posts", { title: "偷偷发的" })).status === 401
+);
+check(
+  "PATCH /api/posts/1 未登录返回 401",
+  (await asGuest("PATCH", "/api/posts/1", { title: "改一下" })).status === 401
+);
+check(
+  "DELETE /api/posts/1 未登录返回 401",
+  (await asGuest("DELETE", "/api/posts/1")).status === 401
+);
+check("GET /api/me 未登录返回 401", (await asGuest("GET", "/api/me")).status === 401);
 
 /**
- * Secure 属性必须跟着**协议**走，不能跟着 NODE_ENV 走。
+ * 顺序检查：未登录 + 数据格式错误时，应该先回 401 而不是 422。
  *
- * 原因：本地开发是 http，Netlify Functions 运行时也不保证
- * NODE_ENV=production。用 NODE_ENV 判断的话：
- *   线上可能漏加 Secure
- *   本地可能误加 Secure，浏览器直接丢掉 Cookie，导致永远登不上
+ * 这条很重要 —— 如果先校验数据，等于告诉未登录的人"这个接口要哪些字段"。
+ * 我为此特意把校验从框架的声明式写法改成了处理函数内部手动调用。
  */
-check(
-  "http 请求下不加 Secure（否则本地登不上）",
-  login.setCookie?.toLowerCase().includes("secure") === false,
-  login.setCookie ?? "(无)"
-);
-
-const httpsLogin = await call("POST", "/api/login", {
-  origin: "https://example.com",
-  body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
+const unauthorizedBeatsValidation = await asGuest("POST", "/api/posts", {
+  // 故意缺 title，格式一定不合格
+  description: "只有描述",
 });
 check(
-  "https 请求下会加 Secure",
-  httpsLogin.setCookie?.toLowerCase().includes("secure") === true,
-  httpsLogin.setCookie ?? "(无)"
+  "未登录 + 数据不合法 → 先回 401（不泄露字段要求）",
+  unauthorizedBeatsValidation.status === 401,
+  `实际 ${unauthorizedBeatsValidation.status}`
 );
-
-resetAllFailures();
-
-const loginCookie = sessionCookie!;
-resetAllFailures();
 
 /* ==================================================================
- * 3. 登录后的正常操作
+ * 2. 登录状态查询
  * ================================================================ */
-console.log("\n=== 3. 登录后的操作 ===");
+console.log("\n=== 2. 登录状态查询 ===");
 
-const meLoggedIn = await call("GET", "/api/me", { cookie: loginCookie });
-check("登录后 /api/me 返回用户", meLoggedIn.status === 200);
+const me = await asUser("GET", "/api/me");
+check("已登录时 /api/me 返回 200", me.status === 200);
 check(
   "返回的是当前登录用户",
-  (meLoggedIn.body?.user as { username?: string })?.username === ADMIN_USERNAME
+  (me.body?.user as { username?: string } | undefined)?.username ===
+    FAKE_USER.username
 );
 
-const emptyList = await call("GET", "/api/posts", { cookie: loginCookie });
-check("空库时文章列表为空", Array.isArray(emptyList.body?.posts));
-check("列表长度为 0", (emptyList.body?.posts as unknown[])?.length === 0);
+/* ==================================================================
+ * 3. 文章列表
+ * ================================================================ */
+console.log("\n=== 3. 文章列表 ===");
+
+const emptyList = await asUser("GET", "/api/posts");
+check("空库时能取到列表", emptyList.status === 200);
+check(
+  "列表为空",
+  Array.isArray(emptyList.body?.posts) &&
+    (emptyList.body.posts as unknown[]).length === 0
+);
 
 /* ==================================================================
  * 4. 新建文章
  * ================================================================ */
 console.log("\n=== 4. 新建文章 ===");
 
-const created = await call("POST", "/api/posts", {
-  cookie: loginCookie,
-  body: {
-    title: "我的第一篇数据库文章",
-    description: "通过 API 创建的",
-    body: "# 标题\n\n正文内容",
-    tags: ["测试", "API"],
-  },
+const created = await asUser("POST", "/api/posts", {
+  title: "测试文章标题",
+  description: "这是摘要",
+  body: "正文内容",
+  tags: ["测试", "astro"],
 });
 check("创建成功返回 201", created.status === 201, `实际 ${created.status}`);
 
-const post = created.body?.post as Record<string, unknown>;
-check("返回了文章 id", typeof post?.id === "number");
-check("标题正确", post?.title === "我的第一篇数据库文章");
-check("中文标题生成了 slug", typeof post?.slug === "string" && (post.slug as string).length > 0);
+const post = created.body?.post as Record<string, unknown> | undefined;
+const postId = post?.id as number | undefined;
+
+check("返回了文章 id", typeof postId === "number" && postId > 0);
+check("标题正确", post?.title === "测试文章标题");
+check(
+  "中文标题生成了 slug",
+  typeof post?.slug === "string" && (post.slug as string).length > 0,
+  `slug = ${String(post?.slug)}`
+);
 check("默认是草稿", post?.status === "draft");
 check("草稿没有发布时间", post?.publishedAt === null);
-check("标签存下来了", Array.isArray(post?.tags) && (post.tags as string[]).length === 2);
+check(
+  "标签存下来了",
+  Array.isArray(post?.tags) && (post.tags as string[]).length === 2
+);
 
-const postId = post.id as number;
+check(
+  "空标题返回 422",
+  (await asUser("POST", "/api/posts", { title: "" })).status === 422
+);
+check(
+  "标题超长返回 422",
+  (await asUser("POST", "/api/posts", { title: "字".repeat(300) })).status === 422
+);
 
-const emptyTitle = await call("POST", "/api/posts", {
-  cookie: loginCookie,
-  body: { title: "" },
+// slug 冲突
+const takenSlug = post?.slug as string;
+const conflict = await asUser("POST", "/api/posts", {
+  title: "另一篇",
+  slug: takenSlug,
 });
-check("空标题返回 422", emptyTitle.status === 422);
-
-const tooLong = await call("POST", "/api/posts", {
-  cookie: loginCookie,
-  body: { title: "a".repeat(201) },
-});
-check("标题超长返回 422", tooLong.status === 422);
-
-const duplicate = await call("POST", "/api/posts", {
-  cookie: loginCookie,
-  body: { title: "我的第一篇数据库文章" },
-});
-check("slug 重复返回 409", duplicate.status === 409, `实际 ${duplicate.status}`);
+check("slug 重复返回 409", conflict.status === 409, `实际 ${conflict.status}`);
 
 /* ==================================================================
  * 5. 读取单篇
  * ================================================================ */
 console.log("\n=== 5. 读取单篇 ===");
 
-const one = await call("GET", `/api/posts/${postId}`, { cookie: loginCookie });
+const one = await asUser("GET", `/api/posts/${postId}`);
 check("按 id 能查到", one.status === 200);
-check("内容正确", (one.body?.post as { title?: string })?.title === "我的第一篇数据库文章");
-
-const notFound = await call("GET", "/api/posts/99999", { cookie: loginCookie });
-check("不存在的 id 返回 404", notFound.status === 404);
-
-const badId = await call("GET", "/api/posts/abc", { cookie: loginCookie });
-check("非数字 id 返回 400", badId.status === 400);
+check(
+  "内容正确",
+  (one.body?.post as { body?: string } | undefined)?.body === "正文内容"
+);
+check("不存在的 id 返回 404", (await asUser("GET", "/api/posts/99999")).status === 404);
+check("非数字 id 返回 400", (await asUser("GET", "/api/posts/abc")).status === 400);
 
 /* ==================================================================
  * 6. 修改文章
  * ================================================================ */
 console.log("\n=== 6. 修改文章 ===");
 
-const updated = await call("PATCH", `/api/posts/${postId}`, {
-  cookie: loginCookie,
-  body: { title: "改过的标题" },
+const patched = await asUser("PATCH", `/api/posts/${postId}`, {
+  title: "改过的标题",
 });
-check("修改成功", updated.status === 200);
-check("标题已更新", (updated.body?.post as { title?: string })?.title === "改过的标题");
+check("修改成功", patched.status === 200);
+
+const patchedPost = patched.body?.post as Record<string, unknown> | undefined;
+check("标题已更新", patchedPost?.title === "改过的标题");
 check(
   "只改标题时其他字段不变",
-  Array.isArray((updated.body?.post as { tags?: unknown })?.tags)
+  patchedPost?.description === "这是摘要" && patchedPost?.status === "draft"
 );
 
-const published = await call("PATCH", `/api/posts/${postId}`, {
-  cookie: loginCookie,
-  body: { status: "published" },
+const published = await asUser("PATCH", `/api/posts/${postId}`, {
+  status: "published",
 });
-check("改为已发布", (published.body?.post as { status?: string })?.status === "published");
+const publishedPost = published.body?.post as Record<string, unknown> | undefined;
+check("改为已发布", publishedPost?.status === "published");
 check(
   "自动补上了发布时间",
-  (published.body?.post as { publishedAt?: unknown })?.publishedAt !== null
+  typeof publishedPost?.publishedAt === "string" &&
+    (publishedPost.publishedAt as string).length > 0
 );
 
-const patchMissing = await call("PATCH", "/api/posts/99999", {
-  cookie: loginCookie,
-  body: { title: "x" },
-});
-check("修改不存在的文章返回 404", patchMissing.status === 404);
+check(
+  "修改不存在的文章返回 404",
+  (await asUser("PATCH", "/api/posts/99999", { title: "x" })).status === 404
+);
 
 /* ==================================================================
  * 7. 删除
  * ================================================================ */
 console.log("\n=== 7. 删除 ===");
 
-const removed = await call("DELETE", `/api/posts/${postId}`, { cookie: loginCookie });
-check("删除成功", removed.status === 200);
-
-const afterDelete = await call("GET", `/api/posts/${postId}`, { cookie: loginCookie });
-check("删除后查不到", afterDelete.status === 404);
-
-const removeAgain = await call("DELETE", `/api/posts/${postId}`, { cookie: loginCookie });
-check("重复删除返回 404", removeAgain.status === 404);
-
-/* ==================================================================
- * 8. 登出与失效凭证
- * ================================================================ */
-console.log("\n=== 8. 登出 ===");
-
-const logout = await call("POST", "/api/logout", { cookie: loginCookie });
-check("登出返回 200", logout.status === 200);
+check("删除成功", (await asUser("DELETE", `/api/posts/${postId}`)).status === 200);
+check("删除后查不到", (await asUser("GET", `/api/posts/${postId}`)).status === 404);
 check(
-  "登出会清掉 Cookie",
-  logout.setCookie?.includes("session=;") === true ||
-    logout.setCookie?.toLowerCase().includes("max-age=0") === true,
-  logout.setCookie ?? "(没有 Set-Cookie)"
+  "重复删除返回 404",
+  (await asUser("DELETE", `/api/posts/${postId}`)).status === 404
 );
 
-const tampered = await call("GET", "/api/me", { cookie: "session=forged.signature" });
-check("伪造的 Cookie 被拒绝", tampered.status === 401);
+/* ==================================================================
+ * 8. 路由与错误处理
+ * ================================================================ */
+console.log("\n=== 8. 路由与错误处理 ===");
+
+const noRoute = await asUser("GET", "/api/不存在的接口");
+check("不存在的接口返回 404 而不是 500", noRoute.status === 404, `实际 ${noRoute.status}`);
+check(
+  "错误格式统一",
+  typeof noRoute.body?.error === "string" &&
+    typeof noRoute.body?.code === "string"
+);
+
+/* ==================================================================
+ * 9. 请求体边界情况
+ * ================================================================ */
+console.log("\n=== 9. 请求体边界情况 ===");
 
 /**
- * 畸形 Cookie。
+ * DELETE 带 content-type: application/json。
  *
- * ⚠️ 这里只能用 ASCII 字符。
- * HTTP 头按规范只能包含字节（0~255），往里面塞中文时
- * Node 的 fetch 会在**发请求之前**就抛 ByteString 错误 ——
- * 那是测试写法的问题，不是被测代码的问题
- * （浏览器同样不会发出这种请求，所以那个前提本身也不成立）。
+ * 【这条测试记录了一个被推翻的结论】
+ * 早先这里会返回 500 "Bad Request"。我当时以为原因是
+ * "Elysia 看到 content-type 就去解析一个不存在的 body"。
+ *
+ * 那个判断是错的。真正的原因是我们自己的代码（readJsonBody）
+ * 抢先读掉了请求体，导致后续出问题。改用 Better Auth 之后
+ * 那段代码没了，DELETE 带 content-type 完全正常。
+ *
+ * 所以现在断言的是"能正常删除"，而不是"返回 400"。
  */
-for (const bad of ["session=...", "session=", "session", "session=a.b.c.d"]) {
-  const res = await call("GET", "/api/me", { cookie: bad });
-  check(`畸形 Cookie "${bad}" → 401 且不崩`, res.status === 401, `实际 ${res.status}`);
-}
+const toDelete = await asUser("POST", "/api/posts", { title: "待删除" });
+const toDeleteId = (toDelete.body?.post as { id?: number } | undefined)?.id;
 
-/* ==================================================================
- * 9. 路由与错误处理
- * ================================================================ */
-console.log("\n=== 9. 路由与错误处理 ===");
-
-const noRoute = await call("GET", "/api/不存在的接口", { cookie: loginCookie });
-check("不存在的接口返回 404 而不是 500", noRoute.status === 404, `实际 ${noRoute.status}`);
-check("错误格式统一", typeof noRoute.body?.code === "string");
-
-/* ==================================================================
- * 10. 登录限流
- * ================================================================ */
-console.log("\n=== 10. 登录限流 ===");
-
-// 前面已经重置过一次，这里连错 5 次触发锁定
-for (let i = 0; i < 5; i++) {
-  await call("POST", "/api/login", {
-    body: { username: ADMIN_USERNAME, password: `错的${i}` },
-  });
-}
-
-const locked = await call("POST", "/api/login", {
-  body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
-});
-check(
-  "连续失败 5 次后被锁定（即使密码正确）",
-  locked.status === 429,
-  `实际 ${locked.status}：${JSON.stringify(locked.body)}`
+const deleteWithContentType = await authedApp.handle(
+  new Request(`http://localhost/api/posts/${toDeleteId}`, {
+    method: "DELETE",
+    headers: { "content-type": "application/json" },
+  })
 );
-check("锁定提示里说明了等待时间", typeof locked.body?.error === "string");
+check(
+  "DELETE 带 content-type 也能正常删除",
+  deleteWithContentType.status === 200,
+  `实际 ${deleteWithContentType.status}`
+);
 
-resetAllFailures();
+/** 确认真的删掉了，而不是只回了个 200 */
+check(
+  "删除确实生效了",
+  (await asUser("GET", `/api/posts/${toDeleteId}`)).status === 404
+);
 
-const afterReset = await call("POST", "/api/login", {
-  body: { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
-});
-check("计数清空后可以正常登录", afterReset.status === 200);
+/** 非法 JSON 应该被挡成 400 */
+const badJson = await authedApp.handle(
+  new Request("http://localhost/api/posts", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{不是合法的 JSON",
+  })
+);
+check("请求体不是合法 JSON 时返回 400", badJson.status === 400, `实际 ${badJson.status}`);
 
 /* ==================================================================
- * 结果
+ * 汇总
  * ================================================================ */
-await client.close();
-
 console.log(`\n${"=".repeat(52)}`);
 console.log(`通过 ${passed} 项，失败 ${failed.length} 项`);
+
 if (failed.length > 0) {
-  console.log("失败项：");
-  failed.forEach(name => console.log(`  - ${name}`));
+  console.log("\n失败的项：");
+  for (const name of failed) {
+    console.log(`  · ${name}`);
+  }
+  await client.close();
   process.exit(1);
 }
+
 console.log("🎉 API 全部正常");
+await client.close();

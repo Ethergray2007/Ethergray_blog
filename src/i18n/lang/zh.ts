@@ -94,10 +94,8 @@ export default {
 
   admin: {
     loginTitle: "登录后台",
-    username: "用户名",
-    password: "密码",
-    signIn: "登录",
-    signingIn: "登录中……",
+    signInWithGithub: "用 GitHub 登录",
+    githubHint: "只有博客主人的 GitHub 账号能登录。",
 
     postsTitle: "文章管理",
     newPost: "写新文章",

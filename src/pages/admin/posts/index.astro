@@ -78,7 +78,12 @@ const t = useTranslations(locale);
 />
 
 <script>
-  import { adminApi, NotLoggedInError, type AdminPost } from "@/utils/adminApi";
+  import {
+    postsApi,
+    signOut,
+    NotLoggedInError,
+    type AdminPost,
+  } from "@/utils/adminApi";
 
   const texts = JSON.parse(
     document.querySelector<HTMLScriptElement>("#admin-texts")?.textContent ??
@@ -186,7 +191,7 @@ const t = useTranslations(locale);
     button.disabled = true;
 
     try {
-      await adminApi.deletePost(post.id);
+      await postsApi.remove(post.id);
       // 直接从表格里移除，不用重新拉整个列表
       row.remove();
 
@@ -207,7 +212,7 @@ const t = useTranslations(locale);
 
   async function load(): Promise<void> {
     try {
-      const posts = await adminApi.listPosts();
+      const posts = await postsApi.list();
 
       if (posts.length === 0) {
         setStatus(texts.empty ?? "还没有文章。");
@@ -233,7 +238,7 @@ const t = useTranslations(locale);
 
   logoutButton?.addEventListener("click", async () => {
     try {
-      await adminApi.logout();
+      await signOut();
     } finally {
       // 不管登出接口成功与否，都回登录页 —— 本地状态已经不该继续用了
       location.replace("/admin");

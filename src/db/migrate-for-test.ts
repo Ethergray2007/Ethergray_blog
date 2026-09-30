@@ -5,10 +5,13 @@
  *   PGlite 是全新的空数据库，测试前必须先把 drizzle/ 里的迁移跑一遍，
  *   才有和线上一样的表结构。
  *
- *   ⚠️ 不要用它给真实数据库建表。
- *   它只执行 SQL、**不记账**（drizzle-kit 有一张表记录哪些迁移跑过了）。
- *   用它建完表之后再跑 `npm run db:migrate`，会因为表已存在而报错。
- *   真实数据库一律走 `npm run db:migrate`。
+ * 【为什么不用 drizzle-kit migrate】
+ *   那个命令是给真实数据库用的：它会连库、并在
+ *   drizzle.__drizzle_migrations 表里记账。
+ *   而测试用的 PGlite 是**进程内**的，drizzle-kit 根本连不上它。
+ *   所以这里按文件名顺序直接执行 SQL。
+ *
+ * 真实数据库一律走 `npm run db:migrate`。
  * ============================================================
  */
 import { readFile, readdir } from "node:fs/promises";

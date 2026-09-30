@@ -8,6 +8,20 @@
       "when": 1790745917632,
       "tag": "0000_previous_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790761200000,
+      "tag": "0001_github_login",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790764800000,
+      "tag": "0002_drop_users",
+      "breakpoints": true
     }
   ]
 }

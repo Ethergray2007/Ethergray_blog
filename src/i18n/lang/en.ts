@@ -87,10 +87,8 @@ export default {
 
   admin: {
     loginTitle: "Sign in",
-    username: "Username",
-    password: "Password",
-    signIn: "Sign in",
-    signingIn: "Signing in...",
+    signInWithGithub: "Sign in with GitHub",
+    githubHint: "Only the blog owner's GitHub account can sign in.",
 
     postsTitle: "Posts",
     newPost: "New post",

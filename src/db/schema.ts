@@ -29,35 +29,16 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * 管理员账号
+ * 【为什么这里没有 users 表】
+ * 登录交给 Better Auth 的**无状态模式**（见 src/lib/auth.ts）：
+ * 登录状态和 GitHub 身份都存在加密 Cookie 里，服务端验证时不查库。
+ * 所以这张表整个不需要了 —— 少一张表、少一份要维护的数据。
  *
- * 个人博客只有作者一个人用，所以不做角色 / 权限表，
- * 一个 users 表就够了。真需要多作者时再加字段。
+ * 代价是没法"立刻踢掉某个会话"（要作废全部登录得改配置里的
+ * cookieCache.version 再部署）。个人博客没有这个需求。
+ *
+ * 如果哪天想记录"谁在什么时候登录过"，再加表也不迟。
  */
-export const users = pgTable(
-  "users",
-  {
-    id: serial("id").primaryKey(),
-
-    /** 登录名，同时也是显示名 */
-    username: varchar("username", { length: 64 }).notNull(),
-
-    /**
-     * 密码**哈希**，绝不存明文。
-     * 用 Node 内置的 scrypt 生成，格式见 src/db/password.ts。
-     * 长度给 255 是为了容纳 `算法$盐$哈希` 这种完整字符串。
-     */
-    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  table => [
-    // 用户名不能重复 —— 否则无法确定登录的是谁
-    uniqueIndex("users_username_unique").on(table.username),
-  ]
-);
 
 /**
  * 文章
@@ -141,8 +122,6 @@ export const posts = pgTable(
 );
 
 /** 从表定义推导出的行类型，供仓库函数使用 */
-export type UserRow = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
 export type PostRow = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 

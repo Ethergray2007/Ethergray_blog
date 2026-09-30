@@ -106,10 +106,8 @@ export interface UIStrings {
   admin: {
     /** 登录页 */
     loginTitle: string;
-    username: string;
-    password: string;
-    signIn: string;
-    signingIn: string;
+    signInWithGithub: string;
+    githubHint: string;
     /** 文章列表 */
     postsTitle: string;
     newPost: string;
