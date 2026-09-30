@@ -9,8 +9,11 @@ import netlify from "@astrojs/netlify";
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
+import mermaid from "astro-mermaid";
 import { unified } from "@astrojs/markdown-remark";
 import rehypeCallouts from "rehype-callouts";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
@@ -113,6 +116,18 @@ export default defineConfig({
   }),
 
   integrations: [
+    /**
+     * Mermaid（用 ```mermaid 代码块画流程图、时序图等）。
+     *
+     * ⚠️ 必须放在其他 markdown 相关集成**之前** —— 官方文档明确要求。
+     * 它会检测到我们用的是 unified() 处理器，把插件合并进去，
+     * 已有的 rehype-callouts 不受影响。
+     *
+     * 渲染发生在浏览器（Mermaid 要算布局），所以是客户端渲染。
+     */
+    mermaid({
+      autoTheme: true, // 跟着站点的深色/浅色模式走
+    }),
     mdx(),
     sitemap({
       filter: page =>
@@ -129,6 +144,19 @@ export default defineConfig({
   markdown: {
     processor: unified({
       /**
+       * 数学公式（KaTeX）。
+       *
+       * 需要两个插件配合，缺一不可：
+       *   remark-math   把 $...$ 和 $$...$$ 解析成数学节点
+       *   rehype-katex  把数学节点渲染成 KaTeX 的 HTML
+       *
+       * 为什么在**构建时**渲染成 HTML，而不是浏览器里用 JS 渲染：
+       *   构建时渲染出来的就是纯 HTML + CSS，读者不用额外下载 JS，
+       *   也不会先看到一片公式源码再"跳"成公式。
+       *
+       * 样式在 src/styles/katex.css 里引入（KaTeX 的 CSS 必须加载，
+       * 否则公式会排版错乱）。
+       *
        * 文章目录（TOC）不在这里做。
        *
        * 原来配的是 remarkToc + remarkCollapse，但 remarkCollapse 的触发条件
@@ -138,7 +166,8 @@ export default defineConfig({
        * 现在目录由 TableOfContents.astro 自己从正文提取，
        * 位置、样式、锚点 id 都可控，也不依赖插件的隐藏规则。
        */
-      rehypePlugins: [rehypeCallouts],
+      remarkPlugins: [remarkMath],
+      rehypePlugins: [rehypeCallouts, rehypeKatex],
     }),
     shikiConfig: {
       themes: { light: "min-light", dark: "night-owl" },
