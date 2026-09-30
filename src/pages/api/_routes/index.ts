@@ -77,10 +77,13 @@ export function createApi(
          *
          * ⚠️ 排查笔记：这里曾经写过一个很自信但**错误**的注释，
          *   说"DELETE 带 content-type 就会走到这里"。
-         *   后来发现真正原因是当时我们自己的 readJsonBody() 抢先读掉了
-         *   请求体，导致后续出错 —— 和 content-type 无关。
-         *   那段代码随 Better Auth 一起删掉之后，带 content-type 的 DELETE
-         *   完全正常（有测试锁着这个行为）。
+         *
+         *   真实原因不是 Elysia 的解析行为，而是当时**我们自己**那段
+         *   读 body 的代码抢先读掉了请求体（现在只有文章接口在用
+         *   `validation.ts` 的 `readJsonBody()`，登录路径不再经过它）。
+         *   那个抢读消失之后，带 content-type 的 DELETE 完全正常 ——
+         *   有测试锁着这个行为（practice/tests/api.ts 里那条
+         *   "DELETE 带 content-type 也能正常删除"）。
          */
         if (code === "PARSE") {
           set.status = 400;

@@ -59,9 +59,22 @@ function isPostStatus(value: unknown): value is "draft" | "published" {
  * @returns 合法返回数字；不合法返回 null（由调用方回 400）
  */
 function parseId(raw: string | undefined): number | null {
+  /**
+   * ⚠️ 不能直接 Number() —— 它太宽容了：
+   *      Number("0x10") === 16     Number("1e2") === 100
+   *      Number("1.0")  === 1      Number(" 3 ") === 3
+   *    这些全都通过 Number.isInteger，于是 /api/posts/0x10 不是回 400，
+   *    而是**命中第 16 篇真实文章** —— 改错、删错都从这里来。
+   *
+   * 所以先卡一道"只能是十进制数字"的格式，再转数字。
+   */
+  if (!/^\d+$/.test(raw ?? "")) {
+    return null;
+  }
+
   const id = Number(raw);
 
-  return Number.isInteger(id) && id > 0 ? id : null;
+  return id > 0 ? id : null;
 }
 
 export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
@@ -249,19 +262,40 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
           slug: string;
         }>;
 
+        /**
+         * 后台的「网址标识」是**每次保存都跟着表单一起发**的（留空时发空串），
+         * 而它的提示文案承诺的是"留空就根据标题自动生成"。
+         *
+         * ⚠️ 踩过的坑：原来这里直接 toSlug(body.slug)，而 toSlug("") 的兜底值
+         *   是 "post" —— 于是"清空 slug 再保存"不是按标题重新生成，
+         *   而是把网址**静默改成 /posts/post**，旧链接全部 404。
+         *
+         * 现在和 POST 的处理对齐：
+         *   填了   → 用它
+         *   留空   → 用（新的）标题生成
+         *   都没有 → 删掉这个字段，也就是"不改"，而不是塞个兜底值进去
+         */
+        if (body.slug !== undefined) {
+          const requested = body.slug.trim();
+
+          if (requested) {
+            body.slug = toSlug(requested);
+          } else if (body.title?.trim()) {
+            body.slug = toSlug(body.title);
+          } else {
+            delete body.slug;
+          }
+        }
+
         // 这次要改 slug 的话，得确认没和别的文章撞车
         if (body.slug !== undefined) {
-          const nextSlug = toSlug(body.slug);
-
-          if (await isSlugTaken(db, nextSlug, id)) {
+          if (await isSlugTaken(db, body.slug, id)) {
             set.status = 409;
             return {
-              error: `网址标识「${nextSlug}」已被占用。`,
+              error: `网址标识「${body.slug}」已被占用。`,
               code: "SLUG_TAKEN",
             };
           }
-
-          body.slug = nextSlug;
         }
 
         /**

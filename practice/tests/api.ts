@@ -253,6 +253,27 @@ check(
 check("不存在的 id 返回 404", (await asUser("GET", "/api/posts/99999")).status === 404);
 check("非数字 id 返回 400", (await asUser("GET", "/api/posts/abc")).status === 400);
 
+/**
+ * ⚠️ 这几条是踩坑之后补的回归测试。
+ *
+ * 起因：id 之前是直接 Number() 转的，而 Number 比想象中宽容得多 ——
+ * Number("0x10") === 16、Number("1e2") === 100、Number("1.0") === 1，
+ * 全都通过 Number.isInteger。于是 /api/posts/0x10 不是回 400，
+ * 而是命中第 16 篇真实文章 —— 改错、删错都从这里来。
+ */
+check(
+  "十六进制写法的 id 返回 400",
+  (await asUser("GET", "/api/posts/0x10")).status === 400
+);
+check(
+  "科学计数法写法的 id 返回 400",
+  (await asUser("GET", "/api/posts/1e2")).status === 400
+);
+check(
+  "带空格的 id 返回 400",
+  (await asUser("GET", "/api/posts/%20" + String(postId))).status === 400
+);
+
 /* ==================================================================
  * 6. 修改文章
  * ================================================================ */
@@ -270,9 +291,38 @@ check(
   patchedPost?.description === "这是摘要" && patchedPost?.status === "draft"
 );
 
+/**
+ * ⚠️ 回归测试：后台的「网址标识」是**每次保存都跟着表单一起发**的
+ * （留空时发的是空串），而提示文案承诺"留空就根据标题自动生成"。
+ *
+ * 原来的实现在 PATCH 里直接走 toSlug(body.slug)，而 toSlug("") 的兜底值
+ * 是 "post" —— 于是"清空 slug 再保存"不是按标题重新生成，
+ * 而是把网址**静默改成 /posts/post**，旧链接全部 404。
+ */
+const clearedSlug = await asUser("PATCH", `/api/posts/${postId}`, {
+  slug: "",
+  title: "换个标题",
+});
+
+const clearedSlugPost = clearedSlug.body?.post as
+  | Record<string, unknown>
+  | undefined;
+
+check(
+  "slug 留空时不会退化成 post",
+  clearedSlugPost?.slug !== "post",
+  `实际 ${String(clearedSlugPost?.slug)}`
+);
+check(
+  "slug 留空时按标题重新生成",
+  clearedSlugPost?.slug === "换个标题",
+  `实际 ${String(clearedSlugPost?.slug)}`
+);
+
 const published = await asUser("PATCH", `/api/posts/${postId}`, {
   status: "published",
 });
+
 const publishedPost = published.body?.post as Record<string, unknown> | undefined;
 check("改为已发布", publishedPost?.status === "published");
 check(
