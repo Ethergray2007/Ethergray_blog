@@ -77,6 +77,7 @@ Personal blog built with **Astro**.
 | 分享按钮       | `astro-paper.config.ts` 的 `shareLinks`                                                            | 把数组清空：`shareLinks: []`                                                                             |
 | 编辑本页链接   | `astro-paper.config.ts` 的 `features.editPost`                                                     | 改成 `{ enabled: false }`                                                                                |
 | 在线写作后台   | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                      | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                      |
+| 设计实验室     | `src/pages/design-lab.astro`<br>`@yunyoujun/ak-ui` 依赖                                            | 删那个页面，`npm uninstall @yunyoujun/ak-ui`，再删 `astro.config.ts` 里 sitemap 排除 design-lab 的规则   |
 | 练习册         | `practice/`                                                                                        | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                 |
 | 学习路线       | `docs/`                                                                                            | 整个目录删掉                                                                                             |
 

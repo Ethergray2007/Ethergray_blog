@@ -131,7 +131,14 @@ export default defineConfig({
     mdx(),
     sitemap({
       filter: page =>
-        config.features?.showArchives !== false || !page.endsWith("/archives/"),
+        /**
+         * 设计实验室是内部工作台，不是内容页 ——
+         * 不进 sitemap，免得被搜索引擎收录。
+         * （页面自己也有 noindex，两道保险。）
+         */
+        !page.includes("/design-lab") &&
+        (config.features?.showArchives !== false ||
+          !page.endsWith("/archives/")),
     }),
   ],
   i18n: {
