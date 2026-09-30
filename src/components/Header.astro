@@ -117,6 +117,20 @@ const isDarkInitially = false;
             </a>
           </li>
 
+          <!-- Friends -->
+          <li>
+            <a
+              href={getRelativeLocaleUrl(locale, "friends")}
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/friends") },
+              ]}
+              aria-current={isActive("/friends") ? "page" : undefined}
+            >
+              {t.nav.friends}
+            </a>
+          </li>
+
           <!-- Archives -->
           {
             features.showArchives && (
@@ -266,6 +280,19 @@ const isDarkInitially = false;
             data-mobile-menu-link
           >
             {t.nav.now}
+          </a>
+        </li>
+
+        <!-- Friends -->
+        <li>
+          <a
+            href={getRelativeLocaleUrl(locale, "friends")}
+            class:list={{
+              "menu-active": isActive("/friends"),
+            }}
+            data-mobile-menu-link
+          >
+            {t.nav.friends}
           </a>
         </li>
 

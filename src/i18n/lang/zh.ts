@@ -9,6 +9,7 @@ export default {
     archives: "归档",
     search: "搜索",
     now: "近况",
+    friends: "友链",
   },
 
   post: {
@@ -72,6 +73,17 @@ export default {
 
     nowTitle: "近况",
     nowDesc: "我现在在做什么、在学什么。",
+
+    friendsTitle: "友链",
+    friendsDesc: "我常看的博客，以及一路认识的人。",
+  },
+
+  friends: {
+    empty: "还没有友链。",
+    online: "在线",
+    howToTitle: "想交换友链？",
+    howToDesc: "先把我的站点加到你的友链页，然后告诉我，我就会把你的加到这里。",
+    contactHint: "联系方式在「关于」页面上。",
   },
 
   a11y: {

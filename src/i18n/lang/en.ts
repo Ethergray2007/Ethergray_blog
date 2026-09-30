@@ -9,6 +9,7 @@ export default {
     archives: "Archives",
     search: "Search",
     now: "Now",
+    friends: "Friends",
   },
   post: {
     publishedAt: "Published at",
@@ -67,6 +68,17 @@ export default {
 
     nowTitle: "Now",
     nowDesc: "What I'm doing and learning right now.",
+
+    friendsTitle: "Friends",
+    friendsDesc: "Blogs I read, and the people I've met along the way.",
+  },
+  friends: {
+    empty: "No links yet.",
+    online: "Online",
+    howToTitle: "Want to exchange links?",
+    howToDesc:
+      "Add my site to your links page first, then let me know and I'll add yours.",
+    contactHint: "You'll find ways to reach me on the About page.",
   },
   a11y: {
     skipToContent: "Skip to content",

@@ -8,6 +8,8 @@ export interface UIStrings {
     search: string;
     /** /now 页面（近况） */
     now: string;
+    /** /friends 页面（友链） */
+    friends: string;
   };
   post: {
     publishedAt: string;
@@ -79,6 +81,23 @@ export interface UIStrings {
     /** /now 页面（近况） */
     nowTitle: string;
     nowDesc: string;
+
+    /** /friends 页面（友链） */
+    friendsTitle: string;
+    friendsDesc: string;
+  };
+  /** 友链页面上用到的零散文案 */
+  friends: {
+    /** 列表为空时显示 */
+    empty: string;
+    /** 「在线」标记的 tooltip */
+    online: string;
+    /** 交换友链的说明标题 */
+    howToTitle: string;
+    /** 交换友链的说明正文 */
+    howToDesc: string;
+    /** 往下怎么联系我 */
+    contactHint: string;
   };
   a11y: {
     skipToContent: string;
