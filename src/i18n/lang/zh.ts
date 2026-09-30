@@ -44,6 +44,7 @@ export default {
       "这里记录算法、编程、图形学的学习过程，以及值得长期保留的技术内容。",
     viewSource: "博客源码",
     viewProfile: "个人主页",
+    latestLabel: "最新一篇",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
     recentPosts: "最近文章",

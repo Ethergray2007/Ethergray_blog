@@ -55,6 +55,13 @@ export interface UIStrings {
     viewSource: string;
     /** 首页按钮：进入个人主页 */
     viewProfile: string;
+    /**
+     * 首屏左栏那个「最新一篇」小卡片上的标签。
+     *
+     * 这个卡片是首屏布局的一部分（填补左侧空白），
+     * 装的是**真实的最新文章** —— 不是装饰性占位。
+     */
+    latestLabel: string;
     featured: string;
     /** 精选区块副标题 */
     featuredDesc: string;

@@ -2,21 +2,27 @@
  * 首页首屏
  * ============================================================
  * 独立的样式文件而不是写在 index.astro 的 style 里 ——
- * 这样想删掉整个首屏时动作是集中的（删这个文件 + index.astro 里
- * section#hero 那一块 + global.css 里 import 它那行）。
+ * 这样想删掉整个首屏时动作是集中的（删这个文件 + global.css 里的 import
+ * + index.astro 里 section#hero 那一块 + public/hero-bg.jpg）。
  *
- * 想删掉首屏大图？
- *   1. 删掉这个文件和 global.css 里的 import
- *   2. 把 index.astro 的 section#hero 挪回 main 里，或者整个删掉
- *   3. 删掉 src/assets/images/hero-bg.png
+ * 【布局：文字靠右，人物靠左】
+ * 背景图是一个角色的特写，人物在画面**中间偏左**、深色头发在右侧。
+ * 所以文字放右边：
+ *   · 人物不会被文字盖住（文字在左的话正好压在她脸上）
+ *   · 深紫发色本来就接近黑，白字压上去对比度天然够
+ *
+ * 【为什么图片是 1.46:1 而不是 16:9】
+ * 这张是从本地 Wallpaper Engine 素材的一个视频里抽的帧，
+ * 视频本身是 2992×2048。在更宽的屏幕上 cover 会裁掉两侧，
+ * 所以 background-position 用 center 保住人物。
  * ============================================================
  */
 
 #hero {
   /*
    * position: relative 是必须的 ——
-   * 里面的图片层用 absolute 定位，需要一个参照物。
-   * 少了这行，图片会相对于整个页面定位，跑到页面外面去。
+   * 里面那两层（图片、压暗）都用 absolute 定位，需要参照物。
+   * 少了这行它们会相对整个页面定位，跑到页面外面去。
    */
   position: relative;
 
@@ -24,60 +30,54 @@
   overflow: hidden;
 
   /*
-   * 兜底底色。万一图片没加载出来（网络问题、文件被删），
+   * 兜底底色。万一图没加载出来（网络问题、文件被删），
    * 这一块仍然是深色的，白色文字照样看得见。
    *
-   * 如果只靠图片，图挂了就是"白底白字" —— 内容全部看不见。
+   * 只靠图片的话，图挂了就是"白底白字"—— 内容全看不见。
    * 深色区块上这个兜底色是必做的。
    */
-  background-color: #1a2230;
+  background-color: #241a26;
 }
 
 /**
  * 背景图。
  *
- * 用 CSS 的 background-image 指向 public/ 里的成品图，
- * 而不是用 <img> + Astro 的图片组件 —— 原因是体积：
- *
- *   Astro 处理原图（5.96 MB PNG）→  183 KB WebP
- *   scripts/make-hero-bg.ts 离线压 →  108 KB JPEG
- *
- * 首屏只有这一张图，没必要让每次构建都去处理一张 6 MB 的原图。
- * 离线压好之后 public/ 里那张直接就能用。
- *
- * ⚠️ background-position 用 top 而不是 center，这是看了图才定的。
- *
- * 那是一张云海日出图，太阳在画面顶部、光线从它斜射下来。
- * 用 center 的话，在宽而矮的首屏里**太阳会被整个裁掉** ——
- * 只剩一片没有焦点的云。
+ * background-position 用 center 而不是 top：
+ * 图是 1.46:1 的，在更宽的屏幕上 cover 会裁掉两侧，
+ * 而人物在画面中间偏左 —— center 能保住她。
+ * 用 top 只会保住上边缘，那里是空的。
  */
 .hero__bg {
   position: absolute;
   inset: 0;
   background-image: url("/hero-bg.jpg");
   background-size: cover;
-  background-position: center top;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
 /**
  * 压暗层。
  *
- * 【为什么必须有】
- * 深色图片 + 白字**不等于**对比度够。图上有很亮的地方
- * （这张图的太阳附近接近纯白），白字压上去就糊成一片。
+ * 方向是**从右往左**——因为文字在右边。
  *
- * 所以从左往右加一层由深到透明的渐变，把**文字所在的一侧**压下去。
- * 角度用 100deg（略斜）而不是 90deg，看着自然一点。
+ * 【为什么右侧还要压 0.88 这么重】
+ * 图右侧的深紫发色虽然够暗，但画面右上方有一块紫红色发光特效，
+ * 那个位置如果有文字会糊。压重一点能把不确定的地方兜住，
+ * 也顺便让整块文字区更稳。
+ *
+ * 左侧只压 0.15，作用是让人物稍微退后、不和文字抢注意力 ——
+ * 不是为了对比度（那里没文字）。
  */
 .hero__scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    100deg,
-    rgb(12 16 24 / 0.9) 0%,
-    rgb(12 16 24 / 0.72) 40%,
-    rgb(12 16 24 / 0.2) 100%
+    260deg,
+    rgb(14 10 20 / 0.88) 0%,
+    rgb(14 10 20 / 0.72) 38%,
+    rgb(14 10 20 / 0.34) 72%,
+    rgb(14 10 20 / 0.15) 100%
   );
 }
 
@@ -86,69 +86,93 @@
  *
  * ⚠️ 颜色是**写死的浅色**，不跟随主题切换。
  *
- * 这是有意的：首屏背景永远是深色图片，所以文字必须永远是浅色。
- * 如果跟着主题走，浅色模式下就会变成"深色字压在深色图上" ——
- * 直接看不见。
- *
- * 这种区域在设计里叫「局部反色区」：
- * 一块固定深色的区域，内部元素全部用反色，和页面主题解耦。
+ * 这是有意的：首屏背景永远是深色图片，文字必须永远是浅色。
+ * 如果跟着主题走，浅色模式下会变成"深色字压在深色图上"—— 看不见。
+ * （这种区域叫「局部反色区」：固定深色块，内部全部用反色。）
  */
 .hero__title {
-  color: #f6f8fc;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-
-  /*
-   * 很淡的文字阴影。作用是让字和图片之间有一道"空气"，
-   * 即使叠在稍亮的云上也不糊。
-   * 不能用太重的阴影 —— 那会让字看起来像贴上去的。
-   */
-  text-shadow: 0 2px 14px rgb(0 0 0 / 0.5);
+  color: #f7f4fa;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 0.55);
 }
 
 .hero__lead {
-  color: rgb(246 248 252 / 0.93);
-  text-shadow: 0 1px 10px rgb(0 0 0 / 0.45);
+  color: rgb(247 244 250 / 0.94);
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.5);
 }
 
 .hero__more {
-  color: rgb(246 248 252 / 0.7);
-  text-shadow: 0 1px 10px rgb(0 0 0 / 0.45);
+  color: rgb(247 244 250 / 0.72);
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.5);
 }
 
 /**
  * 首屏里的按钮和徽章。
  *
  * daisyUI 的 btn-outline 默认是"深色描边 + 深色文字"，
- * 压在深色图片上几乎看不见，所以这里覆盖成浅色。
+ * 压在深色图片上几乎看不见，所以覆盖成浅色。
  *
- * ⚠️ 只用 #hero 限定在首屏内部，不改全局的 .btn-outline ——
+ * ⚠️ 只用 #hero 限定在首屏内部，不动全局的 .btn-outline ——
  * 那会影响其他页面上正常背景里的按钮。
  */
 #hero .btn-outline {
-  border-color: rgb(246 248 252 / 0.5);
-  color: #f6f8fc;
+  border-color: rgb(247 244 250 / 0.5);
+  color: #f7f4fa;
   background-color: rgb(255 255 255 / 0.07);
 }
 
 #hero .btn-outline:hover {
-  border-color: #f6f8fc;
+  border-color: #f7f4fa;
   background-color: rgb(255 255 255 / 0.16);
   color: #ffffff;
 }
 
 #hero .badge-soft {
   background-color: rgb(255 255 255 / 0.16);
-  color: #f6f8fc;
+  color: #f7f4fa;
 }
 
 #hero .btn-ghost {
-  color: rgb(246 248 252 / 0.82);
+  color: rgb(247 244 250 / 0.82);
 }
 
 #hero .btn-ghost:hover {
   background-color: rgb(255 255 255 / 0.14);
   color: #ffffff;
+}
+
+/**
+ * 首屏右栏那块「最新一篇」。
+ *
+ * 用一层很淡的毛玻璃把文字和图片隔开 ——
+ * 作用不是好看，是让这块内容读的时候不被背景纹路干扰。
+ * backdrop-filter 在深色图上比对浅色图合适，因为不会把图洗白。
+ */
+.hero__latest {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background-color: rgb(18 12 24 / 0.42);
+  backdrop-filter: blur(10px);
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+.hero__latest:hover {
+  border-color: rgb(255 255 255 / 0.3);
+  background-color: rgb(18 12 24 / 0.56);
+}
+
+.hero__latest-title {
+  color: #ffffff;
+}
+
+.hero__latest-desc {
+  color: rgb(247 244 250 / 0.7);
+}
+
+.hero__latest-label {
+  color: rgb(247 244 250 / 0.55);
 }
 
 /**
@@ -160,15 +184,33 @@
  *      overflow: hidden 裁掉，键盘用户就看不到焦点在哪了
  */
 #hero a:focus-visible {
-  outline: 2px solid #9ed0ff;
+  outline: 2px solid #d6b4ff;
   outline-offset: -2px;
+}
+
+/**
+ * 响应式：窄屏上图片铺满整屏，压暗层要整块压下来。
+ *
+ * 桌面端是"左图右文"，文字那侧压得重；手机上宽度不够，
+ * 图片只能铺满，如果还按桌面那样只压右边，左边的文字会
+ * 压在人物脸上读不清。所以改成整块压。
+ */
+@media (max-width: 64rem) {
+  .hero__scrim {
+    background: linear-gradient(
+      200deg,
+      rgb(14 10 20 / 0.82) 0%,
+      rgb(14 10 20 / 0.7) 55%,
+      rgb(14 10 20 / 0.78) 100%
+    );
+  }
 }
 
 /**
  * 减少动态效果。
  *
- * 首屏目前没有动画，这条是预防性的：
- * 以后如果加了进场效果，这里已经挡住了。
+ * 首屏目前只有 hover 的颜色过渡，这条是预防性的：
+ * 以后如果加了进场动画，这里已经挡住了。
  * （系统开了"减少动态效果"的人会因为动效产生眩晕，这不是可选项。）
  */
 @media (prefers-reduced-motion: reduce) {
