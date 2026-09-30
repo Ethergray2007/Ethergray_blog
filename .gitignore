@@ -34,3 +34,10 @@ public/pagefind
 
 # docker compose
 compose.override.yaml
+
+# Local Netlify folder
+.netlify
+
+# 本地 npm 缓存（本项目专用，避免写全局缓存目录）
+.npm-cache
+

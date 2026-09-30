@@ -4,6 +4,7 @@ import {
   fontProviders,
   svgoOptimizer,
 } from "astro/config";
+import netlify from "@astrojs/netlify";
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
@@ -19,6 +20,45 @@ import config from "./astro-paper.config";
 
 export default defineConfig({
   site: config.site.url,
+
+  /**
+   * 输出模式 + 部署适配器
+   * ============================================================
+   * 这是整个项目"从纯静态走向全栈"的开关，改动前先读完这段。
+   *
+   * `output: "static"` 的意思是：
+   *   - 默认**所有页面继续在构建时生成静态 HTML**（和以前完全一样）
+   *   - 但站点有了"按需渲染"的能力：某个文件里写一行
+   *       export const prerender = false;
+   *     这个路由就会变成服务端渲染，可以用来写 API。
+   *
+   * 为什么不写 `output: "server"`：
+   *   那会把所有页面都改成按需渲染，博客文章页也就不再是静态 HTML 了。
+   *   对一个以内容为主的博客来说这是纯粹的退步 —— 变慢、变贵、还失去了
+   *   CDN 缓存。我们只需要"少数几个接口能跑服务端"，所以保持 static。
+   *
+   * 注意：Astro 7 已经移除了 `output: "hybrid"`，
+   * 原来的 hybrid 行为现在就是 static 的默认行为。
+   *
+   * 想回退到纯静态？
+   *   删掉下面的 `adapter` 和 `output` 两行，再 `npm uninstall @astrojs/netlify`。
+   */
+  output: "static",
+  adapter: netlify({
+    /**
+     * 关掉 Netlify Image CDN，继续用 Astro 在**构建时**优化图片。
+     *
+     * 适配器默认是开启的（imageCDN: true），那会把图片优化改成
+     * 请求时由 Netlify 实时处理。两种都能用，但行为不同：
+     *   构建时优化   图片在 dist/ 里是优化好的静态文件，CDN 直接发
+     *   运行时优化   每次首次请求时才转换，然后缓存
+     *
+     * 这次改动的目的只是"让站点能跑服务端"，不该顺带改变图片处理方式。
+     * 想启用 Netlify Image CDN 的话，把它改成 true 即可。
+     */
+    imageCDN: false,
+  }),
+
   integrations: [
     mdx(),
     sitemap({
