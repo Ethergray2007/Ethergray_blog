@@ -25,6 +25,8 @@ export const API_ERROR = {
   badRequest: "BAD_REQUEST",
   /** 找不到资源 */
   notFound: "NOT_FOUND",
+  /** 文章网址标识已被别的文章占用（HTTP 409） */
+  slugTaken: "SLUG_TAKEN",
   /** 服务器内部出错 */
   internal: "INTERNAL",
   /** 路由不存在 */

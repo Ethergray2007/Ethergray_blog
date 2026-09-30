@@ -21,6 +21,7 @@ import {
   updatePost,
 } from "../../../db/repositories/posts.ts";
 import { POST_STATUS } from "../../../db/schema.ts";
+import { API_ERROR } from "../../../lib/api-errors.ts";
 import { slugifyStr } from "../../../utils/slugify.ts";
 
 import {
@@ -158,14 +159,17 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (id === null) {
           set.status = 400;
-          return { error: "文章 id 必须是正整数。", code: "BAD_REQUEST" };
+          return {
+            error: "文章 id 必须是正整数。",
+            code: API_ERROR.badRequest,
+          };
         }
 
         const post = await getPostById(db, id);
 
         if (!post) {
           set.status = 404;
-          return { error: "找不到该文章。", code: "NOT_FOUND" };
+          return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
         return { post };
@@ -194,14 +198,14 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (!parsed.ok) {
           set.status = 400;
-          return { error: parsed.error, code: "BAD_REQUEST" };
+          return { error: parsed.error, code: API_ERROR.badRequest };
         }
 
         const invalid = validate(createPostSchema, parsed.data);
 
         if (invalid) {
           set.status = 422;
-          return { error: invalid, code: "BAD_REQUEST" };
+          return { error: invalid, code: API_ERROR.badRequest };
         }
 
         const body = parsed.data as {
@@ -225,7 +229,7 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
           set.status = 409;
           return {
             error: `网址标识「${slug}」已被占用，换一个或清空让它自动生成。`,
-            code: "SLUG_TAKEN",
+            code: API_ERROR.slugTaken,
           };
         }
 
@@ -263,7 +267,10 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (id === null) {
           set.status = 400;
-          return { error: "文章 id 必须是正整数。", code: "BAD_REQUEST" };
+          return {
+            error: "文章 id 必须是正整数。",
+            code: API_ERROR.badRequest,
+          };
         }
 
         // 鉴权过了才读和校验数据。ctx.body 的说明见 POST /posts 那段注释
@@ -271,14 +278,14 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (!parsed.ok) {
           set.status = 400;
-          return { error: parsed.error, code: "BAD_REQUEST" };
+          return { error: parsed.error, code: API_ERROR.badRequest };
         }
 
         const invalid = validate(updatePostSchema, parsed.data);
 
         if (invalid) {
           set.status = 422;
-          return { error: invalid, code: "BAD_REQUEST" };
+          return { error: invalid, code: API_ERROR.badRequest };
         }
 
         const body = parsed.data as Partial<{
@@ -322,7 +329,7 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
             set.status = 409;
             return {
               error: `网址标识「${body.slug}」已被占用。`,
-              code: "SLUG_TAKEN",
+              code: API_ERROR.slugTaken,
             };
           }
         }
@@ -345,7 +352,7 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (!post) {
           set.status = 404;
-          return { error: "找不到该文章。", code: "NOT_FOUND" };
+          return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
         return { post };
@@ -366,14 +373,17 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
 
         if (id === null) {
           set.status = 400;
-          return { error: "文章 id 必须是正整数。", code: "BAD_REQUEST" };
+          return {
+            error: "文章 id 必须是正整数。",
+            code: API_ERROR.badRequest,
+          };
         }
 
         const deleted = await deletePost(db, id);
 
         if (!deleted) {
           set.status = 404;
-          return { error: "找不到该文章。", code: "NOT_FOUND" };
+          return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
         return { ok: true };

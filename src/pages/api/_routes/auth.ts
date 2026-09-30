@@ -23,6 +23,7 @@
 import { Elysia } from "elysia";
 
 import { auth } from "../../../lib/auth.ts";
+import { API_ERROR } from "../../../lib/api-errors.ts";
 
 import { asContext, type ApiContext } from "./context.ts";
 
@@ -70,7 +71,7 @@ export const resolveUserFromSession: ResolveUser = async ctx => {
 /** 统一的 401 响应，文章路由会复用 */
 export function unauthorized(): Response {
   return Response.json(
-    { error: "请先登录。", code: "UNAUTHORIZED" },
+    { error: "请先登录。", code: API_ERROR.unauthorized },
     { status: 401 }
   );
 }
