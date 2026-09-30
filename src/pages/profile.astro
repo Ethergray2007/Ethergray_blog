@@ -78,9 +78,14 @@ const projects = [
           PERSONAL / {currentYear}
         </p>
 
-        <h1 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
-          个人主页
-        </h1>
+        {
+          /*
+          这是页面主标题（h1），不是区块标题 ——
+          所以不用 subsection-heading（那是给 h2/h3 的）。
+          h1 的规格由这个页面自己定，因为它是整站唯一一处。
+        */
+        }
+        <h1 class="mt-2 text-2xl font-bold">个人主页</h1>
       </div>
 
       <div class="flex items-center gap-2 self-start sm:self-auto">
@@ -164,7 +169,7 @@ const projects = [
             </div>
 
             <div class="mt-5">
-              <h2 class="text-3xl font-black tracking-tight">Ethergray</h2>
+              <h2 class="section-heading">Ethergray</h2>
 
               <p class="text-primary mt-1 font-mono text-sm">@Ethergray2007</p>
 
@@ -408,7 +413,7 @@ const projects = [
                     OVERVIEW
                   </p>
 
-                  <h2 class="mt-2 text-2xl font-bold">现在正在关注什么</h2>
+                  <h2 class="subsection-heading">现在正在关注什么</h2>
                 </div>
 
                 <div class="badge badge-info badge-soft">进行中</div>
@@ -497,7 +502,7 @@ const projects = [
                   STACK
                 </p>
 
-                <h2 class="mt-2 text-2xl font-bold">技术栈</h2>
+                <h2 class="subsection-heading">技术栈</h2>
               </div>
 
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -534,6 +539,13 @@ const projects = [
                       <span class="badge badge-outline badge-sm"> 学习中 </span>
                     </div>
 
+                    {
+                      /*
+                      卡片里的说明，不是区块副标题 ——
+                      所以不用 section-lede（那个带 mt-1 + 响应式字号）。
+                      卡内文字要紧凑，用固定的小号。
+                    */
+                    }
                     <p class="text-base-content-muted mt-2 text-sm">实时图形</p>
                   </div>
                 </div>
@@ -570,7 +582,7 @@ const projects = [
                   ROADMAP
                 </p>
 
-                <h2 class="mt-2 text-2xl font-bold">学习路线</h2>
+                <h2 class="subsection-heading">学习路线</h2>
               </div>
 
               <ul class="steps steps-vertical w-full">
@@ -598,7 +610,7 @@ const projects = [
                 SELECTED WORK
               </p>
 
-              <h2 class="mt-2 text-3xl font-black tracking-tight">项目</h2>
+              <h2 class="section-heading">项目</h2>
             </div>
 
             <details id="project-filter-menu" class="dropdown dropdown-end">
@@ -645,7 +657,7 @@ const projects = [
                       </span>
                     </div>
 
-                    <h3 class="mt-4 text-xl font-bold">{project.title}</h3>
+                    <h3 class="subsection-heading mt-4">{project.title}</h3>
 
                     <p class="text-base-content-muted mt-2 min-h-14 text-sm leading-6">
                       {project.short}
@@ -710,7 +722,7 @@ const projects = [
                 LAB NOTES
               </p>
 
-              <h2 class="mt-2 text-2xl font-bold">最近正在研究的东西</h2>
+              <h2 class="subsection-heading">最近正在研究的东西</h2>
             </div>
 
             <div class="carousel rounded-box w-full gap-3">
@@ -782,7 +794,7 @@ const projects = [
               FAQ
             </p>
 
-            <h2 class="mt-2 text-3xl font-black">关于这个页面</h2>
+            <h2 class="section-heading">关于这个页面</h2>
           </div>
 
           <div class="space-y-2">
@@ -844,7 +856,7 @@ const projects = [
                 KEEP GOING
               </p>
 
-              <h2 class="mt-2 text-xl font-bold">
+              <h2 class="subsection-heading">
                 更多项目、实验与笔记会逐步出现在这里。
               </h2>
 

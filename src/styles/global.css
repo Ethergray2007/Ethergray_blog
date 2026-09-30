@@ -47,6 +47,57 @@
   @apply underline decoration-wavy decoration-2 underline-offset-8;
 }
 
+/**
+ * 区块标题 —— 两个层级，只有两个。
+ * ============================================================
+ * 【为什么用 @utility 而不是写个 SectionHeading 组件】
+ *
+ * 发现全站区块标题有 16 种不同的 class 写法时，第一反应是
+ * "写个组件把它收进去"。但那是发明自己的抽象 ——
+ * 标题就是个 h2，不需要 props、import、嵌套，包一层组件只是多一层。
+ *
+ * Tailwind 4 本身提供了"可复用样式"的机制就是 @utility，
+ * 而且这个文件里已经在用它（site-shell / content-shell 等）。
+ * 用 @utility 的额外好处：
+ *   · 它就是一个 class，全局能搜到（组件得先找 import）
+ *   · 调用方仍可以用别的工具类覆盖（比如 mt-5），组件做不到
+ *   · 不需要在页面里加 import
+ *
+ * 【两个层级的区分依据】
+ * 不是"重要程度"，是**在文档结构里的位置**：
+ *
+ *   section-heading     页面内容的一级分区
+ *                       例：首页的「从哪看起」「最近文章」、
+ *                           关于页的「核心开源项目」
+ *   subsection-heading  分区内部的小标题
+ *                       例：关于页的「它们是怎样组合起来的？」
+ *
+ * 两级的字号区间**刻意不重叠**（section 从 2xl 起、subsection 到 xl 止），
+ * 这样不会出现"这个标题到底算哪一级"的模糊地带。
+ *
+ * ⚠️ 视觉层级和 HTML 标签（h2 / h3）是两件事：
+ *    用哪个标签看它在文档里的实际位置，与这里的 class 无关。
+ * ============================================================
+ */
+@utility section-heading {
+  @apply text-base-content text-2xl font-black tracking-tight sm:text-3xl;
+}
+
+@utility subsection-heading {
+  @apply text-base-content text-lg font-bold sm:text-xl;
+}
+
+/**
+ * 区块标题下面那行副标题。
+ *
+ * 用中间那档颜色（muted）：
+ *   faint   太淡，和正文脱节
+ *   strong  和主标题抢
+ */
+@utility section-lede {
+  @apply text-base-content-muted mt-1 text-sm sm:text-base;
+}
+
 :target {
   scroll-margin-block: 1rem;
 }

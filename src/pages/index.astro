@@ -11,6 +11,10 @@ import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
 
 import { getSortedPosts } from "@/utils/getSortedPosts";
+import { getUniqueTags } from "@/utils/getUniqueTags";
+import { getFriends } from "@/utils/getFriends";
+import { getNotes } from "@/utils/getNotes";
+import { getProjects } from "@/utils/getProjects";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -25,6 +29,62 @@ const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+
+/**
+ * 「从哪看起」那一排入口。
+ *
+ * 数量全部来自**真实的内容集合**，不是写死的数字 ——
+ * 所以加了文章、加了友链，这里会跟着变。
+ *
+ * 为什么要在这里再查一遍集合（下面「最近文章」用的是 posts）：
+ * 这四个集合本来就各查各的，没有共用列表可比。
+ * 而且 getUniqueTags / getFriends 这些函数已经处理好了
+ * 排序、去重、过滤草稿，直接调用比自己在这里重写一遍可靠。
+ */
+const [friendEntries, noteEntries, projectEntries] = await Promise.all([
+  getCollection("friends"),
+  getCollection("notes"),
+  getCollection("projects"),
+]);
+
+const browseItems = [
+  {
+    href: getRelativeLocaleUrl(locale, "posts"),
+    label: t.nav.posts,
+    desc: t.home.recentPostsDesc,
+    count: posts.length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "notes"),
+    label: t.nav.notes,
+    desc: t.pages.notesDesc,
+    count: getNotes(noteEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "projects"),
+    label: t.nav.projects,
+    desc: t.pages.projectsDesc,
+    count: getProjects(projectEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "friends"),
+    label: t.nav.friends,
+    desc: t.pages.friendsDesc,
+    count: getFriends(friendEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "tags"),
+    label: t.nav.tags,
+    desc: t.pages.tagsDesc,
+    count: getUniqueTags(posts).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "archives"),
+    label: t.nav.archives,
+    desc: t.pages.archivesDesc,
+    count: sortedPosts.length,
+  },
+];
 
 const homePath = getRelativeLocaleUrl(locale, "");
 ---
@@ -159,21 +219,77 @@ const homePath = getRelativeLocaleUrl(locale, "");
     id="main-content"
     data-layout="index"
     data-home-path={homePath}
-    class="content-shell pb-8 sm:pb-10 lg:pb-12"
+    class="content-shell pt-10 pb-8 sm:pt-12 sm:pb-10 lg:pb-12"
   >
+    {
+      /*
+      ============================================================
+      从哪看起
+      ============================================================
+      列各内容类型的入口 + 真实数量。
+
+      【为什么需要这一块】
+      顶部导航为了清爽只留了 4 个内容链接，「标签」「归档」移到了页脚。
+      但那样它们也更难被发现 —— 这个区块正好把缺口补回来。
+
+      【和顶部导航的分工】
+        顶部   去哪儿（始终可见，4 个内容类型）
+        这里   有什么（带数量，一眼看出哪个板块有内容）
+
+      数量是**真实**的（来自各内容集合），不是装饰性数字。
+      某个板块为空时它会显示 0 —— 这也是诚实的：
+      与其藏起来，不如让人一眼看出"这里还没东西"。
+      ============================================================
+    */
+    }
+    <section id="browse">
+      <div class="mb-5">
+        <h2 class="section-heading">{t.home.browseTitle}</h2>
+
+        <p class="section-lede">{t.home.browseDesc}</p>
+      </div>
+
+      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          browseItems.map(item => (
+            <li>
+              <a
+                href={item.href}
+                class="card border-base-300 bg-base-100 hover:border-primary/60 hover:bg-base-200/60 group flex h-full flex-row items-center justify-between gap-3 border p-4 transition-colors"
+              >
+                <span class="min-w-0">
+                  <span class="block truncate font-semibold">{item.label}</span>
+                  <span class="text-base-content-muted mt-0.5 block truncate text-sm">
+                    {item.desc}
+                  </span>
+                </span>
+
+                {/*
+                  数量。用 tabular-nums 让它等宽 ——
+                  否则 1 和 8 宽度不同，右侧会跳。
+                */}
+                <span class="text-base-content-faint group-hover:text-primary shrink-0 font-mono text-lg tabular-nums transition-colors">
+                  {item.count}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
     <!-- Featured -->
     {
       featuredPosts.length > 0 && (
-        <section id="featured" class="mt-10 sm:mt-12">
+        <section
+          id="featured"
+          class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
+        >
           <div class="mb-5 flex items-end justify-between gap-4">
             <div>
-              <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
-                {t.home.featured}
-              </h2>
+              <h2 class="section-heading">{t.home.featured}</h2>
 
-              <p class="text-base-content-muted mt-1 text-sm sm:text-base">
-                {t.home.featuredDesc}
-              </p>
+              <p class="section-lede">{t.home.featuredDesc}</p>
             </div>
           </div>
 
@@ -194,13 +310,9 @@ const homePath = getRelativeLocaleUrl(locale, "");
           class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
         >
           <div class="mb-5">
-            <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
-              {t.home.recentPosts}
-            </h2>
+            <h2 class="section-heading">{t.home.recentPosts}</h2>
 
-            <p class="text-base-content-muted mt-1 text-sm sm:text-base">
-              {t.home.recentPostsDesc}
-            </p>
+            <p class="section-lede">{t.home.recentPostsDesc}</p>
           </div>
 
           <ul>

@@ -131,9 +131,7 @@ const updatedAtText = (() => {
         sections.map(section => (
           <section class="card card-border bg-base-100 shadow-sm">
             <div class="card-body gap-4 p-5 sm:p-6">
-              <h2 class="text-xl font-bold tracking-tight sm:text-2xl">
-                {section.title}
-              </h2>
+              <h2 class="subsection-heading">{section.title}</h2>
 
               <ul class="space-y-3">
                 {section.items.map(item =>

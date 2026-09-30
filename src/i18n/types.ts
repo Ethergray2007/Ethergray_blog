@@ -58,6 +58,17 @@ export interface UIStrings {
     featured: string;
     /** 精选区块副标题 */
     featuredDesc: string;
+    /**
+     * 首页「从哪看起」区块的标题。
+     *
+     * 这个区块列的是各内容类型的入口（文章/说说/项目/友链/标签）+ 真实数量。
+     * 存在的理由：顶部导航为了清爽只留了 4 个内容链接，
+     * 「标签」「归档」这些被移到了页脚 —— 这个区块把那个缺口补回来，
+     * 而且是带数量的，比一个光秃秃的链接更有信息量。
+     */
+    browseTitle: string;
+    /** 「从哪看起」区块副标题 */
+    browseDesc: string;
     recentPosts: string;
     /** 最近文章区块副标题 */
     recentPostsDesc: string;

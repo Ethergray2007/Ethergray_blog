@@ -81,6 +81,13 @@ const tooling = [
   },
 ];
 
+/**
+ * 「其他开源依赖」那张表。
+ *
+ * ⚠️ 只写**真的还在用**的包。这里原来列着 remark-collapse 和 remark-toc，
+ *   而两个都早就从 package.json 里删掉了（目录功能改成读 Astro 的 headings 之后
+ *   更用不着）—— 致谢页写着不存在的依赖，比漏写更糟。
+ */
 const ecosystem = [
   "Astro RSS",
   "Astro Sitemap",
@@ -88,8 +95,6 @@ const ecosystem = [
   "Lodash Kebab Case",
   "Slugify",
   "rehype-callouts",
-  "remark-collapse",
-  "remark-toc",
   "ESLint",
   "Prettier",
 ];
@@ -183,7 +188,7 @@ const navLinks = [
         >
           Core Stack
         </p>
-        <h2 class="mt-2 text-3xl font-black tracking-tight">核心开源项目</h2>
+        <h2 class="section-heading">核心开源项目</h2>
         <p class="text-base-content-muted mt-2 max-w-2xl text-sm leading-7">
           构成本站整体框架、主题与 UI 的主要项目。
         </p>
@@ -291,7 +296,7 @@ const navLinks = [
         >
           Tooling
         </p>
-        <h2 class="mt-2 text-3xl font-black tracking-tight">内容与构建工具</h2>
+        <h2 class="section-heading">内容与构建工具</h2>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -337,7 +342,7 @@ const navLinks = [
           >
             Ecosystem
           </p>
-          <h2 class="mt-2 text-3xl font-black tracking-tight">其他开源依赖</h2>
+          <h2 class="section-heading">其他开源依赖</h2>
         </div>
 
         <div class="badge badge-ghost">npm dependencies</div>
@@ -371,7 +376,7 @@ const navLinks = [
             <div>
               <div class="badge badge-primary badge-soft">Thank You</div>
 
-              <h2 class="mt-4 text-3xl font-black">感谢每一位开源贡献者</h2>
+              <h2 class="section-heading">感谢每一位开源贡献者</h2>
 
               <p class="text-base-content-strong mt-4 max-w-3xl leading-8">
                 感谢所有维护这些项目的人。正是这些开源项目，

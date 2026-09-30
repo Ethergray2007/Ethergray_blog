@@ -43,6 +43,8 @@ export default {
     viewProfile: "Profile",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
+    browseTitle: "Start here",
+    browseDesc: "Browse by content type",
     recentPosts: "Recent Posts",
     recentPostsDesc: "The latest updates",
     allPosts: "All Posts",
