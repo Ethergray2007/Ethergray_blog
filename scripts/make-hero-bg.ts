@@ -21,6 +21,9 @@
  * 想换背景图？
  *   把自己的图放到 src/assets/images/hero-bg.png，再跑一次。
  *   脚本会按同样的尺寸和压缩质量生成 public/hero-bg.jpg。
+ *
+ * ⚠️ 当前这张图是从第三方素材里抽的帧，**授权状况未确认**。
+ *    来源和替换建议记在 docs/ASSETS.md —— 真要公开挂站之前请先看那个文件。
  * ============================================================
  */
 import { existsSync, mkdirSync, statSync } from "node:fs";
