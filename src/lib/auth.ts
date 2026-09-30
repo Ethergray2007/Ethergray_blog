@@ -148,29 +148,45 @@ export const auth = betterAuth({
    * 只允许博客主人登录。
    *
    * 【为什么要有这一步】
-   * GitHub 上任何人都能完成 OAuth 授权流程。
-   * 不核对身份的话，任何人都能进你的后台。
+   * GitHub 上任何人都能完成 OAuth 授权流程 —— 能拿到 token、能读到
+   * 自己的资料，全都是正常行为。不核对身份的话，**任何人都能进你的后台**。
    *
-   * 这里用 user.create.before 钩子：有人第一次用 GitHub 登录时触发，
-   * 不是主人就直接抛错拒绝，账号不会被创建。
+   * 【为什么钩子挂在 account 上，不是 user 上】
+   * 我第一版写在 `user.create.before` 里，判断 userId 等于 GITHUB_OWNER_ID，
+   * 结果把你自己也拦在门外了。查 Better Auth 的源码才发现原因：
    *
-   * 钩子拿到的字段名是 githubId（Better Auth 会把账号信息一并传进来）。
-   * 为了不依赖这个字段一定存在，取不到时**拒绝**而不是放行 ——
-   * 宁可登不进去，也不能让陌生人进去。
+   *   GitHub provider 的映射是：
+   *     accountSubject: ({ profile }) => profile.id     ← GitHub id 给了 account
+   *     user: { name, email, image, emailVerified }     ← user 里【没有】id
+   *
+   * 也就是说 GitHub 的数字 id 只会成为 account.accountId，
+   * 永远不会出现在 user 对象上。所以必须在 account 钩子里判断。
+   *
+   * 【关于 fail-closed】
+   * 取不到 accountId 时**拒绝**而不是放行。宁可登不进去，
+   * 也不能让陌生人进来。这条原则下，误伤自己是可以接受的失败模式。
    */
   databaseHooks: {
-    user: {
+    account: {
       create: {
-        before: async user => {
-          const githubId = Number(
-            (user as { githubId?: string | number } | undefined)?.githubId
-          );
+        before: async account => {
+          const record = account as Record<string, unknown> | undefined;
 
-          if (!Number.isInteger(githubId) || githubId !== readOwnerId()) {
+          /**
+           * 只校验 GitHub。将来如果加了别的登录方式，
+           * 它不该被这道"GitHub 主人"的检查误伤。
+           */
+          if (record?.providerId !== "github") {
+            return { data: account };
+          }
+
+          const accountId = String(record.accountId ?? "");
+
+          if (accountId !== String(readOwnerId())) {
             throw new Error("这个 GitHub 账号不是本博客的主人，无权登录。");
           }
 
-          return { data: user };
+          return { data: account };
         },
       },
     },

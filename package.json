@@ -20,6 +20,8 @@
     "db:setup": "node scripts/db-setup.ts",
     "db:test": "node practice/tests/db.ts",
     "api:test": "node practice/tests/api.ts",
+    "auth:test": "node practice/tests/auth.ts",
+    "test": "npm run db:test && npm run api:test && npm run auth:test",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint ."
