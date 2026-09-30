@@ -97,4 +97,51 @@ export interface UIStrings {
     message: string;
     goHome: string;
   };
+  /**
+   * 后台（/admin）。
+   *
+   * 后台只有你一个人用，中英文都写上是为了保持 i18n 结构完整 ——
+   * 加文案要同时改三个文件是项目的硬性约定，哪怕暂时用不到英文。
+   */
+  admin: {
+    /** 登录页 */
+    loginTitle: string;
+    username: string;
+    password: string;
+    signIn: string;
+    signingIn: string;
+    /** 文章列表 */
+    postsTitle: string;
+    newPost: string;
+    edit: string;
+    delete: string;
+    confirmDelete: string;
+    /** 编辑器 */
+    editTitle: string;
+    newPostTitle: string;
+    fieldTitle: string;
+    fieldSlug: string;
+    slugHint: string;
+    fieldDescription: string;
+    fieldBody: string;
+    fieldTags: string;
+    tagsHint: string;
+    fieldStatus: string;
+    statusDraft: string;
+    statusPublished: string;
+    fieldFeatured: string;
+    save: string;
+    saving: string;
+    saved: string;
+    backToList: string;
+    logout: string;
+    /** 状态提示 */
+    loading: string;
+    empty: string;
+    /** 表格表头 */
+    colTitle: string;
+    colStatus: string;
+    colUpdated: string;
+    colActions: string;
+  };
 }

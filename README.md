@@ -71,6 +71,7 @@ Personal blog built with **Astro**.
 | 主题切换      | `src/scripts/theme.ts`                                                                                                         | `features.lightAndDarkMode` 改成 `false`                                               |
 | 分享按钮      | `astro-paper.config.ts` 的 `shareLinks`                                                                                        | 把数组清空：`shareLinks: []`                                                           |
 | 编辑本页链接  | `astro-paper.config.ts` 的 `features.editPost`                                                                                 | 改成 `{ enabled: false }`                                                              |
+| 在线写作后台  | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                  | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                    |
 | 练习册        | `practice/`                                                                                                                    | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                               |
 | 学习路线      | `docs/`                                                                                                                        | 整个目录删掉                                                                           |
 
@@ -105,6 +106,36 @@ npm run db:test        # 跑数据层测试
 **`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
 PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
 
+### 第一次配置
+
+```bash
+Copy-Item .env.example .env   # 然后填三个值（文件里有说明）
+npm run db:setup              # 建表 + 创建管理员账号
+```
+
+`npm run db:setup` 会先检查配置是否齐全，缺什么就明确告诉你缺什么，
+然后连库、建表、创建账号。**可以重复运行**，已存在的账号不会被覆盖。
+
+## ✍️ 在线写作后台
+
+配好数据库之后，启动 `npm run dev`，访问：
+
+```text
+http://localhost:4321/admin
+```
+
+用 `.env` 里 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 那组账号登录。
+
+```text
+/admin              登录
+/admin/posts        文章列表（新建 / 编辑 / 删除）
+/admin/posts/new    写新文章
+/admin/posts/123    编辑第 123 篇
+```
+
+后台页面是**按需渲染**的（`prerender = false`），而博客正文页仍然是
+构建时生成的静态 HTML —— 读者访问的部分没有变慢。
+
 ## 🔌 API
 
 用 [Elysia](https://elysiajs.com/) 写，跑在 Astro 的 API 路由里
@@ -112,7 +143,8 @@ PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、�
 **不是独立服务** —— 一个仓库、一次部署、没有跨域问题。
 
 ```bash
-npm run api:test       # 跑 API 测试（同样用内存数据库，55 项断言）
+npm run api:test       # 跑 API 测试（同样用内存数据库，57 项断言）
+npm run session:test   # 跑会话安全测试（24 项断言）
 ```
 
 ### 接口一览

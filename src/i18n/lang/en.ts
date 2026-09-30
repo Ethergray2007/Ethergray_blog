@@ -84,4 +84,46 @@ export default {
     message: "Page Not Found",
     goHome: "Go back home",
   },
+
+  admin: {
+    loginTitle: "Sign in",
+    username: "Username",
+    password: "Password",
+    signIn: "Sign in",
+    signingIn: "Signing in...",
+
+    postsTitle: "Posts",
+    newPost: "New post",
+    edit: "Edit",
+    delete: "Delete",
+    confirmDelete: "Delete this post? This cannot be undone.",
+
+    editTitle: "Edit post",
+    newPostTitle: "New post",
+    fieldTitle: "Title",
+    fieldSlug: "Slug",
+    slugHint:
+      "Leave empty to generate from the title. Changing it breaks old links.",
+    fieldDescription: "Description",
+    fieldBody: "Body (Markdown)",
+    fieldTags: "Tags",
+    tagsHint: "Comma separated, e.g. Astro, notes",
+    fieldStatus: "Status",
+    statusDraft: "Draft",
+    statusPublished: "Published",
+    fieldFeatured: "Featured",
+    save: "Save",
+    saving: "Saving...",
+    saved: "Saved",
+    backToList: "Back to list",
+    logout: "Sign out",
+
+    loading: "Loading...",
+    empty: "No posts yet. Click “New post” to start.",
+
+    colTitle: "Title",
+    colStatus: "Status",
+    colUpdated: "Updated",
+    colActions: "Actions",
+  },
 } satisfies UIStrings;

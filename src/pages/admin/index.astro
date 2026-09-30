@@ -1,0 +1,169 @@
+---
+/**
+ * 后台登录页  /admin
+ * ============================================================
+ * 自包含：只依赖 adminApi.ts 和 i18n。
+ *
+ * 想删掉这个页面？连同 src/pages/admin/ 整个目录一起删。
+ *
+ * 【为什么 prerender = false】
+ * 这个页面需要在**每次请求时**由服务端渲染（而不是构建时生成静态 HTML），
+ * 因为它属于动态后台的一部分。其他博客页面仍然是静态的，不受影响。
+ * ============================================================
+ */
+import Layout from "@/layouts/Layout.astro";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+export const prerender = false;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+---
+
+<Layout title={`${t.admin.loginTitle} | ${config.site.title}`}>
+  <main
+    class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16"
+  >
+    <h1 class="mb-8 text-center text-2xl font-bold">{t.admin.loginTitle}</h1>
+
+    <form
+      id="login-form"
+      class="card bg-base-200 p-6 shadow-sm"
+      novalidate
+      data-signing-in={t.admin.signingIn}
+    >
+      <div class="mb-4">
+        <label class="label" for="username">
+          <span class="label-text">{t.admin.username}</span>
+        </label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          class="input input-bordered w-full"
+          autocomplete="username"
+          required
+        />
+      </div>
+
+      <div class="mb-6">
+        <label class="label" for="password">
+          <span class="label-text">{t.admin.password}</span>
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          class="input input-bordered w-full"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+
+      <button id="submit" type="submit" class="btn btn-primary w-full">
+        {t.admin.signIn}
+      </button>
+
+      {
+        /*
+        出错时把消息写在这里。
+        role="alert" 让屏幕阅读器立刻读出来 —— 这是无障碍的基本要求。
+      */
+      }
+      <p
+        id="message"
+        role="alert"
+        class="text-error mt-4 hidden text-center text-sm"
+      >
+      </p>
+    </form>
+
+    <p class="mt-6 text-center text-sm">
+      <a href="/" class="link link-hover">{t.notFound.goHome}</a>
+    </p>
+  </main>
+</Layout>
+
+<script>
+  import { adminApi, NotLoggedInError } from "@/utils/adminApi";
+
+  const form = document.querySelector<HTMLFormElement>("#login-form");
+  const usernameInput = document.querySelector<HTMLInputElement>("#username");
+  const passwordInput = document.querySelector<HTMLInputElement>("#password");
+  const submitButton = document.querySelector<HTMLButtonElement>("#submit");
+  const message = document.querySelector<HTMLParagraphElement>("#message");
+
+  /**
+   * 文案从 DOM 里读，不在脚本里硬编码。
+   *
+   * 原因：界面文案必须走 src/i18n（项目硬性约定），
+   * 而 i18n 是 Astro 服务端的东西，客户端脚本拿不到。
+   * 所以用 data 属性把文案从服务端传到客户端。
+   */
+  const texts = {
+    signingIn: form?.dataset.signingIn ?? "…",
+    signIn: submitButton?.textContent?.trim() ?? "登录",
+  };
+
+  function showMessage(text: string): void {
+    if (!message) {
+      return;
+    }
+
+    message.textContent = text;
+    message.classList.remove("hidden");
+  }
+
+  form?.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const username = usernameInput?.value.trim() ?? "";
+    const password = passwordInput?.value ?? "";
+
+    if (username.length === 0 || password.length === 0) {
+      showMessage("用户名和密码都要填。");
+      return;
+    }
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = texts.signingIn;
+    }
+
+    try {
+      await adminApi.login(username, password);
+
+      /**
+       * 登录成功后跳转到文章列表。
+       * 用 replace 而不是 href，这样用户按"后退"不会回到登录页。
+       */
+      location.replace("/admin/posts");
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : "登录失败。");
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = texts.signIn;
+      }
+
+      // 清掉密码，避免反复提交时看到上一次的内容
+      if (passwordInput) {
+        passwordInput.value = "";
+      }
+    }
+  });
+
+  /**
+   * 已经登录过的话直接进后台，不用再登一次。
+   * 失败就忽略 —— 没登录是正常情况。
+   */
+  adminApi.me().then(
+    () => location.replace("/admin/posts"),
+    (error: unknown) => {
+      if (!(error instanceof NotLoggedInError)) {
+        // 网络问题之类的，这里不处理，让用户自己点登录
+      }
+    }
+  );
+</script>
