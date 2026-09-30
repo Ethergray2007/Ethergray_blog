@@ -29,3 +29,6 @@ pnpm-debug.log*
 
 # 工具临时目录（DSH harness 调试时会产生）
 .dsh-probe/
+
+# 本项目专用的 npm 缓存（避免写全局缓存目录，也避免误提交）
+.npm-cache/
