@@ -16,11 +16,11 @@ import { toTransitionName } from "@/utils/toTransitionName";
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
-import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
 import TableOfContents from "./_components/TableOfContents.astro";
 import CopyCodeButton from "./_components/CopyCodeButton.astro";
 
+import { useTranslations } from "@/i18n";
 import config from "@/config";
 
 export async function getStaticPaths() {
@@ -71,6 +71,7 @@ type Props = {
 const { post, prevPost, nextPost } = Astro.props;
 
 const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
 
 const {
   title,
@@ -216,7 +217,7 @@ const ogImage = ogImageUrl
             tags.length > 0 && (
               <div class="flex flex-col gap-3">
                 <span class="text-base-content-muted text-sm font-semibold">
-                  标签
+                  {t.post.tagLabel}
                 </span>
 
                 <ul class="flex flex-wrap gap-2">
@@ -242,8 +243,13 @@ const ogImage = ogImageUrl
     <!-- Previous / Next -->
     <AdjacentPostNav {prevPost} {nextPost} />
 
-    <!-- Back to top -->
-    <BackToTopButton />
+    <!--
+      返回顶部按钮用的是页面顶部的 <BackButton />，这里不再放第二个。
+      原来这里还有个 <BackToTopButton />，它和 BackButton 的
+      id / data-* 选择器一模一样，而两边的脚本都用 document.querySelector
+      取**第一个**匹配 —— 于是它永远绑不上事件、容器停在 opacity-0
+      （等于不存在），还给页面留下重复 id。那个组件已经删掉。
+    -->
   </main>
 
   <Footer />
