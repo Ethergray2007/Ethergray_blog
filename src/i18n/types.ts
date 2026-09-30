@@ -33,6 +33,12 @@ export interface UIStrings {
   pagination: {
     prev: string;
     next: string;
+    /**
+     * 页码，例如「第 3 页」。
+     *
+     * 必须带上 `{{n}}` 占位符（用 tplStr 填）—— 中英文语序不同，
+     * 只存「第」这种半截词的话，中文会渲染成「文章 (第 1)」，少一个「页」。
+     */
     page: string;
   };
   home: {

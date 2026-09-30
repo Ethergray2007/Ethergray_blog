@@ -32,7 +32,7 @@ export default {
   pagination: {
     prev: "上一页",
     next: "下一页",
-    page: "第",
+    page: "第 {{n}} 页",
   },
 
   home: {

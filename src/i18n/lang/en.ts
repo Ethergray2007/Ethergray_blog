@@ -30,7 +30,7 @@ export default {
   pagination: {
     prev: "Prev",
     next: "Next",
-    page: "Page",
+    page: "Page {{n}}",
   },
   home: {
     socialLinks: "Social Links",
