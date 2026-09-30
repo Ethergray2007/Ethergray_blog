@@ -57,6 +57,30 @@ export default defineConfig({
      * 想启用 Netlify Image CDN 的话，把它改成 true 即可。
      */
     imageCDN: false,
+
+    /**
+     * 关掉 Edge Functions 的本地模拟。
+     *
+     * 适配器默认会在 `npm run dev` 时拉起一堆 Netlify 平台的模拟服务
+     * （aiGateway / blobs / database / edgeFunctions / functions / ...）。
+     * 其中 edgeFunctions 需要额外启动一个 Deno 子进程，在本地很容易失败：
+     *
+     *     Error: Could not establish a connection to the Netlify
+     *            Edge Functions local development server
+     *
+     * 而这个错误是**未捕获的 Promise 异常**，会直接把开发服务器打挂 ——
+     * 表现就是 `npm run dev` 启动到一半崩掉。
+     *
+     * 本项目没有用到 Edge Functions（我们用普通 Netlify Functions 跑 SSR），
+     * 所以关掉它没有任何损失。
+     *
+     * 注意：这里只影响**本地开发**，线上部署完全不受影响。
+     */
+    devFeatures: {
+      edgeFunctions: false,
+      images: true,
+      environmentVariables: false,
+    },
   }),
 
   integrations: [
