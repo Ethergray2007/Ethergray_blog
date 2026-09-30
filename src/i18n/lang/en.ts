@@ -82,11 +82,6 @@ export default {
   },
   friends: {
     empty: "No links yet.",
-    online: "Online",
-    howToTitle: "Want to exchange links?",
-    howToDesc:
-      "Add my site to your links page first, then let me know and I'll add yours.",
-    contactHint: "You'll find ways to reach me on the About page.",
   },
   notes: {
     empty: "No notes yet.",

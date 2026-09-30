@@ -240,6 +240,46 @@ main     → 生产环境，所有人都能访问
 
 **推送到 main 必须先获得确认。** develop 可以随便推。
 
+### Mermaid 图表：不要往 `<pre class="mermaid">` 里塞任何东西
+
+**这是踩过的坑，而且表现得非常费解。**
+
+astro-mermaid 在浏览器里这样取图表定义：
+
+```js
+diagram.setAttribute('data-diagram', diagram.textContent || '');
+```
+
+问题出在 `textContent` —— **它会把所有子元素的文字都算进去**，
+而且**不看 CSS**。一个 `position: absolute` 的按钮视觉上不占位置，
+但它的文字照样进 `textContent`。
+
+于是发生的事是：
+
+```text
+图表定义本来应该读到：   C --> F[结束]
+实际读到：              C --> F[结束]Copy
+结果：                  Parse error on line 7
+```
+
+**具体踩法**：AstroPaper 模板自带的 `attachCopyButtons()` 用
+`#article pre` 抓代码块，把 "Copy" 按钮 `appendChild` 进 `<pre>`，
+而 Mermaid 的块也是 `<pre>`。所以那个按钮污染了 Mermaid 的输入。
+
+**现在的做法**：模板那段代码已删掉，统一用
+`CopyCodeButton.astro`，它的选择器是 `pre.astro-code`
+（只匹配 Shiki 高亮的块，天然避开 `<pre class="mermaid">`）。
+
+**以后注意**：
+
+```text
+□ 往代码块里加东西（按钮、行号、文件名）之前，
+  先确认选择器不会匹配到 pre.mermaid
+□ 判断"会不会污染"要看 textContent，不能看 CSS 定位
+□ 这个 bug 只在浏览器里出现 —— 服务端 HTML 是干净的，
+  所以 curl 或构建产物检查都发现不了，必须真的打开页面看
+```
+
 ### Windows + PowerShell
 
 路径里有 `[...slug]` 这种方括号时，PowerShell 会把它们当**通配符**，

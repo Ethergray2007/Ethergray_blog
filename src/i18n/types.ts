@@ -98,18 +98,19 @@ export interface UIStrings {
     projectsTitle: string;
     projectsDesc: string;
   };
-  /** 友链页面上用到的零散文案 */
+  /**
+   * 友链页面上用到的零散文案。
+   *
+   * 【为什么只剩一个字段】
+   * 原来还有 howToTitle / howToDesc / contactHint 三个，
+   * 是"想交换友链？把你的信息按这个格式发给我"那段说明用的。
+   * 那个区块已经去掉了（这个页面只放我认可的友链，不对外开放申请），
+   * 文案跟着删 —— 界面上不显示的东西不要留在文案文件里，
+   * 否则以后会分不清哪些还在用。
+   */
   friends: {
-    /** 列表为空时显示 */
+    /** 一条友链都没有时显示 */
     empty: string;
-    /** 「在线」标记的 tooltip */
-    online: string;
-    /** 交换友链的说明标题 */
-    howToTitle: string;
-    /** 交换友链的说明正文 */
-    howToDesc: string;
-    /** 往下怎么联系我 */
-    contactHint: string;
   };
   /** 说说页面上用到的零散文案 */
   notes: {

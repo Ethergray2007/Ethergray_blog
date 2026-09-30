@@ -25,8 +25,6 @@ export type Friend = {
   url: string;
   /** 头像地址 */
   avatar: string;
-  /** 是否标记为在线 */
-  online: boolean;
   /** 排序权重。不直接给页面用，排完序就没意义了 */
   order: number;
 };
@@ -53,7 +51,6 @@ export function getFriends(entries: CollectionEntry<"friends">[]): Friend[] {
       description: entry.data.description,
       url: entry.data.url,
       avatar: entry.data.avatar,
-      online: entry.data.online,
       order: entry.data.order ?? DEFAULT_ORDER,
     }))
     .sort((a, b) => {

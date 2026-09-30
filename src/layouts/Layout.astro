@@ -52,7 +52,21 @@ const atomHref = getRelativeLocaleUrl(
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="icon" type="image/svg+xml" href={getAssetPath("favicon.svg")} />
+    {
+      /*
+      站点图标 —— 用的是 GitHub 头像，两个尺寸：
+        favicon.png        64×64    浏览器标签页
+        apple-touch-icon   180×180  加到手机主屏时用
+
+      两张都是 public/ 下的静态文件，不参与构建优化 ——
+      图标文件很小，而且必须能被浏览器直接按固定路径取到。
+
+      ⚠️ 顺序有讲究：把 apple-touch-icon 放前面。
+        iOS 会优先用 apple-touch-icon，放前面能让它先被匹配到。
+    */
+    }
+    <link rel="apple-touch-icon" href={getAssetPath("apple-touch-icon.png")} />
+    <link rel="icon" type="image/png" href={getAssetPath("favicon.png")} />
 
     <link rel="canonical" href={canonicalURL} />
 

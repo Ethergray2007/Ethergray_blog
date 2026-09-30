@@ -365,84 +365,26 @@ const ogImage = ogImageUrl
 
   /*
    * ============================
-   * Code copy buttons
+   * 代码块复制按钮
    * ============================
+   *
+   * 【为什么这里没有代码】
+   * AstroPaper 模板原本在这段位置有一个 attachCopyButtons()，
+   * 用 `#article pre` 抓**所有**代码块，然后把一个写着 "Copy"
+   * 的按钮 appendChild 进 <pre> 里面。
+   *
+   * 它有两个问题：
+   *
+   *   1. Mermaid 图表读不出来。Mermaid 用 `diagram.textContent`
+   *      取图表定义，而 textContent 会把子元素的文字也算进去
+   *      （CSS 定位不影响它）—— 于是图表定义末尾多了个 "Copy"，
+   *      解析报错：Parse error on line 7 ... F[结束]Copy
+   *
+   *   2. 和 CopyCodeButton.astro 重复，Shiki 代码块上出现两个按钮。
+   *
+   * 现在统一用 CopyCodeButton.astro，它的选择器是 `pre.astro-code`，
+   * 只匹配 Shiki 高亮的代码块，天然避开 `<pre class="mermaid">`。
    */
-
-  function attachCopyButtons() {
-    const copyButtonLabel = "Copy";
-
-    const codeBlocks = Array.from(document.querySelectorAll("#article pre"));
-
-    for (const codeBlock of codeBlocks) {
-      if (codeBlock.querySelector(".copy-code")) {
-        continue;
-      }
-
-      const wrapper = document.createElement("div");
-
-      wrapper.style.position = "relative";
-
-      const computedStyle = getComputedStyle(codeBlock);
-
-      const hasFileNameOffset =
-        computedStyle.getPropertyValue("--file-name-offset").trim() !== "";
-
-      const topClass = hasFileNameOffset
-        ? "top-(--file-name-offset)"
-        : "-top-3";
-
-      const copyButton = document.createElement("button");
-
-      copyButton.type = "button";
-
-      copyButton.className = `copy-code btn btn-xs btn-ghost absolute end-3 ${topClass} border border-base-300 bg-base-100/95 text-base-content shadow-sm backdrop-blur`;
-
-      copyButton.innerText = copyButtonLabel;
-
-      copyButton.setAttribute("aria-label", "Copy code");
-
-      codeBlock.setAttribute("tabindex", "0");
-
-      codeBlock.parentNode?.insertBefore(wrapper, codeBlock);
-
-      wrapper.appendChild(codeBlock);
-
-      codeBlock.appendChild(copyButton);
-
-      copyButton.addEventListener("click", async () => {
-        await copyCode(codeBlock, copyButton);
-      });
-    }
-
-    async function copyCode(block, button) {
-      const code = block.querySelector("code");
-
-      const text = code?.textContent ?? "";
-
-      try {
-        if (!navigator.clipboard) {
-          throw new Error("Clipboard API unavailable");
-        }
-
-        await navigator.clipboard.writeText(text);
-
-        button.innerText = "Copied";
-
-        setTimeout(() => {
-          button.innerText = copyButtonLabel;
-        }, 700);
-      } catch {
-        button.innerText = "Failed";
-
-        setTimeout(() => {
-          button.innerText = copyButtonLabel;
-        }, 1000);
-      }
-    }
-  }
-
-  attachCopyButtons();
 
   /*
    * ============================

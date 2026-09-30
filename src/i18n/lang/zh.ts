@@ -88,10 +88,6 @@ export default {
 
   friends: {
     empty: "还没有友链。",
-    online: "在线",
-    howToTitle: "想交换友链？",
-    howToDesc: "先把我的站点加到你的友链页，然后告诉我，我就会把你的加到这里。",
-    contactHint: "联系方式在「关于」页面上。",
   },
 
   notes: {

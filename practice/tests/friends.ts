@@ -45,7 +45,7 @@ const { getFriends } = await import("../../src/utils/getFriends.ts");
 function entry(
   title: string,
   order: number | undefined,
-  extra: Partial<{ url: string; avatar: string; online: boolean }> = {}
+  extra: Partial<{ url: string; avatar: string }> = {}
 ) {
   return {
     data: {
@@ -54,7 +54,6 @@ function entry(
       url: extra.url ?? "https://example.com",
       avatar: extra.avatar ?? "https://example.com/a.png",
       order,
-      online: extra.online ?? true,
     },
     body: "",
   } as never;
@@ -142,14 +141,12 @@ const one = getFriends([
   entry("站点", 1, {
     url: "https://a.example.com",
     avatar: "https://a.example.com/avatar.png",
-    online: false,
   }),
 ])[0];
 
 check("url 正确透传", one.url === "https://a.example.com");
 check("avatar 正确透传", one.avatar === "https://a.example.com/avatar.png");
 check("description 正确透传", one.description === "站点 的简介");
-check("online: false 被保留", one.online === false);
 check("order 也带出来了（排序后仍可读）", one.order === 1);
 
 /* ==================================================================

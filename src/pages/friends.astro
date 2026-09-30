@@ -7,14 +7,14 @@
  * 想删掉这个页面？
  *   照 src/utils/getFriends.ts 文件头写的 6 步做。
  *
- * 【为什么这个页面值得有】
- * 看了同圈子的 65 个博客，42% 都有友链页 —— 它是这个圈子的社交方式。
- * 没有的话，别人想跟你交换链接都找不到入口。
+ * 【现在这个页面是空的，这是有意的】
+ * 页面上只放**我自己认识的、真的在看的**博客，不对外开放申请。
+ * 所以既没有"想交换友链？把信息按这个格式发给我"那种区块，
+ * 也没有「在线」标记 —— 那种标记要么是假的（手写的），
+ * 要么要去探测几十个外部地址（慢、而且对别人不礼貌）。
  *
- * 【设计上的两个决定】
- *   1. 用内容集合（一个友链一个 Markdown 文件），加友链不用改代码
- *   2. 不显示"对方是否真的在线"—— 探测几十个外部地址会让页面变慢，
- *      对别人也不礼貌。online 只是个手写标记。
+ * 想加一个友链：在 src/content/friends/ 下新建一个 Markdown 文件，
+ * 字段照着 src/content.config.ts 里的 friends schema 填。
  * ============================================================
  */
 import { getCollection } from "astro:content";
@@ -34,17 +34,6 @@ const t = useTranslations(locale);
 
 const entries = await getCollection("friends");
 const friends = getFriends(entries);
-
-/**
- * 自己的站点信息，方便别人复制去交换链接。
- * 头像用站点的 OG 图（一定存在，不用额外准备）。
- */
-const ownInfo = {
-  title: config.site.title,
-  description: config.site.description,
-  url: config.site.url,
-  avatar: new URL(config.site.ogImage, config.site.url).href,
-};
 ---
 
 <Layout
@@ -85,15 +74,9 @@ const ownInfo = {
                     class="bg-base-300 size-12 shrink-0 rounded-full object-cover"
                   />
                   <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="truncate font-semibold">{friend.title}</span>
-                      {friend.online && (
-                        <span
-                          class="badge badge-success badge-xs shrink-0"
-                          title={t.friends.online}
-                        />
-                      )}
-                    </div>
+                    <span class="block truncate font-semibold">
+                      {friend.title}
+                    </span>
                     <p class="text-base-content/60 mt-1 line-clamp-2 text-sm">
                       {friend.description}
                     </p>
@@ -105,24 +88,6 @@ const ownInfo = {
         </ul>
       )
     }
-
-    {/* 交换友链的说明 —— 别人想加你时需要知道填什么 */}
-    <section class="border-base-300 mt-12 border-t pt-8">
-      <h2 class="text-lg font-bold">{t.friends.howToTitle}</h2>
-      <p class="text-base-content/70 mt-2 text-sm leading-7">
-        {t.friends.howToDesc}
-      </p>
-
-      <pre
-        class="bg-base-200 mt-4 overflow-x-auto rounded-lg p-4 text-sm"><code>{`名称：${ownInfo.title}
-简介：${ownInfo.description}
-链接：${ownInfo.url}
-头像：${ownInfo.avatar}`}</code></pre>
-
-      <p class="text-base-content/60 mt-4 text-sm">
-        {t.friends.contactHint}
-      </p>
-    </section>
   </Main>
   <Footer />
 </Layout>

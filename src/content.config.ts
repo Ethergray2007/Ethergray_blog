@@ -49,12 +49,6 @@ const friends = defineCollection({
     avatar: z.url(),
     /** 排序用。数字小的排前面 */
     order: z.number().default(999),
-    /**
-     * 是否在页面上显示为「在线」。
-     * 这里只是个人工标记，不是真的去探测对方站点 ——
-     * 那会让每次访问都去请求几十个外部地址，很慢也很不礼貌。
-     */
-    online: z.boolean().default(true),
   }),
 });
 
