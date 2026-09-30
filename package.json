@@ -28,7 +28,8 @@
     "test": "npm run db:test && npm run api:test && npm run auth:test && npm run feed:test && npm run friends:test && npm run notes:test && npm run projects:test",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "commit:check": "node scripts/commit-check.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",
