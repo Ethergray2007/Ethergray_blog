@@ -22,6 +22,13 @@ const decodeSegment = (value: string) => {
   }
 };
 
+/**
+ * 网址第一段 → 显示名。
+ *
+ * 查不到就原样显示那一段（会露出英文 slug），所以**每加一个顶级页面
+ * 都要在这里补一行**，否则面包屑会出现「首页 / friends」这种半截翻译。
+ * （/friends、/notes、/projects 就是这么漏掉的。）
+ */
 const navLabels: Record<string, string> = {
   posts: t.nav.posts,
   tags: t.nav.tags,
@@ -29,6 +36,9 @@ const navLabels: Record<string, string> = {
   now: t.nav.now,
   archives: t.nav.archives,
   search: t.nav.search,
+  friends: t.nav.friends,
+  notes: t.nav.notes,
+  projects: t.nav.projects,
 };
 
 if (breadcrumbList[0] === "posts") {
