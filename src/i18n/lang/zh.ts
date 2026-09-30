@@ -14,7 +14,6 @@ export default {
   post: {
     publishedAt: "发表于",
     updatedAt: "更新于",
-    readingTime: "约 {{minutes}} 分钟阅读",
     toc: "目录",
     sharePostIntro: "分享这篇文章：",
     sharePostOn: "分享到 {{platform}}",

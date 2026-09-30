@@ -31,10 +31,12 @@ const MIGRATIONS_DIR = "drizzle";
 /**
  * 能执行原始 SQL 的对象。
  *
- * 两种数据库的接口不一样，所以两个方法都写成可选：
- *   PGlite        有 exec(sql)
- *   postgres-js   有 unsafe(sql)
- * 由下面的 runStatement 挑一个用。
+ * 这个文件只用于测试，而测试用的数据库是 PGlite（进程内的 PostgreSQL），
+ * 它的接口就是 exec(sql)。
+ *
+ * 为什么还允许 unsafe(sql)：早先生产用的是 postgres-js 驱动，
+ * 它的接口是 unsafe(sql)。虽然现在换成 Neon HTTP 驱动了，
+ * 留着这个分支的成本几乎为零，而且以后想换回 TCP 驱动时不用再改这里。
  */
 export type ExecutableDb = {
   exec?: (sql: string) => Promise<unknown>;

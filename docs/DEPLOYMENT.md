@@ -86,39 +86,65 @@ Neon 那边已经用 PgBouncer 做了池化。我们客户端也设了 `max: 1`
 
 ---
 
-## 关于数据库驱动：一个已知的偏离
+## 数据库驱动：用的是 Neon HTTP 驱动
 
-**Neon 官方为 Serverless 平台推荐的是 HTTP 版驱动**
-（[出处](https://neon.com/docs/connect/choose-connection)）：
+官方为 Serverless 平台推荐 HTTP 版驱动
+（[Neon 文档](https://neon.com/docs/connect/choose-connection)、
+[Drizzle 文档](https://orm.drizzle.team/docs/connect-neon)）：
 
 | 环境 | 官方推荐驱动 |
 | --- | --- |
 | 长驻服务器（VPS / Docker） | `pg` 或 `postgres.js` |
 | **Netlify / Deno Deploy / Cloudflare** | **`@neondatabase/serverless`** |
 
-**我们目前用的是 `postgres`（TCP 版）。** 这是有意的取舍，不是疏忽：
+**我们用的是 HTTP 驱动**（`drizzle-orm/neon-http` + `@neondatabase/serverless`）。
 
-### 为什么先用 TCP 版
+### 为什么换（实测数据）
 
-- Drizzle 对 `postgres-js` 的支持最成熟，换成 HTTP 驱动要同时换
-  Drizzle 的驱动适配层，改动面不小
-- 已经配合了连接池连接串 + `max: 1`，连接数风险已经被压住
-- 本地和线上都实测通过了
+一开始用的是 TCP 驱动的 `postgres` 包。后来对**真实 Neon 各跑 3 轮取中位数**
+做了对比，才决定换：
 
-### 什么时候该换成 HTTP 驱动
+| 场景 | TCP（postgres） | HTTP（neon-http） | 差异 |
+| --- | --- | --- | --- |
+| 冷启动第一次请求 | 2621~5107 ms | 687~3613 ms | **HTTP 快 2~4 倍** |
+| 按 slug 查单篇 | 447~476 ms | 209~237 ms | **HTTP 快约一半** |
+| 列文章 | 208~238 ms | 233~261 ms | 基本持平 |
 
-出现下面任一情况就值得换：
+规律：**HTTP 在冷启动和单行查询上明显更快**，而这正是后台的主要场景。
+
+原理：HTTP 驱动把每条查询发成一个 fetch 请求，不需要建 TCP 连接、
+不需要维护连接池 —— 正好适合"一问一答"的后台。
+
+### 代价
 
 ```text
-□ Netlify 日志里出现 "too many connections" 或连接相关错误
-□ 并发请求变多（比如以后开放评论），TCP 连接不够用
-□ 冷启动明显变慢，且确认是建连接导致的
-□ 想用 Neon 的分支功能做预览环境隔离
+□ 它只能连 Neon（连不了本地 Postgres）
+□ 不支持会话和交互式事务（我们是一问一答，用不到）
 ```
 
-不出现就先不动 —— **能跑通的代码不要为了"更符合推荐"而重写**。
+测试用的是 PGlite，走 `drizzle-orm/pglite`，不受影响。
+本地开发用的也是真 Neon 连接串，同样不受影响。
 
-## 区域选择：让数据库和函数在同一个地方
+### ⚠️ 但 `postgres` 包不能删
+
+`drizzle-kit`（跑迁移的工具）自己不依赖 `postgres`，而是**用项目里装的那个**
+来执行迁移。删掉之后 `npm run db:migrate` 会失败，报错信息还不明显。
+
+（`npm run db:migrate` 的输出里有 `Using 'postgres' driver for database querying`
+这一行，就是这个原因。）
+
+### 关于"双重连接池"
+
+Neon 文档里的警告：
+
+> If you use a pooled Neon connection, avoid adding client-side pooling on top.
+
+这条对 HTTP 驱动**不适用** —— HTTP 驱动根本没有"客户端连接池"这个概念，
+每条查询都是独立的 HTTP 请求。所以也不存在双重池化的问题。
+
+连接串里的 `-pooler` 保留着，它对 HTTP 驱动无害（主机名指向同一个地方）。
+
+---
 
 这是**最容易忽略、影响最大**的一点。
 

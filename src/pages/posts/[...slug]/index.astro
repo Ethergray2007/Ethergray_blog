@@ -18,7 +18,6 @@ import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
-import ReadingTime from "./_components/ReadingTime.astro";
 import TableOfContents from "./_components/TableOfContents.astro";
 import CopyCodeButton from "./_components/CopyCodeButton.astro";
 
@@ -155,11 +154,6 @@ const ogImage = ogImageUrl
 
         <div class="flex flex-wrap items-center gap-2">
           <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-
-          <span class="text-base-content/50 hidden text-sm sm:inline"> · </span>
-
-          <!-- 阅读时长：计算逻辑全在 ReadingTime.astro 里，这里只传正文 -->
-          <ReadingTime body={post.body ?? ""} />
 
           {
             description && (

@@ -12,8 +12,6 @@ export interface UIStrings {
   post: {
     publishedAt: string;
     updatedAt: string;
-    /** 阅读时长，`{{minutes}}` 会被替换成分钟数 */
-    readingTime: string;
     /** 文章目录（TOC）的标题 */
     toc: string;
     sharePostIntro: string;

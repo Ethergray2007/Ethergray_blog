@@ -58,22 +58,21 @@ Personal blog built with **Astro**.
 
 每个功能都做成**自包含**的：删除时不需要动别的地方，照着下表删就行。
 
-| 功能          | 相关文件                                                                                                                       | 怎么删                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| 阅读时长      | `src/utils/getReadingTime.ts`<br>`src/pages/posts/[...slug]/_components/ReadingTime.astro`<br>`src/assets/icons/IconClock.svg` | 删这 3 个文件，再删文章页里的 `import ReadingTime` 和 `<ReadingTime />` 那一行         |
-| 文章目录      | `src/utils/getTableOfContents.ts`<br>`src/pages/posts/[...slug]/_components/TableOfContents.astro`                             | 删这 2 个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行 |
-| 近况页 /now   | `src/pages/now.astro`                                                                                                          | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮            |
-| 代码块复制    | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                                                   | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                 |
-| 评论区        | 没有内置                                                                                                                       | ——                                                                                     |
-| Pagefind 搜索 | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                                                       | 改成 `search: false`，页面自动跳 404                                                   |
-| 归档页        | `src/pages/archives/`                                                                                                          | `features.showArchives` 改成 `false`                                                   |
-| 动态 OG 图    | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                              | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                 |
-| 主题切换      | `src/scripts/theme.ts`                                                                                                         | `features.lightAndDarkMode` 改成 `false`                                               |
-| 分享按钮      | `astro-paper.config.ts` 的 `shareLinks`                                                                                        | 把数组清空：`shareLinks: []`                                                           |
-| 编辑本页链接  | `astro-paper.config.ts` 的 `features.editPost`                                                                                 | 改成 `{ enabled: false }`                                                              |
-| 在线写作后台  | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                  | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                    |
-| 练习册        | `practice/`                                                                                                                    | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                               |
-| 学习路线      | `docs/`                                                                                                                        | 整个目录删掉                                                                           |
+| 功能          | 相关文件                                                                                           | 怎么删                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 文章目录      | `src/utils/getTableOfContents.ts`<br>`src/pages/posts/[...slug]/_components/TableOfContents.astro` | 删这 2 个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行 |
+| 近况页 /now   | `src/pages/now.astro`                                                                              | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮            |
+| 代码块复制    | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                       | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                 |
+| 评论区        | 没有内置                                                                                           | ——                                                                                     |
+| Pagefind 搜索 | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                           | 改成 `search: false`，页面自动跳 404                                                   |
+| 归档页        | `src/pages/archives/`                                                                              | `features.showArchives` 改成 `false`                                                   |
+| 动态 OG 图    | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                  | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                 |
+| 主题切换      | `src/scripts/theme.ts`                                                                             | `features.lightAndDarkMode` 改成 `false`                                               |
+| 分享按钮      | `astro-paper.config.ts` 的 `shareLinks`                                                            | 把数组清空：`shareLinks: []`                                                           |
+| 编辑本页链接  | `astro-paper.config.ts` 的 `features.editPost`                                                     | 改成 `{ enabled: false }`                                                              |
+| 在线写作后台  | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                      | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                    |
+| 练习册        | `practice/`                                                                                        | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                               |
+| 学习路线      | `docs/`                                                                                            | 整个目录删掉                                                                           |
 
 ## 📚 学习资料 / Learning
 

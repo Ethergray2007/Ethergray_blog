@@ -31,6 +31,7 @@
     "@astrojs/netlify": "^8.2.6",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
+    "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^7.3.5",
     "better-auth": "^1.7.6",

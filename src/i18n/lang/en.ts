@@ -13,7 +13,6 @@ export default {
   post: {
     publishedAt: "Published at",
     updatedAt: "Updated",
-    readingTime: "{{minutes}} min read",
     toc: "Table of Contents",
     sharePostIntro: "Share this post:",
     sharePostOn: "Share this post on {{platform}}",
