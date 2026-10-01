@@ -42,3 +42,6 @@ src/assets/images/hero-bg.png
 # 约定：在 practice/ 下临时写的验证脚本都用 _ 开头，
 # 这样无论起什么名字都不会被误提交。
 practice/_*
+
+# archify（画架构图技能）的中间产物，不是项目内容
+.archify/

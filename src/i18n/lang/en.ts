@@ -43,6 +43,8 @@ export default {
     viewProfile: "Profile",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
+    motionTitle: "Motion",
+    motionDesc: "A couple of animated clips.",
     browseTitle: "Start here",
     browseDesc: "Browse by content type",
     recentPosts: "Recent Posts",

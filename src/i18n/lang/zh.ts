@@ -46,6 +46,8 @@ export default {
     viewProfile: "个人主页",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
+    motionTitle: "动图",
+    motionDesc: "两张动图，随手放着。",
     browseTitle: "从哪看起",
     browseDesc: "按内容类型浏览",
     recentPosts: "最近文章",

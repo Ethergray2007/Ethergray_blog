@@ -1,0 +1,108 @@
+---
+/**
+ * 动画展示
+ * ============================================================
+ * 首页首屏下面那一条，并排放两个动画 GIF。
+ *
+ * 【为什么单独一个区块，而不是放首屏里】
+ * 这两个 GIF 是 560×315 的，而首屏左半边有 700~900px 宽 ——
+ * 铺进去要放大 1.3~1.6 倍，动漫线条会开始发虚。
+ *
+ * 放这里用**原始尺寸**（560 宽），不放大、不裁切，所以是清晰的。
+ * 而且它们在首屏下方，配合 loading="lazy"：
+ * 打开页面时不会下载，往下滚才加载 —— 首屏速度不受影响。
+ *
+ * 【为什么不铺满一整行】
+ * 一行铺满（比如 max-w-5xl ≈ 1024px）要放大 1.8 倍，又开始虚了。
+ * 所以并排两个 560px 刚好：560×2 + 间距 ≈ 1160px，
+ * 在宽屏上一行放得下，窄屏自动换行堆叠。
+ *
+ * 【为什么用 <img> 而不是 Astro 的 <Image>】
+ * Astro 的图片组件会调用 sharp 做优化 —— 对 GIF 来说那是灾难：
+ * sharp 只处理静态帧，动画会被压成一张不动的图。
+ * 所以这里用原始 import（拿到带哈希的网址）+ 普通 <img>，
+ * 让 GIF 原样输出。
+ *
+ * 想删掉这个区块？
+ *   1. 删掉这个文件
+ *   2. 删掉 index.astro 里的 import 和 <MotionShowcase />
+ *   3. 删掉 src/assets/images/ 下那两个 gif
+ *   4. 删掉 i18n 里的 home.motionTitle / motionDesc
+ * ============================================================
+ */
+import gifA from "@/assets/images/1789484835400.gif";
+import gifB from "@/assets/images/1790824600523.gif";
+
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+/**
+ * 两个 GIF 的清单。
+ *
+ * 尺寸写在这里而不是靠 <img> 读原图 ——
+ * 显式写 width/height 能让浏览器**提前留出位置**，
+ * 图没加载完时不会发生"内容往下跳"（这个叫布局位移，CLS）。
+ */
+const clips = [
+  {
+    /*
+     * ⚠️ 用 .src 而不是直接给 gifA。
+     *
+     * Astro 把图片 import 成 ImageMetadata 对象（{ src, width, height, format }），
+     * 不是字符串。直接塞给 <img src> 会得到 "[object Object]"，
+     * 而且类型检查会报 ImageMetadata 不能赋给 string。
+     *
+     * .src 是构建后的真实网址（带哈希），指向 public 里那份**原封不动**的 GIF。
+     */
+    src: gifA.src,
+    width: gifA.width,
+    height: gifA.height,
+    /** 空的 alt 是因为它是装饰性的，读屏软件念图名反而干扰 */
+    alt: "",
+  },
+  {
+    src: gifB.src,
+    width: gifB.width,
+    height: gifB.height,
+    alt: "",
+  },
+];
+---
+
+<section id="motion" class="mt-10 sm:mt-12">
+  <div class="mb-5">
+    <h2 class="section-heading">{t.home.motionTitle}</h2>
+
+    <p class="section-lede">{t.home.motionDesc}</p>
+  </div>
+
+  <ul class="mt-5 flex flex-wrap gap-4">
+    {
+      clips.map(clip => (
+        <li>
+          {/*
+            两个关键属性：
+              loading="lazy"   首屏不下载，滚动到附近才加载
+              decoding="async" 解码不阻塞页面渲染
+
+            宽度用 max-w-full 而不是固定 560px ——
+            窄屏（手机 375px）上 560px 会撑出横向滚动条。
+            height: auto 是为了在宽度被压缩时保持比例。
+          */}
+          <img
+            src={clip.src}
+            alt={clip.alt}
+            width={clip.width}
+            height={clip.height}
+            loading="lazy"
+            decoding="async"
+            class="border-base-300 rounded-box h-auto w-full max-w-full border"
+          />
+        </li>
+      ))
+    }
+  </ul>
+</section>
