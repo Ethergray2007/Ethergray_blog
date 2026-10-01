@@ -1,4 +1,43 @@
 ---
+/**
+ * 页脚
+ * ============================================================
+ * 自包含模块：只依赖 i18n 和 Socials。
+ *
+ * 【改版前它长什么样，为什么要重做】
+ *
+ * 原来的页脚是"一条灰色边框 + 左边两行版权 + 右边链接和图标"：
+ *
+ *   版权所有 © 2026 Ethergray          标签  归档  近况  关于
+ *   保留所有权利。                                ⌂  𝕏
+ *
+ * 三个问题，都不是审美问题而是结构问题：
+ *
+ *   1. **没有视觉锚点**。整块是纯文字，视线落下来没有东西接住它，
+ *      看起来像"页面没写完"。页面从首屏的霓虹光晕一路读下来，
+ *      到页脚突然什么都没有了。
+ *   2. **信息层级是平的**。"版权所有 © 2026"和"保留所有权利"各占一行，
+ *      但后者对个人博客没有任何实际作用，只是把一句法律套话铺成了两行。
+ *   3. **左右两栏没有关系**。左边的版权和右边的导航各自堆着，
+ *      高度还不一样，读起来很散。
+ *
+ * 【现在怎么做的】
+ *
+ *   1. 顶部一条**品牌渐变亮线**（主色→次色），和页面标题下面那条
+ *      （见 global.css 的 page-heading-rule）是同一个视觉符号 ——
+ *      整站靠它把"品牌色"挂在几个关键位置，成本极低但一眼能认出来。
+ *   2. 加一句**站点定位**（tagline）替代那句法律套话，页脚才有内容可读。
+ *   3. 玻璃底 + 淡化边框：和顶部导航用同一套处理（见 nav.css），
+ *      首尾呼应。注意这里**不用 backdrop-filter** ——
+ *      页脚下面没有内容滚动，模糊没有可模糊的东西，加了只是白费性能。
+ *   4. 社交图标不再裸放，收进一个有边框的小胶囊里，看着才像一个"控件"。
+ *
+ * 【为什么用 mt-auto 而不是去掉它】
+ * body 是 flex-col + min-h-svh。mt-auto 让页脚在**内容不足一屏**时
+ * 被推到页面底部 —— 少了它，短页面（比如 404）的页脚会浮在中间。
+ * 这个 prop 保留着，某些页面会传 noMarginTop。
+ * ============================================================
+ */
 import type { HTMLAttributes } from "astro/types";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
@@ -56,56 +95,80 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
 
 <footer
   class:list={[
-    "border-base-300 bg-base-100 border-t",
+    "site-footer border-base-300 border-t",
     { "mt-auto": !noMarginTop },
     className,
   ]}
   {...attrs}
 >
-  <div
-    class="site-shell flex flex-col items-center gap-4 py-6 sm:flex-row sm:justify-between sm:py-8"
-  >
-    <!-- Copyright -->
-    <div class="text-base-content-muted text-center text-sm sm:text-left">
-      <p>
-        {copyrightLine}
-      </p>
+  <div class="site-shell py-8 sm:py-10">
+    {
+      /*
+      上半：站点名 + 一句定位。
+      用 <p> 而不是 <h2> —— 页脚这里不需要进入文档大纲，
+      加个标题反而会让读屏软件的"按标题跳转"多出一个没用的落点。
+    */
+    }
+    <div class="flex flex-col gap-1.5">
+      <span class="text-base-content text-sm font-semibold">
+        {config.site.title}
+      </span>
 
-      <p class="mt-1">
-        {t.footer.allRightsReserved}
+      <p class="text-base-content-muted text-sm">
+        {t.footer.tagline}
       </p>
     </div>
 
-    <!-- 次要导航 + 社交链接 -->
-    <div class="flex flex-col items-center gap-4 sm:items-end">
-      {
-        /*
-        次要导航。
-        用 nav 标签而不是 div —— 读屏软件靠它识别"这是一组导航链接"，
-        并且能跳进来单独浏览。
-      */
-      }
-      <nav aria-label={t.footer.secondaryNav}>
-        <ul
-          class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
-        >
-          {
-            secondaryLinks.map(link => (
-              <li>
-                <a
-                  href={link.href}
-                  class="text-base-content-muted hover:text-primary transition-colors"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+    {
+      /*
+      中间：一条极淡的分隔线。
+      它承担的是"把页脚切成上下两半"，而不是装饰 ——
+      所以用边框色的淡版本，不用品牌渐变（渐变留给最上面那条）。
+    */
+    }
+    <div class="border-base-300/70 my-6 border-t sm:my-7"></div>
 
-      <div class="flex items-center">
-        <Socials />
+    <div
+      class="flex flex-col items-center gap-5 sm:flex-row sm:justify-between sm:gap-6"
+    >
+      <!-- 版权 -->
+      <p class="text-base-content-faint order-2 text-xs sm:order-1">
+        {copyrightLine}
+      </p>
+
+      <!-- 次要导航 + 社交链接 -->
+      <div class="order-1 flex flex-col items-center gap-4 sm:order-2">
+        <nav class="sm:justify-end" aria-label={t.footer.secondaryNav}>
+          <ul
+            class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
+          >
+            {
+              secondaryLinks.map(link => (
+                <li>
+                  <a
+                    href={link.href}
+                    class="text-base-content-muted hover:text-primary transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        {
+          /*
+          社交图标收进一个有边框的小胶囊。
+          没别的原因，就是裸放的图标看起来像"还没排完版" ——
+          给它一个容器，它才像一个可以点的控件。
+        */
+        }
+        <div
+          class="border-base-300 bg-base-100/60 flex items-center rounded-full border px-2 py-1"
+        >
+          <Socials />
+        </div>
       </div>
     </div>
   </div>
