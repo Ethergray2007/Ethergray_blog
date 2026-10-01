@@ -22,6 +22,10 @@ import {
 } from "../../../db/repositories/posts.ts";
 import { POST_STATUS } from "../../../db/schema.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
+import {
+  notifyNetlifyRebuild,
+  type NotifyRebuild,
+} from "../../../lib/rebuild.ts";
 import { slugifyStr } from "../../../utils/slugify.ts";
 
 import {
@@ -107,7 +111,27 @@ function parseId(raw: string | undefined): number | null {
   return id > 0 ? id : null;
 }
 
-export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
+/**
+ * 这次改动会不会影响**读者看得到的页面**？
+ *
+ * 只有会影响的才值得触发重新构建（一次构建一两分钟，还占构建额度）。
+ * 判断规则是"改动前后只要有一边是已发布"，三种情况：
+ *
+ *   前后都是草稿      站点上本来就看不到    → 不用重建
+ *   草稿 → 已发布     文章要出现            → 重建
+ *   已发布 → 草稿     文章要从站点上消失    → 重建
+ *
+ * 只看改动**之后**的状态会漏掉第三种（把已发布的文章收回成草稿时，
+ * 返回的文章是草稿，看着"没影响"，但线上那篇旧的还在）。
+ */
+function affectsReaders(before: string | null, after: string | null): boolean {
+  return before === POST_STATUS.published || after === POST_STATUS.published;
+}
+
+export function postRoutes(
+  resolveUser: ResolveUser = resolveUserFromSession,
+  notifyRebuild: NotifyRebuild = notifyNetlifyRebuild
+) {
   /**
    * 取当前登录用户，未登录返回 null。
    *
@@ -243,6 +267,16 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
           featured: body.featured ?? false,
         });
 
+        /**
+         * 先写库，再通知重建 —— 顺序不能反。
+         *
+         * 反过来的话，Netlify 可能在数据还没落库时就开始构建，
+         * 那次构建出来的页面就少一篇文章（而且没人会发现）。
+         */
+        if (affectsReaders(null, post.status)) {
+          await notifyRebuild(`新建了《${post.title}》`);
+        }
+
         set.status = 201;
 
         return { post };
@@ -335,6 +369,15 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
         }
 
         /**
+         * 先记下改之前的状态，用来判断"要不要重建"。
+         *
+         * 多这一次查询是必要的：把一篇已发布的文章收回成草稿时，
+         * 返回的文章是草稿，只看它就会以为"站点上看不出变化" ——
+         * 而线上那篇旧文章其实还在。
+         */
+        const before = await getPostById(db, id);
+
+        /**
          * 只把"确实传了的字段"交给仓库层。
          * 直接传 undefined 会把字段更新成 NULL，那是覆盖而不是局部修改。
          */
@@ -353,6 +396,10 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
         if (!post) {
           set.status = 404;
           return { error: "找不到该文章。", code: API_ERROR.notFound };
+        }
+
+        if (affectsReaders(before?.status ?? null, post.status)) {
+          await notifyRebuild(`修改了《${post.title}》`);
         }
 
         return { post };
@@ -379,11 +426,18 @@ export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
           };
         }
 
+        /* 和 PATCH 一样，先记下删之前的状态：已发布的文章删掉后要从站点上消失 */
+        const before = await getPostById(db, id);
+
         const deleted = await deletePost(db, id);
 
         if (!deleted) {
           set.status = 404;
           return { error: "找不到该文章。", code: API_ERROR.notFound };
+        }
+
+        if (affectsReaders(before?.status ?? null, null)) {
+          await notifyRebuild(`删除了《${before?.title ?? id}》`);
         }
 
         return { ok: true };

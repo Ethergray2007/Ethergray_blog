@@ -120,6 +120,53 @@ export async function createPost(db: Db, input: NewPost): Promise<PostRow> {
 }
 
 /**
+ * 按 slug 新增或更新一篇文章。
+ *
+ * 只给"把 Markdown 导入数据库"用（scripts/import-posts.ts）。
+ * 导入必须能**重复运行** —— 中途出错重跑时，已有的文章应该被更新，
+ * 而不是变成两份内容一样的文章。
+ *
+ * 【为什么不写成"先查再决定插入还是更新"】
+ *   那是两次查询加一次判断，而且把"slug 不能重复"这条规则在代码里
+ *   又写了一遍（数据库里已经有 posts_slug_unique 唯一索引）。
+ *   交给数据库的 ON CONFLICT 一次完成，规则只有一处。
+ *
+ * 【为什么 createdAt / updatedAt 是必填的】
+ *   它们有数据库默认值（now()），但默认值只在**插入**时生效。
+ *   走冲突分支（UPDATE）时如果调用方没给，就会把这两列写成 NULL，
+ *   或者把"最后修改时间"刷成现在 —— 后者会让同一篇文章导入两次
+ *   得到不同的数据，那就不算幂等了。
+ *
+ * ⚠️ 注意 insert 和 update 两个分支共用同一份 values：
+ *   否则容易出现"插入时用了默认值，更新时却写成 NULL"的不一致。
+ */
+export async function upsertPostBySlug(
+  db: Db,
+  input: NewPost & { slug: string; createdAt: Date; updatedAt: Date }
+): Promise<PostRow> {
+  const values: NewPost & { slug: string } = {
+    slug: input.slug,
+    title: input.title,
+    description: input.description ?? "",
+    body: input.body ?? "",
+    tags: input.tags ?? [],
+    status: input.status ?? POST_STATUS.draft,
+    featured: input.featured ?? false,
+    publishedAt: input.publishedAt ?? null,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  };
+
+  const rows = await db
+    .insert(posts)
+    .values(values)
+    .onConflictDoUpdate({ target: posts.slug, set: values })
+    .returning();
+
+  return rows[0]!;
+}
+
+/**
  * 更新文章。
  *
  * 会自动刷新 updatedAt，调用方不用自己传 —— 忘传的话

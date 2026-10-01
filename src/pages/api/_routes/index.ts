@@ -27,6 +27,10 @@ import { Elysia } from "elysia";
 
 import type { Db } from "../../../db/client.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
+import {
+  notifyNetlifyRebuild,
+  type NotifyRebuild,
+} from "../../../lib/rebuild.ts";
 
 import {
   authRoutes,
@@ -36,12 +40,15 @@ import {
 import { postRoutes } from "./posts.ts";
 
 /**
- * @param db          数据库连接。测试时传内存数据库
- * @param resolveUser 怎么判断当前登录用户。测试时传替身
+ * @param db            数据库连接。测试时传内存数据库
+ * @param resolveUser   怎么判断当前登录用户。测试时传替身
+ * @param notifyRebuild 文章改动后怎么通知站点重新构建。
+ *                      测试时传一个只记录的替身 —— 否则会真的去请求 Netlify。
  */
 export function createApi(
   db: Db,
-  resolveUser: ResolveUser = resolveUserFromSession
+  resolveUser: ResolveUser = resolveUserFromSession,
+  notifyRebuild: NotifyRebuild = notifyNetlifyRebuild
 ) {
   return (
     new Elysia({ prefix: "/api" })
@@ -129,7 +136,7 @@ export function createApi(
        * 把 resolveUser 传下去，是为了让测试能替换掉登录判断。
        */
       .use(authRoutes(resolveUser))
-      .use(postRoutes(resolveUser))
+      .use(postRoutes(resolveUser, notifyRebuild))
   );
 }
 

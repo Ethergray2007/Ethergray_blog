@@ -87,7 +87,30 @@
     }
   }
 
+  /**
+   * 按钮上的四段文案来自文章页的 data-* 属性。
+   *
+   * 【为什么不直接写在下面】
+   * 这个 script 是在浏览器里跑的，读不到服务端渲染时用的 t 对象。
+   * 写死中文的话，英文站点会半中半英 —— 所以由文章页用 t.post.*
+   * 渲染进 data-copy-*，这里再去读。
+   * （标题锚点用的是同一套办法：data-heading-link-label）
+   */
+  function getLabels() {
+    // 文章页一定会给这四条，见 posts/[...slug]/index.astro 里的 article 标签
+    const el = document.getElementById("article");
+
+    return {
+      copy: el?.dataset.copyLabel ?? "",
+      copyCode: el?.dataset.copyCodeLabel ?? "",
+      copied: el?.dataset.copiedLabel ?? "",
+      failed: el?.dataset.copyFailedLabel ?? "",
+    };
+  }
+
   function initCopyButtons() {
+    const labels = getLabels();
+
     /**
      * 只处理围栏代码块。Astro 给它们加了 .astro-code 类，
      * 行内代码（用反引号括起来的那种）没有这个类，不会被误加按钮。
@@ -131,19 +154,19 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "code-copy-btn";
-      button.textContent = "复制";
+      button.textContent = labels.copy;
       // 读屏软件靠这个知道按钮是干什么的
-      button.setAttribute("aria-label", "复制代码");
+      button.setAttribute("aria-label", labels.copyCode);
 
       button.addEventListener("click", async () => {
         const ok = await copyText(getCodeText(block));
 
-        button.textContent = ok ? "已复制" : "复制失败";
+        button.textContent = ok ? labels.copied : labels.failed;
         button.dataset.state = ok ? "done" : "error";
 
         // 1.5 秒后恢复，避免按钮一直停在"已复制"
         window.setTimeout(() => {
-          button.textContent = "复制";
+          button.textContent = labels.copy;
           delete button.dataset.state;
         }, 1500);
       });

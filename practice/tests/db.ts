@@ -24,6 +24,13 @@ import {
   listPublishedPosts,
   updatePost,
 } from "../../src/db/repositories/posts.ts";
+/**
+ * 只导入那个纯函数。
+ *
+ * 这个模块里还有依赖 Astro 上下文的 loader 本体（测不了），
+ * 但 toEntryData 是独立的纯函数 —— 这正是把它单独导出的原因。
+ */
+import { toEntryData } from "../../src/db/loaders/posts.ts";
 
 /* ---------- 准备一个干净的测试数据库 ---------- */
 const client = new PGlite();
@@ -221,6 +228,81 @@ const draftOk = await db
   .values({ slug: "draft-ok", title: "草稿", status: "draft" })
   .returning();
 check("草稿允许没有发布时间", draftOk.length === 1);
+
+/* ============================================================
+ * 文章集合的映射（数据库行 → 页面用的字段）
+ * ============================================================
+ * 这是 src/db/loaders/posts.ts 里的 toEntryData()。
+ *
+ * 【为什么专门测它】
+ *   它是"文章从数据库到页面"这条链路上唯一有判断逻辑的地方：
+ *   status 反推 draft、草稿用创建时间顶替发布时间、修改时间的判定。
+ *   而它上面没有页面 —— 写错了不会报错，只会让文章从列表里消失、
+ *   或者日期显示成另一个日子。所以在这里锁住。
+ * ========================================================== */
+console.log("\n=== 文章集合的映射 ===");
+
+/** 造一行数据库记录，只写关心的字段 */
+function fakeRow(overrides: Partial<schema.PostRow>): schema.PostRow {
+  const base = new Date("2026-09-25T02:00:00Z");
+
+  return {
+    id: 1,
+    slug: "demo",
+    title: "标题",
+    description: "描述",
+    body: "正文",
+    tags: ["Astro"],
+    status: schema.POST_STATUS.published,
+    featured: false,
+    publishedAt: base,
+    createdAt: base,
+    updatedAt: base,
+    ...overrides,
+  };
+}
+
+const publishedEntry = toEntryData(fakeRow({}));
+
+check("已发布的文章 draft 是 false", publishedEntry.draft === false);
+check("dbId 来自数据库的 id", publishedEntry.dbId === 1);
+check(
+  "发布时间用 published_at",
+  publishedEntry.pubDatetime.getTime() ===
+    new Date("2026-09-25T02:00:00Z").getTime()
+);
+
+/**
+ * 这一条是重点：数据库的 updated_at 每次保存都会变，
+ * 直接当成"修改时间"会让页面显示"更新于 <刚按保存的时间>"，
+ * 还会把老文章顶到首页第一位。
+ */
+check(
+  "刚发布就改（同一个瞬间）不算修改过",
+  toEntryData(fakeRow({ updatedAt: new Date("2026-09-25T02:00:30Z") }))
+    .modDatetime === null
+);
+
+check(
+  "过了一小时真的改了才算修改过",
+  toEntryData(fakeRow({ updatedAt: new Date("2026-09-25T03:00:00Z") }))
+    .modDatetime instanceof Date
+);
+
+const draftEntry = toEntryData(
+  fakeRow({
+    status: schema.POST_STATUS.draft,
+    publishedAt: null,
+    updatedAt: new Date("2026-09-25T02:00:00Z"),
+  })
+);
+
+check("草稿的 draft 是 true", draftEntry.draft === true);
+check(
+  "草稿没有发布时间时退回用创建时间",
+  draftEntry.pubDatetime.getTime() ===
+    new Date("2026-09-25T02:00:00Z").getTime()
+);
 
 /* ============================================================
  * 结果

@@ -2,26 +2,66 @@ import { defineCollection } from "astro:content";
 import { z } from "astro/zod";
 import { glob } from "astro/loaders";
 import config from "@/config";
+import { postsFromDatabase } from "@/db/loaders/posts";
 
+/**
+ * 文章原来存放的目录。
+ *
+ * ⚠️ 文章已经搬进数据库了（见下面 posts 集合的 loader），这个常量现在
+ *    只剩一个用处：getPostPaths.ts 用它从 filePath 里剥掉目录前缀。
+ *    而数据库来的文章没有 filePath，那段逻辑实际上不会生效 ——
+ *    留着是为了万一改回 Markdown 存文章时，那几个文件不用动。
+ */
 export const BLOG_PATH = "src/content/posts";
 
+/**
+ * 文章
+ *
+ * 【数据来源：数据库】
+ *   以前是 glob(...) —— 从 src/content/posts/*.md 读。
+ *   现在换成 postsFromDatabase()，从数据库的 posts 表读。
+ *   为什么要换、代价是什么，写在 src/db/loaders/posts.ts 的文件头里。
+ *
+ * 字段和数据库列的对应关系（对比 src/db/schema.ts 一起看）：
+ *   title/description/tags/featured  ←→ 同名列
+ *   pubDatetime  ←→ published_at（草稿为空时退回 created_at）
+ *   modDatetime  ←→ updated_at
+ *   draft        ←→ status !== "published"
+ *   dbId         ←→ id（后台按 id 编辑，所以页面需要知道它）
+ */
 const posts = defineCollection({
-  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: `./${BLOG_PATH}` }),
-  schema: ({ image }) =>
-    z.object({
-      author: z.string().default(config.site.author),
-      pubDatetime: z.date(),
-      modDatetime: z.date().optional().nullable(),
-      title: z.string(),
-      featured: z.boolean().optional(),
-      draft: z.boolean().optional(),
-      tags: z.array(z.string()).default(["others"]),
-      ogImage: image().or(z.string()).optional(),
-      description: z.string(),
-      canonicalURL: z.string().optional(),
-      hideEditPost: z.boolean().optional(),
-      timezone: z.string().optional(),
-    }),
+  loader: postsFromDatabase(),
+  schema: z.object({
+    /** 数据库里的主键。文章页的「编辑本页」用它跳转到后台编辑页 */
+    dbId: z.number(),
+
+    author: z.string().default(config.site.author),
+    pubDatetime: z.date(),
+    modDatetime: z.date().optional().nullable(),
+    title: z.string(),
+    featured: z.boolean().optional(),
+    draft: z.boolean().optional(),
+    tags: z.array(z.string()).default(["others"]),
+
+    /**
+     * 封面图地址。
+     *
+     * 【为什么从 image().or(z.string()) 改成了纯字符串】
+     *   image() 解析的是**相对于文章文件**的图片路径 ——
+     *   要算出这个相对路径，得有文章文件。
+     *   现在文章在数据库里，没有文件，只剩"一个现成的地址"
+     *   （外链，或者 public/ 里的文件）。
+     *
+     * 注意：数据库里目前还没有对应的列，也就是暂时没人能设置它，
+     * 文章页会走"动态生成 OG 图"那条路。
+     */
+    ogImage: z.string().optional(),
+
+    description: z.string(),
+    canonicalURL: z.string().optional(),
+    hideEditPost: z.boolean().optional(),
+    timezone: z.string().optional(),
+  }),
 });
 
 /**

@@ -1,9 +1,10 @@
 /**
  * API 集成测试
  * ============================================================
- * 用真实的 HTTP 请求打真实的 Elysia 应用，只把两处换成测试替身：
- *   · 数据库    → 内存版（PGlite，不碰线上数据）
- *   · 登录判断  → 假的（不走 GitHub OAuth，那需要浏览器和真实网络）
+ * 用真实的 HTTP 请求打真实的 Elysia 应用，只把三处换成测试替身：
+ *   · 数据库      → 内存版（PGlite，不碰线上数据）
+ *   · 登录判断    → 假的（不走 GitHub OAuth，那需要浏览器和真实网络）
+ *   · 触发重建    → 只记录不做事的替身（否则测试会真的去请求 Netlify）
  *
  * 【为什么测的是"我们自己的代码"而不是整套认证】
  * 登录流程（GitHub OAuth、会话 Cookie 的签名与加密）由 Better Auth 负责，
@@ -15,6 +16,7 @@
  *   · 已登录时文章增删改查是否正确
  *   · 参数校验、状态码、错误格式
  *   · 路由不存在时返回 404 而不是 500
+ *   · 文章改动后**该不该**触发站点重建
  *
  * 跑法：
  *   npm run api:test
@@ -27,6 +29,7 @@ import { applyMigrations } from "../../src/db/migrate-for-test.ts";
 import * as schema from "../../src/db/schema.ts";
 import { createApi } from "../../src/pages/api/_routes/index.ts";
 import type { ResolveUser } from "../../src/pages/api/_routes/auth.ts";
+import type { NotifyRebuild } from "../../src/lib/rebuild.ts";
 
 /* ------------------------------------------------------------------
  * 测试替身
@@ -46,6 +49,18 @@ const alwaysLoggedIn: ResolveUser = async () => FAKE_USER;
 /** 「永远未登录」，用来验证访问控制 */
 const neverLoggedIn: ResolveUser = async () => null;
 
+/**
+ * 「只记录、不请求」的重建通知。
+ *
+ * ⚠️ 必须显式传进去。默认实现会去 POST 环境变量里的 Netlify Build Hook ——
+ *    如果开发者本地正好配了那个变量，跑一次测试就会触发一串真实构建。
+ *    测试不该有这种副作用。
+ */
+const rebuildCalls: string[] = [];
+const spyNotifyRebuild: NotifyRebuild = async reason => {
+  rebuildCalls.push(reason);
+};
+
 /* ------------------------------------------------------------------
  * 准备数据库和两个应用实例
  * ----------------------------------------------------------------- */
@@ -61,8 +76,8 @@ await applyMigrations(client);
  *
  * 分开建比在一个应用里切换更清楚，也不会互相干扰。
  */
-const authedApp = createApi(db, alwaysLoggedIn);
-const anonApp = createApi(db, neverLoggedIn);
+const authedApp = createApi(db, alwaysLoggedIn, spyNotifyRebuild);
+const anonApp = createApi(db, neverLoggedIn, spyNotifyRebuild);
 
 /* ------------------------------------------------------------------
  * 断言与请求工具
@@ -409,6 +424,122 @@ const badJson = await authedApp.handle(
   })
 );
 check("请求体不是合法 JSON 时返回 400", badJson.status === 400, `实际 ${badJson.status}`);
+
+/* ==================================================================
+ * 10. 文章改动与站点重建
+ * ================================================================ */
+console.log("\n=== 10. 文章改动与站点重建 ===");
+
+/**
+ * 页面是构建时生成的静态 HTML，所以改完文章要通知 Netlify 重建一次。
+ * 但重建要一两分钟、还占构建额度，不能什么操作都触发 ——
+ * 规则是"改动前后只要有一边是已发布状态"。
+ *
+ * 每条断言前都清空记录，这样看到的就只是**这一次**操作的结果。
+ */
+rebuildCalls.length = 0;
+
+const draftOne = await asUser("POST", "/api/posts", { title: "只是草稿" });
+const draftOneId = (draftOne.body?.post as { id?: number } | undefined)?.id;
+
+check(
+  "新建草稿不触发重建",
+  rebuildCalls.length === 0,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("PATCH", `/api/posts/${draftOneId}`, { title: "改个标题，还是草稿" });
+
+check(
+  "改草稿不触发重建",
+  rebuildCalls.length === 0,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("PATCH", `/api/posts/${draftOneId}`, { status: "published" });
+
+check(
+  "草稿改成已发布要触发重建",
+  rebuildCalls.length === 1,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("PATCH", `/api/posts/${draftOneId}`, { title: "已发布的文章改标题" });
+
+check(
+  "改已发布的文章要触发重建",
+  rebuildCalls.length === 1,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("PATCH", `/api/posts/${draftOneId}`, { status: "draft" });
+
+/**
+ * 这条是本节的**重点**。
+ *
+ * 把已发布的文章收回成草稿时，接口返回的是草稿 —— 只看返回结果，
+ * 会以为"站点上看不出变化"。但线上那篇旧文章还在，
+ * 必须重建才能让它消失。
+ */
+check(
+  "已发布的收回成草稿也要触发重建",
+  rebuildCalls.length === 1,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("DELETE", `/api/posts/${draftOneId}`);
+
+check(
+  "删除草稿不触发重建",
+  rebuildCalls.length === 0,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+const publishedOne = await asUser("POST", "/api/posts", {
+  title: "直接发布的一篇",
+  status: "published",
+});
+const publishedOneId = (
+  publishedOne.body?.post as { id?: number } | undefined
+)?.id;
+
+check(
+  "新建时直接发布要触发重建",
+  rebuildCalls.length === 1,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asUser("DELETE", `/api/posts/${publishedOneId}`);
+
+check(
+  "删除已发布的文章要触发重建",
+  rebuildCalls.length === 1,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+rebuildCalls.length = 0;
+
+await asGuest("POST", "/api/posts", { title: "偷偷发的", status: "published" });
+
+check(
+  "未登录的写操作不触发重建",
+  rebuildCalls.length === 0,
+  `实际触发 ${rebuildCalls.length} 次`
+);
 
 /* ==================================================================
  * 汇总

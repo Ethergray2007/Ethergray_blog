@@ -18,6 +18,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:setup": "node scripts/db-setup.ts",
+    "posts:import": "node --env-file-if-exists=.env scripts/import-posts.ts",
     "db:test": "node practice/tests/db.ts",
     "api:test": "node practice/tests/api.ts",
     "auth:test": "node practice/tests/auth.ts",
@@ -75,6 +76,7 @@
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "yaml": "^2.9.1"
   }
 }
