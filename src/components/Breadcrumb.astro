@@ -2,7 +2,7 @@
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import { stripBase, stripLocale } from "@/utils/withBase";
-import { useTranslations } from "@/i18n";
+import { tplStr, useTranslations } from "@/i18n";
 import config from "@/config";
 
 const locale = Astro.currentLocale ?? config.site.lang;
@@ -22,6 +22,13 @@ const decodeSegment = (value: string) => {
   }
 };
 
+/**
+ * 网址第一段 → 显示名。
+ *
+ * 查不到就原样显示那一段（会露出英文 slug），所以**每加一个顶级页面
+ * 都要在这里补一行**，否则面包屑会出现「首页 / friends」这种半截翻译。
+ * （/friends、/notes、/projects 就是这么漏掉的。）
+ */
 const navLabels: Record<string, string> = {
   posts: t.nav.posts,
   tags: t.nav.tags,
@@ -29,13 +36,25 @@ const navLabels: Record<string, string> = {
   now: t.nav.now,
   archives: t.nav.archives,
   search: t.nav.search,
+  friends: t.nav.friends,
+  notes: t.nav.notes,
+  projects: t.nav.projects,
 };
 
+/**
+ * 页码文案用的占位符写法（和页脚版权行同一套）。
+ *
+ * 语言文件里存的是「第 {{n}} 页」这样的整句，而不是「第」这种半截词 ——
+ * 否则中文会渲染成「文章 (第 1)」，少一个「页」字。
+ * 顺带也不需要再 .toLowerCase() 迁就英文的 "Page"。
+ */
 if (breadcrumbList[0] === "posts") {
   breadcrumbList.splice(
     0,
     2,
-    `${t.nav.posts} (${t.pagination.page.toLowerCase()} ${breadcrumbList[1] || 1})`
+    `${t.nav.posts} (${tplStr(t.pagination.page, {
+      n: breadcrumbList[1] || 1,
+    })})`
   );
 }
 
@@ -46,7 +65,7 @@ if (breadcrumbList[0] === "tags" && !isNaN(Number(breadcrumbList[2]))) {
     `${decodeSegment(breadcrumbList[1])} ${
       Number(breadcrumbList[2]) === 1
         ? ""
-        : `(${t.pagination.page.toLowerCase()} ${breadcrumbList[2]})`
+        : `(${tplStr(t.pagination.page, { n: breadcrumbList[2] })})`
     }`
   );
 }

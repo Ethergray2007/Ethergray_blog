@@ -1,0 +1,390 @@
+/**
+ * 首页首屏 —— 深色舞台
+ * ============================================================
+ * 自包含模块。想删掉整个首屏：
+ *   1. 删这个文件
+ *   2. 删 global.css 里的 @import "./hero.css"
+ *   3. 删 index.astro 里 section#hero 那一整块
+ *   4. 删 public/hero-bg.jpg
+ *
+ * ------------------------------------------------------------
+ * 【它是什么】
+ *
+ * 全站唯一的深色区域，**不跟随主题切换**。
+ * 浅色模式下它是页面顶部一块深色舞台，深色模式下它和页面连成一片。
+ * 这样处理的原因：
+ *   · hero-bg.jpg 本身是暗调霓虹插画，翻成浅色就没有可用的形态
+ *   · 整站最深的地方放在第一屏，往下逐渐变亮/变干净，
+ *     视线自然是"从暗处走进内容"，比反过来自然
+ *
+ * 【核心机制：图片按高度缩放、贴左边】
+ *
+ *   一般写法  background-size: cover + center
+ *     问题：图被拉满整个宽度。屏幕越宽图放得越大，
+ *           人物的脸跑到画面中间，文字没地方放，只能压在脸上。
+ *
+ *   现在写法  background-size: auto 100% + left center
+ *     效果：图按**高度**缩放到和首屏一样高，宽度按原比例，
+ *           人物完整地贴在左边，右边剩下一片干净的区域给文字。
+ *           屏幕越宽，右边的空间越大 —— 这正是我们想要的。
+ *
+ *   代价：图比屏幕窄时左右不会有图。但右边本来就是给文字的，
+ *        左边是人物，所以不算问题。多出来的部分用光晕兜住。
+ * ============================================================
+ */
+
+#hero {
+  /*
+   * position: relative 是必须的 ——
+   * 里面那几层（图片、压暗、网格、光晕）都用 absolute 定位，需要参照物。
+   * 少了这行它们会相对整个页面定位，跑到页面外面去。
+   */
+  position: relative;
+
+  /* 裁掉溢出，避免背景图把页面顶出横向滚动条 */
+  overflow: hidden;
+
+  /*
+   * 兜底底色。万一图没加载出来（网络问题、文件被删），
+   * 这一块仍然是深色的，白色文字照样看得见。
+   *
+   * 只靠图片的话，图挂了就是"白底白字"—— 内容全看不见。
+   * 这个兜底色是必做的。
+   *
+   * 用 #08090f（比深色模式的 base-100 再深一点）：
+   * 首屏是全站最暗的地方，和下面内容区拉开一档。
+   */
+  background-color: #08090f;
+}
+
+/**
+ * 背景图。
+ *
+ * background-size 用 auto 100%（按高度缩放）而不是 cover（铺满）——
+ * 理由见文件头那段说明。
+ *
+ * auto 100% 的含义：
+ *   auto  → 宽度按原比例自动算
+ *   100%  → 高度等于容器高度
+ */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background-image: url("/hero-bg.jpg");
+  background-size: auto 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+}
+
+/**
+ * 压暗层 + 右侧接缝过渡。
+ *
+ * 这一层承担两件事：
+ *
+ *   1. 右侧压暗 —— 文字在右边，而图只占左边，右边露出的是底色，
+ *      需要一个足够深的底才能保证文字对比度
+ *
+ *   2. 让图片右边缘**融进**背景 —— 否则会出现一条生硬的竖直接缝：
+ *         [ 人物 ][  纯色  ]
+ *                  ↑ 这里会很突兀
+ *      用一层从透明到深色的横向渐变把接缝变成过渡。
+ *
+ * 渐变位置是调过的：40% 之前基本不动（让左侧人物清楚），
+ * 40% 之后快速压暗（把接缝吃掉），到 62% 已接近全黑（文字区稳）。
+ */
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(6 7 13 / 0.1) 0%,
+    rgb(6 7 13 / 0.22) 32%,
+    rgb(6 7 13 / 0.86) 42%,
+    rgb(6 7 13 / 0.95) 62%,
+    rgb(6 7 13 / 0.98) 100%
+  );
+}
+
+/**
+ * 网格底纹 —— 和页面背景上的那层是同一套语言（见 atmosphere.css）。
+ *
+ * 【为什么首屏要单独再铺一层】
+ * 页面背景那层是 fixed 且 z-index: -1 的，首屏自己的背景色
+ * 会把它盖住。想让首屏也有相同的纹理，就得自己铺一遍。
+ *
+ * 【为什么这里比页面那层稍微明显一点】
+ * 深底上同样的不透明度看起来会更淡（暗色的对比敏感度低），
+ * 所以这里用 7% 而不是 4%。
+ *
+ * 用 mask 让网格从左上（人物一侧）向右边淡出，
+ * 避免文字区被纹理干扰 —— 正文区域要尽量干净。
+ */
+.hero__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: 64px 64px;
+
+  -webkit-mask-image: linear-gradient(
+    100deg,
+    #000 0%,
+    rgb(0 0 0 / 0.55) 38%,
+    transparent 72%
+  );
+  mask-image: linear-gradient(
+    100deg,
+    #000 0%,
+    rgb(0 0 0 / 0.55) 38%,
+    transparent 72%
+  );
+}
+
+/**
+ * 霓虹光晕（mesh gradient）—— 把"照片"和"深色块"接起来的胶水。
+ *
+ * 【为什么必须有这一层】
+ * 没有它的时候，首屏是「左边一张照片 + 右边一块纯黑」，
+ * 两者的边界无论怎么压暗都能看出是拼的。
+ * 加一片**跨过接缝**的光之后，接缝被光盖住，
+ * 整块变成一个"有光的空间"。
+ *
+ * ============================================================
+ * 【这一层是照搬 elysia.nodejs.cn 的配方，不是自己调的】
+ *
+ * 扒了它的产物 CSS 之后发现，那个好看的彩色光晕不是两三层渐变，
+ * 而是**七层径向渐变叠加**（业内叫 mesh gradient），
+ * 出处是 Tailwind Plus 的 Glow 组件。原文长这样：
+ *
+ *   radial-gradient(at 9% 67%,   #4c7fff24 0, #0000 50%),  蓝
+ *   radial-gradient(at 22% 0%,   #61b0ff4a 0, #0000 50%),  天蓝
+ *   radial-gradient(at 97% 49%,  #bdbdff59 0, #0000 50%),  淡紫
+ *   radial-gradient(at 100% 75%, #d580ff42 0, #0000 50%),  紫
+ *   radial-gradient(at 75% 100%, #ffb58a30 0, #0000 50%),  橙
+ *   radial-gradient(at 40% 100%, #6666ff26 0, #0000 50%),  靛
+ *   radial-gradient(at 72% 0%,   #ff85a72b 0, #0000 50%)   粉
+ *
+ * 【两个必须照抄的细节，少一个就不像】
+ *
+ *   1. **色标停在 50%**（`0, #0000 50%`），不是常见的 `0%, 100%`。
+ *      停在 50% 意味着颜色从圆心到半径一半就走完整个衰减 ——
+ *      光斑更小、更"聚"，多个光斑之间留出暗部。
+ *      如果拉满到 100%，七层会糊成一团均匀的彩色，失去"一颗颗光"的感觉。
+ *
+ *   2. **每层都是 `at X% Y%` 的不对称定位**，位置是故意错开的。
+ *      七个光斑若均匀分布就会显得机械；这组坐标（9/22/40/72/75/97/100）
+ *      疏密不均，才是"自然光"的样子。
+ *
+ * 【为什么这里用固定色值而不是 var(--color-primary)】
+ * 首屏是**固定深色区**（不跟随主题），而主题色在浅色/深色下是两个值。
+ * 用主题变量的话，浅色模式切进来会把亮粉打在深色照片上，颜色会飘。
+ * 固定色值 + 固定的深色底，这一块的表现才是可预期的。
+ *
+ * ⚠️ 最上面那层深色径向（closest-side）是**压暗底座**：
+ * 原配方在浅色场景用的是白色径向（#fffc），
+ * 我们这里是深色舞台，所以换成深色，作用是把画面中心压住、
+ * 保证白字对比度 —— 和下面 .hero__scrim 是叠加关系，不是重复。
+ * ============================================================
+ */
+.hero__glow {
+  position: absolute;
+  inset: 0;
+  background-image:
+    /* 压暗底座：压住中心，给文字区垫对比度 */
+    radial-gradient(
+      closest-side at 60% 45%,
+      rgb(6 7 13 / 0.55),
+      transparent 100%
+    ),
+    /* ---- 以下七层照搬参考站配方（色标停在 50%）---- */
+    radial-gradient(at 9% 67%, rgb(76 127 255 / 0.16) 0, transparent 50%),
+    radial-gradient(at 22% 0%, rgb(97 176 255 / 0.3) 0, transparent 50%),
+    radial-gradient(at 97% 49%, rgb(189 189 255 / 0.36) 0, transparent 50%),
+    radial-gradient(at 100% 75%, rgb(213 128 255 / 0.28) 0, transparent 50%),
+    radial-gradient(at 75% 100%, rgb(255 181 138 / 0.2) 0, transparent 50%),
+    radial-gradient(at 40% 100%, rgb(102 102 255 / 0.16) 0, transparent 50%),
+    radial-gradient(at 72% 0%, rgb(255 133 167 / 0.18) 0, transparent 50%);
+}
+
+/**
+ * 文字区。
+ *
+ * 用 grid 把内容推到右边，而不是靠 padding-left 硬顶 ——
+ * 这样文字区的起点是"列"的一部分，和其他区块的栅格一致。
+ *
+ * minmax(0, 34rem) 里的 0 是为了防溢出：
+ * grid 项目的默认 min-width 是 auto，长内容会把它撑破。
+ */
+.hero__content {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  min-height: 22rem;
+  padding-block: 3.5rem;
+}
+
+@media (min-width: 64rem) {
+  .hero__content {
+    grid-template-columns: 1fr minmax(0, 34rem);
+    min-height: 28rem;
+    padding-block: 5.5rem;
+  }
+
+  /* 文字放第二列（右边） */
+  .hero__text {
+    grid-column: 2;
+  }
+}
+
+/**
+ * 首屏文字。
+ *
+ * ⚠️ 颜色是**写死的浅色**，不跟随主题切换。
+ *
+ * 这是有意的：首屏背景永远是深色，文字必须永远是浅色。
+ * 如果跟着主题走，浅色模式下会变成"深色字压在深色图上"—— 看不见。
+ * （这种区域叫「局部反色区」：固定深色块，内部全部用反色。）
+ */
+.hero__title {
+  color: #f8f7fc;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  text-wrap: balance;
+  text-shadow: 0 2px 20px rgb(0 0 0 / 0.6);
+}
+
+.hero__lead {
+  color: rgb(248 247 252 / 0.92);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.55);
+}
+
+.hero__more {
+  color: rgb(248 247 252 / 0.68);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.55);
+}
+
+/**
+ * 首屏里的按钮和徽章。
+ *
+ * daisyUI 的 btn-outline 默认是"深色描边 + 深色文字"，
+ * 压在深色图上几乎看不见，所以覆盖成浅色。
+ *
+ * ⚠️ 只用 #hero 限定在首屏内部，不动全局的 .btn-outline ——
+ * 那会影响其他页面上正常背景里的按钮。
+ */
+#hero .btn-outline {
+  border-color: rgb(248 247 252 / 0.45);
+  color: #f8f7fc;
+  background-color: rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(8px);
+}
+
+#hero .btn-outline:hover {
+  border-color: rgb(248 247 252 / 0.85);
+  background-color: rgb(255 255 255 / 0.14);
+  color: #ffffff;
+}
+
+/**
+ * 首屏里的主按钮。
+ *
+ * 深色模式的主色是亮粉 #f06292，压在深色图上是够看的；
+ * 但浅色模式的主色是加深版 #d6336c —— 它压在深色图上会"沉下去"。
+ * 首屏是固定深色区，所以这里固定用亮粉，和主题无关。
+ */
+#hero .btn-primary {
+  background-color: #f06292;
+  border-color: #f06292;
+  color: #2b0716;
+}
+
+#hero .btn-primary:hover {
+  background-color: #f585ac;
+  border-color: #f585ac;
+}
+
+#hero .badge-soft {
+  background-color: rgb(255 255 255 / 0.14);
+  color: #f8f7fc;
+  backdrop-filter: blur(8px);
+}
+
+#hero .btn-ghost {
+  color: rgb(248 247 252 / 0.8);
+}
+
+#hero .btn-ghost:hover {
+  background-color: rgb(255 255 255 / 0.12);
+  color: #ffffff;
+}
+
+/**
+ * 焦点圈。
+ *
+ * 两个考虑：
+ *   1. 深色背景上默认的焦点色（深色）几乎看不出来 → 换成亮色
+ *   2. 用 inset（向内画）—— 向外的 outline 会被 #hero 的
+ *      overflow: hidden 裁掉，键盘用户就看不到焦点在哪了
+ */
+#hero a:focus-visible,
+#hero button:focus-visible {
+  outline: 2px solid #f9a8d4;
+  outline-offset: -2px;
+}
+
+/**
+ * 窄屏：图不再贴左边，而是居中放大一点。
+ *
+ * 手机上宽度不够，如果还按 left center，右边会空出太多、
+ * 文字的对比度也会不够（渐变那侧没图可压）。
+ * 所以窄屏改成 center + cover，整块铺满，压暗层整块压下来。
+ */
+@media (max-width: 63.9375rem) {
+  .hero__bg {
+    background-size: cover;
+    background-position: center;
+  }
+
+  .hero__scrim {
+    background: linear-gradient(
+      185deg,
+      rgb(6 7 13 / 0.72) 0%,
+      rgb(6 7 13 / 0.66) 40%,
+      rgb(6 7 13 / 0.92) 100%
+    );
+  }
+
+  /*
+   * 窄屏没有"左图右文"的分区，网格失去方向感，
+   * 所以改成从中心向四周淡出。
+   */
+  .hero__grid {
+    -webkit-mask-image: radial-gradient(
+      ellipse 90% 70% at 50% 40%,
+      #000 20%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse 90% 70% at 50% 40%,
+      #000 20%,
+      transparent 100%
+    );
+  }
+}
+
+/**
+ * 减少动态效果。
+ *
+ * 首屏目前只有 hover 的颜色过渡，这条是预防性的：
+ * 以后如果加了进场动画，这里已经挡住了。
+ * （系统开了"减少动态效果"的人会因为动效产生眩晕，这不是可选项。）
+ */
+@media (prefers-reduced-motion: reduce) {
+  #hero * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

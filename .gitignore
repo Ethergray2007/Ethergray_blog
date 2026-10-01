@@ -1,36 +1,58 @@
-# build output
+# 构建产物
 dist/
 
-# generated types
+# Astro 生成的类型
 .astro/
 
-# dependencies
+# 依赖
 node_modules/
 
-# 工具临时目录（DSH harness 调试时会产生）
-.dsh-probe/
+# 环境变量（里面有数据库密码和登录密钥，绝不能提交）
+#
+# .env.local / .env.*.local 是各框架约定俗成的"本地覆盖"文件，
+# 优先级**比 .env 高** —— 也就是说密钥更可能落在这些文件里。
+# 之前只挡了 .env 和 .env.production，这两个漏在外面。
+#
+# ⚠️ 不能图省事写成 .env* —— .env.example 是给人看的模板，
+#    必须留在仓库里。
+.env
+.env.local
+.env.*.local
+.env.production
 
-# logs
+# Pagefind 搜索索引（每次构建重新生成）
+public/pagefind
+
+# Netlify 本地构建目录
+.netlify
+
+# 日志
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# environment variables
-.env
-.env.production
-
-# macOS-specific files
+# 操作系统/编辑器产生的杂项
 .DS_Store
-
-# jetbrains setting folder
 .idea/
 
-# pagefind
-public/pagefind
+# 工具临时目录（DSH harness 调试时会产生）
+.dsh-probe/
+# 调试时截的页面截图，不是项目内容
+.dsh-shots/
 
-# pnpm
-.pnpm-store
+# 本项目专用的 npm 缓存（避免写全局缓存目录，也避免误提交）
+.npm-cache/
 
-# docker compose
-compose.override.yaml
+# 首屏背景图的**原图**（约 6 MB，本地素材，不进仓库）
+# 成品是 public/hero-bg.jpg（约 108 KB，已提交）
+# 想换图：把新图放到这个位置，然后跑 node scripts/make-hero-bg.ts
+src/assets/images/hero-bg.png
+
+# 一次性探索脚本（下划线开头 = 用完即删，不进仓库）
+# 约定：在 practice/ 下临时写的验证脚本都用 _ 开头，
+# 这样无论起什么名字都不会被误提交。
+practice/_*
+
+# archify（画架构图技能）的中间产物，不是项目内容
+.archify/

@@ -1,0 +1,92 @@
+/**
+ * 测试专用：把迁移文件应用到内存数据库
+ * ============================================================
+ * 【只在测试里用】
+ *   PGlite 是全新的空数据库，测试前必须先把 drizzle/ 里的迁移跑一遍，
+ *   才有和线上一样的表结构。
+ *
+ * 【为什么不用 drizzle-kit migrate】
+ *   那个命令是给真实数据库用的：它会连库、并在
+ *   drizzle.__drizzle_migrations 表里记账。
+ *   而测试用的 PGlite 是**进程内**的，drizzle-kit 根本连不上它。
+ *   所以这里按文件名顺序直接执行 SQL。
+ *
+ * 真实数据库一律走 `npm run db:migrate`。
+ * ============================================================
+ */
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+
+/**
+ * drizzle 生成的迁移文件里，多条语句用这个注释分隔。
+ * 见 drizzle/0000_*.sql 里的 `--> statement-breakpoint`。
+ *
+ * 必须切开逐条执行：一次发多条语句时，只有部分驱动支持。
+ */
+const STATEMENT_BREAKPOINT = "--> statement-breakpoint";
+
+/** 迁移文件所在目录（相对项目根目录） */
+const MIGRATIONS_DIR = "drizzle";
+
+/**
+ * 能执行原始 SQL 的对象。
+ *
+ * 这个文件只用于测试，而测试用的数据库是 PGlite（进程内的 PostgreSQL），
+ * 它的接口就是 exec(sql)。
+ *
+ * 为什么还允许 unsafe(sql)：早先生产用的是 postgres-js 驱动，
+ * 它的接口是 unsafe(sql)。虽然现在换成 Neon HTTP 驱动了，
+ * 留着这个分支的成本几乎为零，而且以后想换回 TCP 驱动时不用再改这里。
+ */
+export type ExecutableDb = {
+  exec?: (sql: string) => Promise<unknown>;
+  unsafe?: (sql: string) => Promise<unknown>;
+};
+
+/** 根据拿到的是哪种客户端，选对应的方法执行 SQL */
+async function runStatement(db: ExecutableDb, sql: string): Promise<void> {
+  if (typeof db.exec === "function") {
+    await db.exec(sql);
+    return;
+  }
+
+  if (typeof db.unsafe === "function") {
+    await db.unsafe(sql);
+    return;
+  }
+
+  throw new Error(
+    "传进来的数据库对象既没有 exec() 也没有 unsafe()，无法执行 SQL。"
+  );
+}
+
+/**
+ * 按文件名顺序，把所有迁移应用到给定的数据库。
+ *
+ * @returns 应用了几个迁移文件
+ */
+export async function applyMigrations(
+  db: ExecutableDb,
+  migrationsDir: string = MIGRATIONS_DIR
+): Promise<number> {
+  const files = (await readdir(migrationsDir))
+    .filter(name => name.endsWith(".sql"))
+    // 文件名形如 0000_xxx.sql、0001_yyy.sql，
+    // 直接按字符串排序就是正确的时间顺序
+    .sort();
+
+  for (const file of files) {
+    const sql = await readFile(path.join(migrationsDir, file), "utf8");
+
+    const statements = sql
+      .split(STATEMENT_BREAKPOINT)
+      .map(part => part.trim())
+      .filter(part => part.length > 0);
+
+    for (const statement of statements) {
+      await runStatement(db, statement);
+    }
+  }
+
+  return files.length;
+}

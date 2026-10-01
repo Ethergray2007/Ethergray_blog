@@ -78,9 +78,14 @@ const projects = [
           PERSONAL / {currentYear}
         </p>
 
-        <h1 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
-          个人主页
-        </h1>
+        {
+          /*
+          这是页面主标题（h1），不是区块标题 ——
+          所以不用 subsection-heading（那是给 h2/h3 的）。
+          h1 的规格由这个页面自己定，因为它是整站唯一一处。
+        */
+        }
+        <h1 class="mt-2 text-2xl font-bold">个人主页</h1>
       </div>
 
       <div class="flex items-center gap-2 self-start sm:self-auto">
@@ -164,11 +169,11 @@ const projects = [
             </div>
 
             <div class="mt-5">
-              <h2 class="text-3xl font-black tracking-tight">Ethergray</h2>
+              <h2 class="section-heading">Ethergray</h2>
 
               <p class="text-primary mt-1 font-mono text-sm">@Ethergray2007</p>
 
-              <p class="text-base-content/60 mt-4 text-sm leading-7">
+              <p class="text-base-content-strong mt-4 text-sm leading-7">
                 正在探索计算机图形学、渲染、人机交互与智能系统，
                 通过持续实践和构建项目寻找自己的方向。
               </p>
@@ -178,19 +183,19 @@ const projects = [
 
             <dl class="space-y-4 text-sm">
               <div class="flex items-start justify-between gap-4">
-                <dt class="text-base-content/45">身份</dt>
+                <dt class="text-base-content-faint">身份</dt>
                 <dd class="text-right font-medium">计算机科学学生</dd>
               </div>
 
               <div class="flex items-start justify-between gap-4">
-                <dt class="text-base-content/45">方向</dt>
+                <dt class="text-base-content-faint">方向</dt>
                 <dd>
                   <span class="badge badge-primary badge-sm"> 图形学 </span>
                 </dd>
               </div>
 
               <div class="flex items-start justify-between gap-4">
-                <dt class="text-base-content/45">所在地</dt>
+                <dt class="text-base-content-faint">所在地</dt>
                 <dd class="font-medium">中国</dd>
               </div>
             </dl>
@@ -223,7 +228,7 @@ const projects = [
               <div>
                 <h3 class="font-semibold">交流状态</h3>
 
-                <p class="text-base-content/45 mt-1 text-xs">当前合作状态</p>
+                <p class="text-base-content-faint mt-1 text-xs">当前合作状态</p>
               </div>
 
               <input
@@ -269,7 +274,7 @@ const projects = [
         <section class="card border-base-300 bg-base-100 border shadow-sm">
           <div class="card-body p-5">
             <p
-              class="text-base-content/40 mb-3 text-xs font-semibold tracking-[0.18em] uppercase"
+              class="text-base-content-faint mb-3 text-xs font-semibold tracking-[0.18em] uppercase"
             >
               SOCIAL
             </p>
@@ -307,7 +312,7 @@ const projects = [
                 </h2>
 
                 <p
-                  class="text-base-content/60 mt-6 max-w-2xl text-sm leading-7 sm:text-base sm:leading-8"
+                  class="text-base-content-strong mt-6 max-w-2xl text-sm leading-7 sm:text-base sm:leading-8"
                 >
                   这里不是一份简历，而是记录目前正在学习、 构建和探索的东西。
                 </p>
@@ -408,7 +413,7 @@ const projects = [
                     OVERVIEW
                   </p>
 
-                  <h2 class="mt-2 text-2xl font-bold">现在正在关注什么</h2>
+                  <h2 class="subsection-heading">现在正在关注什么</h2>
                 </div>
 
                 <div class="badge badge-info badge-soft">进行中</div>
@@ -445,7 +450,7 @@ const projects = [
                   <div class="card-body p-5">
                     <h3 class="card-title text-base">当前方向</h3>
 
-                    <p class="text-base-content/60 text-sm leading-7">
+                    <p class="text-base-content-strong text-sm leading-7">
                       夯实计算机基础，同时持续构建图形学、
                       渲染与交互方向的小型项目。
                     </p>
@@ -466,7 +471,7 @@ const projects = [
                   <div class="card-body p-5">
                     <h3 class="card-title text-base">学习方式</h3>
 
-                    <p class="text-base-content/60 text-sm leading-7">
+                    <p class="text-base-content-strong text-sm leading-7">
                       从基础理解系统，再把概念真正做成 能够运行的东西。
                     </p>
 
@@ -497,7 +502,7 @@ const projects = [
                   STACK
                 </p>
 
-                <h2 class="mt-2 text-2xl font-bold">技术栈</h2>
+                <h2 class="subsection-heading">技术栈</h2>
               </div>
 
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -508,7 +513,7 @@ const projects = [
                       <span class="badge badge-outline badge-sm"> 核心 </span>
                     </div>
 
-                    <p class="text-base-content/55 mt-2 text-sm">
+                    <p class="text-base-content-muted mt-2 text-sm">
                       主要编程语言
                     </p>
                   </div>
@@ -521,7 +526,9 @@ const projects = [
                       <span class="badge badge-outline badge-sm"> 使用中 </span>
                     </div>
 
-                    <p class="text-base-content/55 mt-2 text-sm">算法 / AI</p>
+                    <p class="text-base-content-muted mt-2 text-sm">
+                      算法 / AI
+                    </p>
                   </div>
                 </div>
 
@@ -532,7 +539,14 @@ const projects = [
                       <span class="badge badge-outline badge-sm"> 学习中 </span>
                     </div>
 
-                    <p class="text-base-content/55 mt-2 text-sm">实时图形</p>
+                    {
+                      /*
+                      卡片里的说明，不是区块副标题 ——
+                      所以不用 section-lede（那个带 mt-1 + 响应式字号）。
+                      卡内文字要紧凑，用固定的小号。
+                    */
+                    }
+                    <p class="text-base-content-muted mt-2 text-sm">实时图形</p>
                   </div>
                 </div>
 
@@ -543,7 +557,9 @@ const projects = [
                       <span class="badge badge-outline badge-sm"> 使用中 </span>
                     </div>
 
-                    <p class="text-base-content/55 mt-2 text-sm">本站技术栈</p>
+                    <p class="text-base-content-muted mt-2 text-sm">
+                      本站技术栈
+                    </p>
                   </div>
                 </div>
               </div>
@@ -566,7 +582,7 @@ const projects = [
                   ROADMAP
                 </p>
 
-                <h2 class="mt-2 text-2xl font-bold">学习路线</h2>
+                <h2 class="subsection-heading">学习路线</h2>
               </div>
 
               <ul class="steps steps-vertical w-full">
@@ -594,7 +610,7 @@ const projects = [
                 SELECTED WORK
               </p>
 
-              <h2 class="mt-2 text-3xl font-black tracking-tight">项目</h2>
+              <h2 class="section-heading">项目</h2>
             </div>
 
             <details id="project-filter-menu" class="dropdown dropdown-end">
@@ -632,7 +648,7 @@ const projects = [
                 >
                   <div class="card-body p-5 sm:p-6">
                     <div class="flex items-center justify-between gap-3">
-                      <span class="text-base-content/35 font-mono text-xs">
+                      <span class="text-base-content-faint font-mono text-xs">
                         {project.number}
                       </span>
 
@@ -641,9 +657,9 @@ const projects = [
                       </span>
                     </div>
 
-                    <h3 class="mt-4 text-xl font-bold">{project.title}</h3>
+                    <h3 class="subsection-heading mt-4">{project.title}</h3>
 
-                    <p class="text-base-content/55 mt-2 min-h-14 text-sm leading-6">
+                    <p class="text-base-content-muted mt-2 min-h-14 text-sm leading-6">
                       {project.short}
                     </p>
 
@@ -658,7 +674,7 @@ const projects = [
                         详细信息
                       </summary>
 
-                      <div class="collapse-content text-base-content/60 px-4 text-sm leading-6">
+                      <div class="collapse-content text-base-content-muted px-4 text-sm leading-6">
                         {project.description}
                       </div>
                     </details>
@@ -706,7 +722,7 @@ const projects = [
                 LAB NOTES
               </p>
 
-              <h2 class="mt-2 text-2xl font-bold">最近正在研究的东西</h2>
+              <h2 class="subsection-heading">最近正在研究的东西</h2>
             </div>
 
             <div class="carousel rounded-box w-full gap-3">
@@ -721,7 +737,7 @@ const projects = [
                       投影与坐标系统
                     </h3>
 
-                    <p class="text-base-content/55 text-sm leading-7">
+                    <p class="text-base-content-strong text-sm leading-7">
                       理解一个 3D 点如何从世界空间一路变换到最终屏幕。
                     </p>
                   </div>
@@ -737,7 +753,7 @@ const projects = [
 
                     <h3 class="mt-2 text-lg font-bold sm:text-xl">实时渲染</h3>
 
-                    <p class="text-base-content/55 text-sm leading-7">
+                    <p class="text-base-content-strong text-sm leading-7">
                       探索光栅化、着色器、光照以及实时渲染器的基本架构。
                     </p>
                   </div>
@@ -753,7 +769,7 @@ const projects = [
 
                     <h3 class="mt-2 text-lg font-bold sm:text-xl">智能交互</h3>
 
-                    <p class="text-base-content/55 text-sm leading-7">
+                    <p class="text-base-content-strong text-sm leading-7">
                       持续关注智能系统与人机交互之间的结合。
                     </p>
                   </div>
@@ -778,7 +794,7 @@ const projects = [
               FAQ
             </p>
 
-            <h2 class="mt-2 text-3xl font-black">关于这个页面</h2>
+            <h2 class="section-heading">关于这个页面</h2>
           </div>
 
           <div class="space-y-2">
@@ -790,7 +806,7 @@ const projects = [
               </summary>
 
               <div
-                class="collapse-content text-base-content/60 text-sm leading-7"
+                class="collapse-content text-base-content-muted text-sm leading-7"
               >
                 因为实际构建、测试和学习的过程，更能体现现在正在做什么。
               </div>
@@ -804,7 +820,7 @@ const projects = [
               </summary>
 
               <div
-                class="collapse-content text-base-content/60 text-sm leading-7"
+                class="collapse-content text-base-content-muted text-sm leading-7"
               >
                 目前主要关注计算机图形学与渲染，同时持续探索 AI、人机交互和 XR。
               </div>
@@ -818,7 +834,7 @@ const projects = [
               </summary>
 
               <div
-                class="collapse-content text-base-content/60 text-sm leading-7"
+                class="collapse-content text-base-content-muted text-sm leading-7"
               >
                 没有。这个页面本身就是一个持续变化中的学习记录。
               </div>
@@ -840,11 +856,11 @@ const projects = [
                 KEEP GOING
               </p>
 
-              <h2 class="mt-2 text-xl font-bold">
+              <h2 class="subsection-heading">
                 更多项目、实验与笔记会逐步出现在这里。
               </h2>
 
-              <p class="text-base-content/55 mt-1 text-sm">
+              <p class="text-base-content-muted mt-1 text-sm">
                 © {currentYear} Ethergray
               </p>
             </div>
@@ -882,7 +898,7 @@ const projects = [
 
           <h3 class="mt-4 text-2xl font-black sm:text-3xl">{project.title}</h3>
 
-          <p class="text-base-content/60 mt-4 text-sm leading-7 sm:text-base">
+          <p class="text-base-content-strong mt-4 text-sm leading-7 sm:text-base">
             {project.description}
           </p>
 
@@ -933,7 +949,7 @@ const projects = [
 
       <h3 class="mt-4 text-2xl font-black sm:text-3xl">交流一下</h3>
 
-      <p class="text-base-content/60 mt-3 text-sm leading-7">
+      <p class="text-base-content-strong mt-3 text-sm leading-7">
         如果想交流项目、技术或者其他有趣的想法，可以通过下面的链接联系。
       </p>
 
@@ -1028,7 +1044,7 @@ const projects = [
 
           status.className = enabled
             ? "alert alert-info alert-soft mt-4 text-sm"
-            : "alert alert-neutral alert-soft mt-4 text-sm";
+            : "alert alert-soft mt-4 text-sm";
 
           status.innerHTML = enabled
             ? `

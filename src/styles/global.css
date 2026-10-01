@@ -1,13 +1,61 @@
 @import "tailwindcss";
 @import "./theme.css";
 @import "./typography.css";
+@import "./katex.css";
+@import "./hero.css";
+@import "./atmosphere.css";
+@import "./nav.css";
+@import "./page-glow.css";
 @import "rehype-callouts/theme/obsidian";
 
-@plugin "daisyui";
+/**
+ * daisyUI 组件 + 我们自己的主题。
+ * ============================================================
+ * 【为什么写 themes: false】
+ *
+ * 不写这个（原来的写法是光秃秃的 `@plugin "daisyui";`），
+ * daisyUI 会把它的内置 light / dark 两套颜色一起发出来，
+ * 并且因为是后注册，会**压过** theme.css 里的自定义值。
+ * 表现是"改了主题色但页面没变"—— 这个坑改版时踩过。
+ *
+ * themes: false 关掉的是**内置颜色层**，不是组件本身 ——
+ * btn / card / badge / navbar 这些样式照常可用，
+ * 它们需要的 --color-* 由 theme.css 里的
+ * `@plugin "daisyui/theme"` 提供。
+ *
+ * ⚠️ 顺序不能换：必须先把这里的内置层关掉，
+ * theme.css 里的自定义主题才说了算。
+ * ============================================================
+ */
+@plugin "daisyui" {
+  themes: false;
+}
 
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+/**
+ * dark: 变体映射到 data-theme="dark"。
+ *
+ * 项目用 data-theme 属性切换主题（见 src/scripts/theme.ts），
+ * 而 Tailwind 4 默认的 dark: 是跟随系统 prefers-color-scheme 的。
+ * 不盖掉它的话，"点按钮切换深色"和"系统是深色"会打架：
+ * 用户在浅色系统上手动切到深色，所有 dark:* 类都不会生效。
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @layer base {
+  /*
+   * 全站默认字体 = 系统无衬线栈（--font-sans 在 theme.css 里定义）。
+   *
+   * ⚠️ 为什么在 base 层写，而不是靠 Layout.astro 的 font-app 类：
+   * 那个类只挂在 body 上，`<code>` 之类会自己找等宽字体没问题，
+   * 但 **表单控件（input / textarea / button / select）不继承字体** ——
+   * 它们用浏览器默认的 UI 字体。后台写作台那边全是输入框，
+   * 不显式指定的话会出现"页面一种字体、输入框另一种"的割裂感。
+   */
+  html {
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border outline-accent/75;
     scrollbar-width: auto;
@@ -43,6 +91,130 @@
 
 @utility active-nav {
   @apply underline decoration-wavy decoration-2 underline-offset-8;
+}
+
+/**
+ * 区块标题 —— 两个层级，只有两个。
+ * ============================================================
+ * 【为什么用 @utility 而不是写个 SectionHeading 组件】
+ *
+ * 发现全站区块标题有 16 种不同的 class 写法时，第一反应是
+ * "写个组件把它收进去"。但那是发明自己的抽象 ——
+ * 标题就是个 h2，不需要 props、import、嵌套，包一层组件只是多一层。
+ *
+ * Tailwind 4 本身提供了"可复用样式"的机制就是 @utility，
+ * 而且这个文件里已经在用它（site-shell / content-shell 等）。
+ * 用 @utility 的额外好处：
+ *   · 它就是一个 class，全局能搜到（组件得先找 import）
+ *   · 调用方仍可以用别的工具类覆盖（比如 mt-5），组件做不到
+ *   · 不需要在页面里加 import
+ *
+ * 【两个层级的区分依据】
+ * 不是"重要程度"，是**在文档结构里的位置**：
+ *
+ *   section-heading     页面内容的一级分区
+ *                       例：首页的「从哪看起」「最近文章」、
+ *                           关于页的「核心开源项目」
+ *   subsection-heading  分区内部的小标题
+ *                       例：关于页的「它们是怎样组合起来的？」
+ *
+ * 两级的字号区间**刻意不重叠**（section 从 2xl 起、subsection 到 xl 止），
+ * 这样不会出现"这个标题到底算哪一级"的模糊地带。
+ *
+ * ⚠️ 视觉层级和 HTML 标签（h2 / h3）是两件事：
+ *    用哪个标签看它在文档里的实际位置，与这里的 class 无关。
+ * ============================================================
+ */
+@utility section-heading {
+  /*
+   * text-balance 让多行标题**按语义断行**而不是按字数填满第一行 ——
+   * 中文标题在窄屏上折成"半行 + 一个孤字"是最常见的廉价感来源。
+   */
+  @apply text-base-content text-2xl font-black tracking-tight text-balance sm:text-3xl;
+}
+
+/**
+ * 页面标题（h1）。
+ * ============================================================
+ * 【为什么必须和 section-heading 拉开】
+ *
+ * 改版前 h1 是 `text-3xl sm:text-4xl font-bold`，
+ * 而 section-heading（h2）是 `text-2xl sm:text-3xl font-black` ——
+ * 只差一档字号，**而且 h2 还更粗**。
+ * 结果是：区块标题看起来比页面标题还重，层级是倒挂的。
+ * 一页里分不出"这是页面"和"这是页面里的一节"，读起来就没有骨架。
+ *
+ * 【现在的分工】
+ *   page-heading     text-3xl → sm:5xl，font-black   ← 一页只有一次
+ *   section-heading  text-2xl → sm:3xl，font-black   ← 分区
+ *   subsection-…     text-lg  → sm:xl， font-bold    ← 分区内部
+ * 三级之间**字号区间完全不重叠**，不会再出现"这个算哪一级"。
+ *
+ * 【为什么不用渐变文字】
+ * 把 h1 做成粉→紫渐变是很容易想到的一手，但两个代价：
+ *   1. 渐变的浅色端在浅色底上对比度会掉到 3:1 左右，标题反而变糊
+ *   2. background-clip: text 在部分浏览器/缩放组合下会出现锯齿边缘
+ * 所以这里改用"尺度 + 一条渐变小横线"来给 h1 识别度，
+ * 文字本身保持纯色（对比度可控）。
+ * ============================================================
+ */
+@utility page-heading {
+  @apply text-base-content text-3xl font-black tracking-tight text-balance sm:text-5xl;
+}
+
+/**
+ * h1 下面那条装饰线。
+ *
+ * 用渐变（主色 → 次色）而不是纯色，是为了和首屏照片里
+ * 粉紫色的霓虹呼应 —— 整站就靠这一条线把"页面标题"和
+ * "品牌色"挂上钩，成本极低但一眼能认出来。
+ *
+ * 宽度只占 3rem，不做整行 —— 整行会变成一条"分割线"，
+ * 那是另一个意思（表示分区）。这里是"标题的收尾笔"。
+ */
+@utility page-heading-rule {
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-top: 0.875rem;
+  border-radius: 999px;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
+}
+
+/**
+ * 分区上方的小标签（eyebrow）。
+ *
+ * 【为什么收成工具类】
+ * "全大写 + 大字距 + 小字号 + 强调色"这个组合在 about / profile
+ * 两个页面里手写了 8 次（`text-primary text-xs font-semibold
+ * tracking-[0.2em] uppercase`）。手写 8 次的问题不是麻烦，
+ * 是**它们会慢慢漂移** —— 有的 0.18em 有的 0.2em，
+ * 层级就散了。收进来之后改一处全站跟着变。
+ *
+ * ⚠️ 中文不要用这个：中文没有大小写，`uppercase` 无效果，
+ *    而 0.2em 的字距会把中文拆得七零八落。它只适合拉丁文标签。
+ */
+@utility eyebrow {
+  @apply text-primary text-xs font-semibold tracking-[0.18em] uppercase;
+}
+
+@utility subsection-heading {
+  @apply text-base-content text-lg font-bold sm:text-xl;
+}
+
+/**
+ * 区块标题下面那行副标题。
+ *
+ * 用中间那档颜色（muted）：
+ *   faint   太淡，和正文脱节
+ *   strong  和主标题抢
+ */
+@utility section-lede {
+  @apply text-base-content-muted mt-1 text-sm sm:text-base;
 }
 
 :target {

@@ -9,50 +9,58 @@ export default {
     archives: "归档",
     search: "搜索",
     now: "近况",
+    friends: "友链",
+    notes: "说说",
+    projects: "项目",
   },
 
   post: {
-    publishedAt: "发表于",
     updatedAt: "更新于",
-    readingTime: "约 {{minutes}} 分钟阅读",
     toc: "目录",
+    headingLink: "本节链接",
     sharePostIntro: "分享这篇文章：",
     sharePostOn: "分享到 {{platform}}",
     sharePostViaEmail: "通过邮件分享这篇文章",
     tagLabel: "标签",
     backToTop: "返回顶部",
-    goBack: "返回",
     editPage: "编辑页面",
     previousPost: "上一篇",
     nextPost: "下一篇",
+    copy: "复制",
+    copyCode: "复制代码",
+    copied: "已复制",
+    copyFailed: "复制失败",
   },
 
   pagination: {
     prev: "上一页",
     next: "下一页",
-    page: "第",
+    page: "第 {{n}} 页",
   },
 
   home: {
-    socialLinks: "社交链接",
     badge: "博客",
-    heroTitle: "欢迎",
-    heroLead: "欢迎来到我的博客。",
+    heroTitle: "记录学习的地方",
+    heroLead: "一个个人博客，写技术，也写学习过程本身。",
     heroMore:
-      "这里记录算法、编程、图形学学习过程，以及值得长期保留的技术内容。",
-    viewReadme: "查看 README",
+      "这里记录算法、编程、图形学的学习过程，以及值得长期保留的技术内容。",
+    viewSource: "博客源码",
     viewProfile: "个人主页",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
+    motionTitle: "动图",
+    motionDesc: "两张动图，随手放着。",
+    browseTitle: "从哪看起",
+    browseDesc: "按内容类型浏览",
     recentPosts: "最近文章",
     recentPostsDesc: "最近更新的文章",
     allPosts: "全部文章",
   },
 
   footer: {
-    copyright: "版权所有",
-    copyrightLine: "版权所有 © {{year}} {{author}}",
-    allRightsReserved: "保留所有权利。",
+    copyrightLine: "© {{year}} {{author}}",
+    tagline: "记录学习过程本身",
+    secondaryNav: "次要导航",
   },
 
   pages: {
@@ -73,6 +81,28 @@ export default {
 
     nowTitle: "近况",
     nowDesc: "我现在在做什么、在学什么。",
+
+    friendsTitle: "友链",
+    friendsDesc: "我常看的博客，以及一路认识的人。",
+
+    notesTitle: "说说",
+    notesDesc: "随手记的一些碎片，不成文章。",
+
+    projectsTitle: "项目",
+    projectsDesc: "我在做和在学的东西。",
+  },
+
+  friends: {
+    empty: "还没有友链。",
+  },
+
+  notes: {
+    empty: "还没有说说。",
+  },
+
+  projects: {
+    empty: "还没有项目。",
+    viewSource: "查看源码",
   },
 
   a11y: {
@@ -90,5 +120,52 @@ export default {
     title: "404 未找到",
     message: "页面未找到",
     goHome: "返回首页",
+  },
+
+  admin: {
+    loginTitle: "登录后台",
+    signInWithGithub: "用 GitHub 登录",
+    githubHint: "只有博客主人的 GitHub 账号能登录。",
+
+    postsTitle: "文章管理",
+    newPost: "写新文章",
+    edit: "编辑",
+    delete: "删除",
+    confirmDelete: "确定要删除这篇文章吗？删掉之后无法恢复。",
+
+    editTitle: "编辑文章",
+    newPostTitle: "写新文章",
+    fieldTitle: "标题",
+    fieldSlug: "网址标识",
+    slugHint: "留空就根据标题自动生成。改它会让旧链接失效。",
+    fieldDescription: "摘要",
+    fieldBody: "正文（Markdown）",
+    fieldTags: "标签",
+    tagsHint: "用英文逗号分隔，例如：Astro, 笔记",
+    fieldStatus: "状态",
+    statusDraft: "草稿",
+    statusPublished: "已发布",
+    fieldFeatured: "置顶",
+    save: "保存",
+    saving: "保存中……",
+    saved: "已保存",
+    rebuild: "立即重建",
+    rebuilding: "正在请求……",
+    rebuildOk: "已请求重建，约 1~2 分钟后生效。",
+    rebuildNotConfigured: "没有配置 NETLIFY_BUILD_HOOK_URL，点了也不会重建。",
+    rebuildFailed: "通知 Netlify 失败了，看服务端日志。",
+    savedNeedsRebuild:
+      "已保存到数据库。要让它出现在站点上，点右边的「立即重建」。",
+    rebuildHint: "每次重建消耗 Netlify 15 积分",
+    backToList: "返回列表",
+    logout: "登出",
+
+    loading: "加载中……",
+    empty: "还没有文章。点上面的「写新文章」开始吧。",
+
+    colTitle: "标题",
+    colStatus: "状态",
+    colUpdated: "更新时间",
+    colActions: "操作",
   },
 } satisfies UIStrings;

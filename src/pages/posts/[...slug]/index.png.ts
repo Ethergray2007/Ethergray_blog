@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
-import { fontData, experimental_getFontFileURL } from "astro:assets";
+import { fontData } from "astro:assets";
 import satori from "satori";
 import sharp from "sharp";
 import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
 import { getPostSlug } from "@/utils/getPostPaths";
+import { readFontFile } from "@/utils/readFontFile";
 import config from "@/config";
 
 export async function getStaticPaths() {
@@ -22,7 +23,7 @@ export async function getStaticPaths() {
   }));
 }
 
-export const GET: APIRoute = async ({ props, url }) => {
+export const GET: APIRoute = async ({ props }) => {
   if (!config.features.dynamicOgImage) {
     return new Response(null, { status: 404, statusText: "Not found" });
   }
@@ -35,13 +36,15 @@ export const GET: APIRoute = async ({ props, url }) => {
     throw new Error("Cannot find the font path.");
   }
 
+  /**
+   * 从磁盘读，不用 fetch —— 原因见 src/utils/readFontFile.ts 的文件头。
+   * 简短版：OG 图是预渲染的，构建时没人在服务那个字体地址，
+   * fetch 拿回来的是一张 HTML 错误页，satori 会报一个看不懂的
+   * RangeError。
+   */
   const [regularData, boldData] = await Promise.all([
-    fetch(experimental_getFontFileURL(regularFontPath, url)).then(res =>
-      res.arrayBuffer()
-    ),
-    fetch(experimental_getFontFileURL(boldFontPath, url)).then(res =>
-      res.arrayBuffer()
-    ),
+    readFontFile(regularFontPath),
+    readFontFile(boldFontPath),
   ]);
 
   const svg = await satori(

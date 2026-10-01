@@ -1,0 +1,424 @@
+---
+/**
+ * 后台文章编辑器  /admin/posts/[id]
+ * ============================================================
+ * 自包含：只依赖 adminApi.ts 和 i18n。
+ *
+ * 一个文件同时处理"新建"和"编辑"：
+ *   /admin/posts/new  → 新建（id 是字面量 "new"）
+ *   /admin/posts/123  → 编辑第 123 篇
+ *
+ * 为什么不拆成两个文件：
+ *   表单长得一模一样，差别只有"是否预填数据"和"保存时调 create 还是
+ *   update"。拆开会让两边的大部分代码重复，改一处要记得改两处。
+ *
+ * 想删掉这个页面？连同 src/pages/admin/ 整个目录一起删。
+ *
+ * 【为什么 prerender = false】
+ * 动态后台页面，需要每次请求由服务端渲染。
+ * ============================================================
+ */
+import Layout from "@/layouts/Layout.astro";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+export const prerender = false;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const { id = "new" } = Astro.params;
+
+/**
+ * 在服务端就判断出是新建还是编辑，把结果写进页面。
+ *
+ * 这样客户端脚本不用再去解析 URL —— 少一处可能出错的地方。
+ * 注意 "NaN" 的情况：/admin/posts/abc 这种地址会被当成编辑一个
+ * 不存在的 id，加载时后端会返回 404，然后提示用户。
+ */
+const isNew = id === "new";
+const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
+---
+
+<Layout title={`${pageTitle} | ${config.site.title}`}>
+  <main class="mx-auto max-w-3xl px-6 py-12">
+    <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-bold">{pageTitle}</h1>
+      <a href="/admin/posts" class="btn btn-ghost btn-sm">
+        {t.admin.backToList}
+      </a>
+    </div>
+
+    <p id="status" class="text-error mb-4 text-sm"></p>
+
+    <form id="post-form" class="flex flex-col gap-5">
+      {/* 标题 */}
+      <div>
+        <label class="label" for="title">
+          <span class="label-text">{t.admin.fieldTitle}</span>
+        </label>
+        <input
+          id="title"
+          type="text"
+          class="input input-bordered w-full"
+          required
+        />
+      </div>
+
+      {/* 网址标识 */}
+      <div>
+        <label class="label" for="slug">
+          <span class="label-text">{t.admin.fieldSlug}</span>
+        </label>
+        <input id="slug" type="text" class="input input-bordered w-full" />
+        <p class="mt-1 text-xs opacity-60">{t.admin.slugHint}</p>
+      </div>
+
+      {/* 摘要 */}
+      <div>
+        <label class="label" for="description">
+          <span class="label-text">{t.admin.fieldDescription}</span>
+        </label>
+        <input
+          id="description"
+          type="text"
+          class="input input-bordered w-full"
+        />
+      </div>
+
+      {/* 正文 */}
+      <div>
+        <label class="label" for="body">
+          <span class="label-text">{t.admin.fieldBody}</span>
+        </label>
+        <textarea
+          id="body"
+          rows="16"
+          class="textarea textarea-bordered w-full font-mono text-sm"
+        ></textarea>
+      </div>
+
+      {/* 标签 */}
+      <div>
+        <label class="label" for="tags">
+          <span class="label-text">{t.admin.fieldTags}</span>
+        </label>
+        <input id="tags" type="text" class="input input-bordered w-full" />
+        <p class="mt-1 text-xs opacity-60">{t.admin.tagsHint}</p>
+      </div>
+
+      {/* 状态 + 置顶 */}
+      <div class="flex flex-wrap items-center gap-6">
+        <div class="flex items-center gap-2">
+          <label class="label" for="status">
+            <span class="label-text">{t.admin.fieldStatus}</span>
+          </label>
+          <select id="status" class="select select-bordered select-sm">
+            <option value="draft">{t.admin.statusDraft}</option>
+            <option value="published">{t.admin.statusPublished}</option>
+          </select>
+        </div>
+
+        <label class="flex cursor-pointer items-center gap-2">
+          <input id="featured" type="checkbox" class="checkbox checkbox-sm" />
+          <span class="text-sm">{t.admin.fieldFeatured}</span>
+        </label>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="save" type="submit" class="btn btn-primary">
+          {t.admin.save}
+        </button>
+        <span id="saved" class="text-success text-sm"></span>
+      </div>
+
+      {
+        /*
+        重建按钮单独一行，而且 type="button" —— 它不是"提交表单"，
+        点它不该触发保存。
+
+        【为什么保存之外还要一个按钮】
+        保存只写数据库，站点是**构建时**生成的静态 HTML，所以要让改动
+        出现在线上得重新构建一次。而 Netlify 免费套餐每次生产部署花
+        15 积分（一个月 300），所以只有"站点上该有哪些页面变了"
+        （发新文章、下线、删除）才自动重建；改一篇已发布文章的正文
+        属于"页面还在、内容旧了"，由作者自己决定什么时候花这 15 分。
+        完整规则见 src/lib/rebuild.ts 的文件头。
+      */
+      }
+      <div
+        class="border-base-300 flex flex-wrap items-center gap-3 border-t pt-4"
+      >
+        <button id="rebuild" type="button" class="btn btn-outline btn-sm">
+          {t.admin.rebuild}
+        </button>
+        <span id="rebuild-status" class="text-sm"></span>
+        <span class="text-base-content-faint text-xs"
+          >{t.admin.rebuildHint}</span
+        >
+      </div>
+    </form>
+  </main>
+</Layout>
+
+<script
+  type="application/json"
+  id="editor-config"
+  set:html={JSON.stringify({
+    isNew,
+    id,
+    texts: {
+      save: t.admin.save,
+      saving: t.admin.saving,
+      saved: t.admin.saved,
+      loading: t.admin.loading,
+      rebuilding: t.admin.rebuilding,
+      rebuildOk: t.admin.rebuildOk,
+      rebuildNotConfigured: t.admin.rebuildNotConfigured,
+      rebuildFailed: t.admin.rebuildFailed,
+      savedNeedsRebuild: t.admin.savedNeedsRebuild,
+    },
+  })}
+/>
+
+<script>
+  import {
+    postsApi,
+    rebuildApi,
+    NotLoggedInError,
+    type RebuildOutcome,
+  } from "@/utils/adminApi";
+
+  type EditorConfig = {
+    isNew: boolean;
+    id: string;
+    texts: Record<string, string>;
+  };
+
+  const cfg = JSON.parse(
+    document.querySelector<HTMLScriptElement>("#editor-config")?.textContent ??
+      "{}"
+  ) as EditorConfig;
+
+  const form = document.querySelector<HTMLFormElement>("#post-form");
+  const titleInput = document.querySelector<HTMLInputElement>("#title");
+  const slugInput = document.querySelector<HTMLInputElement>("#slug");
+  const descriptionInput =
+    document.querySelector<HTMLInputElement>("#description");
+  const bodyInput = document.querySelector<HTMLTextAreaElement>("#body");
+  const tagsInput = document.querySelector<HTMLInputElement>("#tags");
+  const statusSelect = document.querySelector<HTMLSelectElement>("#status");
+  const featuredInput = document.querySelector<HTMLInputElement>("#featured");
+  const saveButton = document.querySelector<HTMLButtonElement>("#save");
+  const statusEl = document.querySelector<HTMLParagraphElement>("#status");
+  const savedEl = document.querySelector<HTMLSpanElement>("#saved");
+  const rebuildButton = document.querySelector<HTMLButtonElement>("#rebuild");
+  const rebuildStatusEl =
+    document.querySelector<HTMLSpanElement>("#rebuild-status");
+
+  let currentId: number | null = cfg.isNew ? null : Number(cfg.id);
+
+  /** 显示一条错误提示 */
+  function showError(text: string): void {
+    if (statusEl) {
+      statusEl.textContent = text;
+    }
+  }
+
+  /**
+   * 这次改动对线上的影响，该跟作者说什么。
+   *
+   * 判断依据是**后端返回的 rebuild 字段**，不是前端自己猜 ——
+   * "要不要自动重建"这条规则只写在 src/pages/api/_routes/posts.ts 里，
+   * 前端再抄一份的话，迟早两边对不上。
+   */
+  function rebuildMessage(outcome: RebuildOutcome | null): string {
+    switch (outcome) {
+      case "triggered":
+        return cfg.texts.rebuildOk ?? "";
+
+      case "not-configured":
+        return cfg.texts.rebuildNotConfigured ?? "";
+
+      case "failed":
+        return cfg.texts.rebuildFailed ?? "";
+
+      /**
+       * null = 后端**没有**触发重建。会走到这里的只有一种情况：
+       * 改了一篇已发布文章的正文/标题/标签。页面还在线上，只是内容旧了，
+       * 所以提醒作者点旁边的按钮。
+       */
+      default:
+        return cfg.texts.savedNeedsRebuild ?? "";
+    }
+  }
+
+  /** 清掉错误和"已保存"提示 */
+  function clearMessages(): void {
+    if (statusEl) {
+      statusEl.textContent = "";
+    }
+
+    if (savedEl) {
+      savedEl.textContent = "";
+    }
+
+    if (rebuildStatusEl) {
+      rebuildStatusEl.textContent = "";
+    }
+  }
+
+  /** 把表单内容收集成一个对象 */
+  function collectForm(): Record<string, unknown> {
+    /**
+     * 标签按英文逗号分隔，顺便去掉空项和首尾空格。
+     * 这样"a, b, , c"会变成 ["a","b","c"]，不会存进空标签。
+     */
+    const tags = (tagsInput?.value ?? "")
+      .split(",")
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+
+    return {
+      title: titleInput?.value.trim() ?? "",
+      slug: slugInput?.value.trim() ?? "",
+      description: descriptionInput?.value.trim() ?? "",
+      body: bodyInput?.value ?? "",
+      tags,
+      status: statusSelect?.value ?? "draft",
+      featured: featuredInput?.checked ?? false,
+    };
+  }
+
+  /** 编辑模式下把文章内容填进表单 */
+  async function loadExisting(): Promise<void> {
+    if (currentId === null || Number.isNaN(currentId)) {
+      showError("网址里的文章编号不对。");
+      return;
+    }
+
+    try {
+      const post = await postsApi.get(currentId);
+
+      if (titleInput) titleInput.value = post.title;
+      if (slugInput) slugInput.value = post.slug;
+      if (descriptionInput) descriptionInput.value = post.description;
+      if (bodyInput) bodyInput.value = post.body;
+      if (tagsInput) tagsInput.value = post.tags.join(", ");
+      if (statusSelect) statusSelect.value = post.status;
+      if (featuredInput) featuredInput.checked = post.featured;
+    } catch (error) {
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      showError(error instanceof Error ? error.message : "加载失败。");
+    }
+  }
+
+  form?.addEventListener("submit", async event => {
+    event.preventDefault();
+    clearMessages();
+
+    const data = collectForm();
+
+    if (String(data.title).length === 0) {
+      showError("标题不能为空。");
+      return;
+    }
+
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = cfg.texts.saving ?? "保存中……";
+    }
+
+    try {
+      const { post, rebuild } =
+        currentId === null
+          ? await postsApi.create(data)
+          : await postsApi.update(currentId, data);
+
+      /**
+       * 新建成功后记住 id，这样再点保存就是"更新"而不是又建一篇。
+       * 顺便把地址换成编辑页，刷新浏览器不会变成再建一篇。
+       */
+      if (currentId === null) {
+        currentId = post.id;
+        history.replaceState(null, "", `/admin/posts/${post.id}`);
+      }
+
+      // 后端可能会改写 slug（比如标题是中文时自动生成），同步回表单
+      if (slugInput) {
+        slugInput.value = post.slug;
+      }
+
+      if (savedEl) {
+        savedEl.textContent = cfg.texts.saved ?? "已保存";
+      }
+
+      /**
+       * 顺手告诉作者"这次改动到线上了没有"。
+       * 保存成功不等于上线 —— 站点是构建时生成的静态 HTML。
+       */
+      if (rebuildStatusEl) {
+        rebuildStatusEl.textContent = rebuildMessage(rebuild);
+      }
+    } catch (error) {
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      showError(error instanceof Error ? error.message : "保存失败。");
+    } finally {
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = cfg.texts.save ?? "保存";
+      }
+    }
+  });
+
+  /**
+   * 「立即重建」按钮。
+   *
+   * 走的是 POST /api/rebuild —— 它只做一件事：让 Netlify 重新构建一次。
+   * 不在这里再调保存，因为保存是用户自己按的，两件事不该捆在一起
+   * （那样点一下重建会顺带把表单里没保存的改动也提交了）。
+   */
+  rebuildButton?.addEventListener("click", async () => {
+    clearMessages();
+
+    if (rebuildStatusEl) {
+      rebuildStatusEl.textContent = cfg.texts.rebuilding ?? "正在请求……";
+    }
+
+    if (rebuildButton) {
+      rebuildButton.disabled = true;
+    }
+
+    try {
+      const outcome = await rebuildApi.trigger();
+
+      // 手动点击走到这里 outcome 一定不是 null，所以不会是"要点按钮"那句
+      if (rebuildStatusEl) {
+        rebuildStatusEl.textContent = rebuildMessage(outcome);
+      }
+    } catch (error) {
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      showError(error instanceof Error ? error.message : "重建请求失败。");
+    } finally {
+      if (rebuildButton) {
+        rebuildButton.disabled = false;
+      }
+    }
+  });
+
+  if (!cfg.isNew) {
+    void loadExisting();
+  }
+</script>

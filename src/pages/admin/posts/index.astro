@@ -1,0 +1,249 @@
+---
+/**
+ * 后台文章列表  /admin/posts
+ * ============================================================
+ * 自包含：只依赖 adminApi.ts 和 i18n。
+ *
+ * 想删掉这个页面？连同 src/pages/admin/ 整个目录一起删。
+ *
+ * 【为什么 prerender = false】
+ * 动态后台页面，需要每次请求由服务端渲染。博客正文页仍是静态的。
+ * ============================================================
+ */
+import Layout from "@/layouts/Layout.astro";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+export const prerender = false;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+---
+
+<Layout title={`${t.admin.postsTitle} | ${config.site.title}`}>
+  <main class="mx-auto max-w-4xl px-6 py-12">
+    <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <h1 class="text-2xl font-bold">{t.admin.postsTitle}</h1>
+
+      <div class="flex gap-2">
+        <a href="/admin/posts/new" class="btn btn-primary btn-sm">
+          {t.admin.newPost}
+        </a>
+        <button id="logout" type="button" class="btn btn-ghost btn-sm">
+          {t.admin.logout}
+        </button>
+      </div>
+    </div>
+
+    {/* 加载中 / 出错 / 空列表，三种提示共用这一块 */}
+    <p id="status" class="text-center text-sm opacity-70">
+      {t.admin.loading}
+    </p>
+
+    <div id="table-wrap" class="hidden overflow-x-auto">
+      <table class="table-zebra table">
+        <thead>
+          <tr>
+            <th>{t.admin.colTitle}</th>
+            <th>{t.admin.colStatus}</th>
+            <th>{t.admin.colUpdated}</th>
+            <th class="text-right">{t.admin.colActions}</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+</Layout>
+
+{
+  /*
+  文案从服务端传到客户端脚本。
+  i18n 是 Astro 服务端的东西，客户端拿不到，所以用这种方式传递 ——
+  这样界面文案依然只定义在 src/i18n 里，没有在脚本里硬编码。
+*/
+}
+<script
+  type="application/json"
+  id="admin-texts"
+  set:html={JSON.stringify({
+    loading: t.admin.loading,
+    empty: t.admin.empty,
+    edit: t.admin.edit,
+    remove: t.admin.delete,
+    confirmDelete: t.admin.confirmDelete,
+    statusDraft: t.admin.statusDraft,
+    statusPublished: t.admin.statusPublished,
+  })}
+/>
+
+<script>
+  import {
+    postsApi,
+    signOut,
+    NotLoggedInError,
+    type AdminPost,
+  } from "@/utils/adminApi";
+
+  const texts = JSON.parse(
+    document.querySelector<HTMLScriptElement>("#admin-texts")?.textContent ??
+      "{}"
+  ) as Record<string, string>;
+
+  const statusEl = document.querySelector<HTMLParagraphElement>("#status");
+  const tableWrap = document.querySelector<HTMLDivElement>("#table-wrap");
+  const rowsEl = document.querySelector<HTMLTableSectionElement>("#rows");
+  const logoutButton = document.querySelector<HTMLButtonElement>("#logout");
+
+  function setStatus(text: string, isError = false): void {
+    if (!statusEl) {
+      return;
+    }
+
+    statusEl.textContent = text;
+    statusEl.classList.toggle("text-error", isError);
+    statusEl.classList.remove("hidden");
+  }
+
+  /** 把 ISO 时间格式化成好读的本地时间 */
+  function formatDate(iso: string): string {
+    const date = new Date(iso);
+
+    return Number.isNaN(date.getTime())
+      ? "—"
+      : date.toLocaleString("zh-CN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+  }
+
+  /**
+   * 渲染一行。
+   *
+   * 用 document.createElement 而不是拼 HTML 字符串 ——
+   * 标题里可能有 < > & 这类字符，拼字符串会造成 HTML 注入。
+   * textContent 会自动转义，从根上避免这个问题。
+   */
+  function createRow(post: AdminPost): HTMLTableRowElement {
+    const row = document.createElement("tr");
+
+    // 标题
+    const titleCell = document.createElement("td");
+    const titleLink = document.createElement("a");
+    titleLink.href = `/admin/posts/${post.id}`;
+    titleLink.className = "link link-hover font-medium";
+    titleLink.textContent = post.title;
+    titleCell.append(titleLink);
+    row.append(titleCell);
+
+    // 状态
+    const statusCell = document.createElement("td");
+    const badge = document.createElement("span");
+    const isPublished = post.status === "published";
+    badge.className = `badge badge-sm ${isPublished ? "badge-success" : "badge-ghost"}`;
+    badge.textContent = isPublished
+      ? (texts.statusPublished ?? "已发布")
+      : (texts.statusDraft ?? "草稿");
+    statusCell.append(badge);
+    row.append(statusCell);
+
+    // 更新时间
+    const updatedCell = document.createElement("td");
+    updatedCell.className = "whitespace-nowrap text-sm opacity-70";
+    updatedCell.textContent = formatDate(post.updatedAt);
+    row.append(updatedCell);
+
+    // 操作
+    const actionsCell = document.createElement("td");
+    actionsCell.className = "text-right whitespace-nowrap";
+
+    const editLink = document.createElement("a");
+    editLink.href = `/admin/posts/${post.id}`;
+    editLink.className = "btn btn-ghost btn-xs";
+    editLink.textContent = texts.edit ?? "编辑";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "btn btn-ghost btn-xs text-error";
+    deleteButton.textContent = texts.remove ?? "删除";
+    deleteButton.addEventListener("click", () => {
+      void handleDelete(post, row, deleteButton);
+    });
+
+    actionsCell.append(editLink, deleteButton);
+    row.append(actionsCell);
+
+    return row;
+  }
+
+  async function handleDelete(
+    post: AdminPost,
+    row: HTMLTableRowElement,
+    button: HTMLButtonElement
+  ): Promise<void> {
+    if (!confirm(texts.confirmDelete ?? "确定删除？")) {
+      return;
+    }
+
+    button.disabled = true;
+
+    try {
+      await postsApi.remove(post.id);
+      // 直接从表格里移除，不用重新拉整个列表
+      row.remove();
+
+      if (rowsEl && rowsEl.children.length === 0) {
+        setStatus(texts.empty ?? "还没有文章。");
+        tableWrap?.classList.add("hidden");
+      }
+    } catch (error) {
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      button.disabled = false;
+      setStatus(error instanceof Error ? error.message : "删除失败。", true);
+    }
+  }
+
+  async function load(): Promise<void> {
+    try {
+      const posts = await postsApi.list();
+
+      if (posts.length === 0) {
+        setStatus(texts.empty ?? "还没有文章。");
+        return;
+      }
+
+      rowsEl?.replaceChildren(...posts.map(createRow));
+      statusEl?.classList.add("hidden");
+      tableWrap?.classList.remove("hidden");
+    } catch (error) {
+      /**
+       * 未登录就跳回登录页。
+       * 这是后台页面的通用模式：任何一次 401 都意味着登录过期了。
+       */
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      setStatus(error instanceof Error ? error.message : "加载失败。", true);
+    }
+  }
+
+  logoutButton?.addEventListener("click", async () => {
+    try {
+      await signOut();
+    } finally {
+      // 不管登出接口成功与否，都回登录页 —— 本地状态已经不该继续用了
+      location.replace("/admin");
+    }
+  });
+
+  void load();
+</script>

@@ -43,14 +43,18 @@ type Section = {
 /**
  * 页面内容 —— 想更新近况，只改这个数组。
  * 建议每次更新都顺手改一下下面的 updatedAt。
+ *
+ * 【更新的原则】
+ *   写"已经做到的"和"正在做的"，不写空泛的计划。
+ *   每次有实质进展就回来改一次 —— 这个页面的价值就在于它是新鲜的。
  */
-const updatedAt = "2026-09-29";
+const updatedAt = "2026-09-30";
 
 const sections: Section[] = [
   {
     title: "在做",
     items: [
-      "把这个博客从一个现成的模板，慢慢改造成自己的东西。",
+      "把这个博客从一个现成的模板，改造成自己的东西 —— 现在轮廓已经有了。",
       "学 TypeScript，然后深入 Astro —— 边学边拿这个博客练手。",
     ],
   },
@@ -63,7 +67,11 @@ const sections: Section[] = [
       },
       {
         label: "Astro",
-        text: "路由、组件、内容集合，以及怎么把静态站点做好。",
+        text: "路由、组件、内容集合，以及静态与动态渲染怎么配合。",
+      },
+      {
+        label: "服务端与数据库",
+        text: "从零接上了接口、数据库和登录，也理解了静态页面和服务端各适合做什么。",
       },
       { label: "算法与图形学", text: "长期方向，进展慢但不打算停。" },
     ],
@@ -71,14 +79,22 @@ const sections: Section[] = [
   {
     title: "接下来",
     items: [
-      "给博客补上目录、阅读时长这类阅读体验上的细节。",
-      "学会服务端渲染，然后接上数据库，做一个能在线写文章的后台。",
+      "把博客真正用起来 —— 先写几篇自己的东西，再谈功能。",
+      "继续补阅读体验上的细节，边用边发现问题。",
     ],
   },
   {
     title: "这个网站",
     items: [
-      "用 Astro 构建，部署在 Netlify，纯静态。",
+      "用 Astro 构建，部署在 Netlify。文章页面是纯静态的，走 CDN。",
+      {
+        label: "写文章",
+        text: "有一个只给自己用的后台，登录后可以在线写、改、发布，不用碰代码。",
+      },
+      {
+        label: "登录",
+        text: "用 GitHub 账号登录，只有我的账号能进 —— 没有密码需要记。",
+      },
       "没有追踪脚本，没有广告，没有评论框。",
       "源码在 GitHub 上公开。",
     ],
@@ -106,7 +122,7 @@ const updatedAtText = (() => {
 
   <Main pageTitle={t.pages.nowTitle} pageDesc={t.pages.nowDesc}>
     <!-- 更新日期 -->
-    <p class="text-base-content/55 mb-8 text-sm">
+    <p class="text-base-content-muted mb-8 text-sm">
       最后更新：{updatedAtText}
     </p>
 
@@ -115,14 +131,12 @@ const updatedAtText = (() => {
         sections.map(section => (
           <section class="card card-border bg-base-100 shadow-sm">
             <div class="card-body gap-4 p-5 sm:p-6">
-              <h2 class="text-xl font-bold tracking-tight sm:text-2xl">
-                {section.title}
-              </h2>
+              <h2 class="subsection-heading">{section.title}</h2>
 
               <ul class="space-y-3">
                 {section.items.map(item =>
                   typeof item === "string" ? (
-                    <li class="text-base-content/75 flex gap-3 leading-7">
+                    <li class="text-base-content-strong flex gap-3 leading-7">
                       <span class="text-primary shrink-0" aria-hidden="true">
                         —
                       </span>
@@ -135,8 +149,10 @@ const updatedAtText = (() => {
                       </span>
                       <span>
                         <span class="font-semibold">{item.label}</span>
-                        <span class="text-base-content/50"> · </span>
-                        <span class="text-base-content/75">{item.text}</span>
+                        <span class="text-base-content-faint"> · </span>
+                        <span class="text-base-content-strong">
+                          {item.text}
+                        </span>
                       </span>
                     </li>
                   )
@@ -148,7 +164,7 @@ const updatedAtText = (() => {
       }
     </div>
 
-    <p class="text-base-content/50 mt-10 text-sm leading-7">
+    <p class="text-base-content-faint mt-10 text-sm leading-7">
       这个页面不定期更新。内容风格参考了
       <a
         href="https://nownownow.com/about"
