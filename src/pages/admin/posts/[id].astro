@@ -131,6 +131,32 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         </button>
         <span id="saved" class="text-success text-sm"></span>
       </div>
+
+      {
+        /*
+        重建按钮单独一行，而且 type="button" —— 它不是"提交表单"，
+        点它不该触发保存。
+
+        【为什么保存之外还要一个按钮】
+        保存只写数据库，站点是**构建时**生成的静态 HTML，所以要让改动
+        出现在线上得重新构建一次。而 Netlify 免费套餐每次生产部署花
+        15 积分（一个月 300），所以只有"站点上该有哪些页面变了"
+        （发新文章、下线、删除）才自动重建；改一篇已发布文章的正文
+        属于"页面还在、内容旧了"，由作者自己决定什么时候花这 15 分。
+        完整规则见 src/lib/rebuild.ts 的文件头。
+      */
+      }
+      <div
+        class="border-base-300 flex flex-wrap items-center gap-3 border-t pt-4"
+      >
+        <button id="rebuild" type="button" class="btn btn-outline btn-sm">
+          {t.admin.rebuild}
+        </button>
+        <span id="rebuild-status" class="text-sm"></span>
+        <span class="text-base-content-faint text-xs"
+          >{t.admin.rebuildHint}</span
+        >
+      </div>
     </form>
   </main>
 </Layout>
@@ -146,12 +172,22 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       saving: t.admin.saving,
       saved: t.admin.saved,
       loading: t.admin.loading,
+      rebuilding: t.admin.rebuilding,
+      rebuildOk: t.admin.rebuildOk,
+      rebuildNotConfigured: t.admin.rebuildNotConfigured,
+      rebuildFailed: t.admin.rebuildFailed,
+      savedNeedsRebuild: t.admin.savedNeedsRebuild,
     },
   })}
 />
 
 <script>
-  import { postsApi, NotLoggedInError } from "@/utils/adminApi";
+  import {
+    postsApi,
+    rebuildApi,
+    NotLoggedInError,
+    type RebuildOutcome,
+  } from "@/utils/adminApi";
 
   type EditorConfig = {
     isNew: boolean;
@@ -176,6 +212,9 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   const saveButton = document.querySelector<HTMLButtonElement>("#save");
   const statusEl = document.querySelector<HTMLParagraphElement>("#status");
   const savedEl = document.querySelector<HTMLSpanElement>("#saved");
+  const rebuildButton = document.querySelector<HTMLButtonElement>("#rebuild");
+  const rebuildStatusEl =
+    document.querySelector<HTMLSpanElement>("#rebuild-status");
 
   let currentId: number | null = cfg.isNew ? null : Number(cfg.id);
 
@@ -183,6 +222,34 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   function showError(text: string): void {
     if (statusEl) {
       statusEl.textContent = text;
+    }
+  }
+
+  /**
+   * 这次改动对线上的影响，该跟作者说什么。
+   *
+   * 判断依据是**后端返回的 rebuild 字段**，不是前端自己猜 ——
+   * "要不要自动重建"这条规则只写在 src/pages/api/_routes/posts.ts 里，
+   * 前端再抄一份的话，迟早两边对不上。
+   */
+  function rebuildMessage(outcome: RebuildOutcome | null): string {
+    switch (outcome) {
+      case "triggered":
+        return cfg.texts.rebuildOk ?? "";
+
+      case "not-configured":
+        return cfg.texts.rebuildNotConfigured ?? "";
+
+      case "failed":
+        return cfg.texts.rebuildFailed ?? "";
+
+      /**
+       * null = 后端**没有**触发重建。会走到这里的只有一种情况：
+       * 改了一篇已发布文章的正文/标题/标签。页面还在线上，只是内容旧了，
+       * 所以提醒作者点旁边的按钮。
+       */
+      default:
+        return cfg.texts.savedNeedsRebuild ?? "";
     }
   }
 
@@ -194,6 +261,10 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
 
     if (savedEl) {
       savedEl.textContent = "";
+    }
+
+    if (rebuildStatusEl) {
+      rebuildStatusEl.textContent = "";
     }
   }
 
@@ -263,7 +334,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     }
 
     try {
-      const post =
+      const { post, rebuild } =
         currentId === null
           ? await postsApi.create(data)
           : await postsApi.update(currentId, data);
@@ -285,6 +356,14 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       if (savedEl) {
         savedEl.textContent = cfg.texts.saved ?? "已保存";
       }
+
+      /**
+       * 顺手告诉作者"这次改动到线上了没有"。
+       * 保存成功不等于上线 —— 站点是构建时生成的静态 HTML。
+       */
+      if (rebuildStatusEl) {
+        rebuildStatusEl.textContent = rebuildMessage(rebuild);
+      }
     } catch (error) {
       if (error instanceof NotLoggedInError) {
         location.replace("/admin");
@@ -296,6 +375,45 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       if (saveButton) {
         saveButton.disabled = false;
         saveButton.textContent = cfg.texts.save ?? "保存";
+      }
+    }
+  });
+
+  /**
+   * 「立即重建」按钮。
+   *
+   * 走的是 POST /api/rebuild —— 它只做一件事：让 Netlify 重新构建一次。
+   * 不在这里再调保存，因为保存是用户自己按的，两件事不该捆在一起
+   * （那样点一下重建会顺带把表单里没保存的改动也提交了）。
+   */
+  rebuildButton?.addEventListener("click", async () => {
+    clearMessages();
+
+    if (rebuildStatusEl) {
+      rebuildStatusEl.textContent = cfg.texts.rebuilding ?? "正在请求……";
+    }
+
+    if (rebuildButton) {
+      rebuildButton.disabled = true;
+    }
+
+    try {
+      const outcome = await rebuildApi.trigger();
+
+      // 手动点击走到这里 outcome 一定不是 null，所以不会是"要点按钮"那句
+      if (rebuildStatusEl) {
+        rebuildStatusEl.textContent = rebuildMessage(outcome);
+      }
+    } catch (error) {
+      if (error instanceof NotLoggedInError) {
+        location.replace("/admin");
+        return;
+      }
+
+      showError(error instanceof Error ? error.message : "重建请求失败。");
+    } finally {
+      if (rebuildButton) {
+        rebuildButton.disabled = false;
       }
     }
   });

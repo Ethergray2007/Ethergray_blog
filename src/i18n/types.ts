@@ -109,7 +109,16 @@ export interface UIStrings {
      * 放在语言文件里拼好，避免在模板里多个表达式相邻导致空格被 HTML 吞掉。
      */
     copyrightLine: string;
-    allRightsReserved: string;
+    /**
+     * 页脚那句 slogan / 站点定位。
+     *
+     * 【为什么原来这里叫 allRightsReserved】
+     * 原本是「保留所有权利。」，和上一行的「版权所有 ©」连起来是一句
+     * 法律声明。但那种写法在任何中文博客上都长一样，是"没设计过"的
+     * 典型标志；对个人博客来说也没有实际作用。
+     * 现在换成一句短的站点定位 —— 页脚有内容可读，也才像这个站自己的。
+     */
+    tagline: string;
     /**
      * 页脚那组次要导航的无障碍名称。
      *
@@ -226,6 +235,25 @@ export interface UIStrings {
     save: string;
     saving: string;
     saved: string;
+
+    /**
+     * 重建站点（把数据库里的改动发布到线上）。
+     *
+     * 【为什么需要一个按钮，而不是保存就自动上线】
+     *   Netlify 免费套餐每次生产部署花 15 积分（一个月 300）。
+     *   改一篇已发布文章的错别字如果也自动重建，改五遍就是 75 积分。
+     *   所以这种改动要作者自己确认满意了再按按钮。
+     */
+    rebuild: string;
+    rebuilding: string;
+    rebuildOk: string;
+    rebuildNotConfigured: string;
+    rebuildFailed: string;
+    /** 保存之后的提醒：这次的改动不会自动上线 */
+    savedNeedsRebuild: string;
+    /** 按钮旁那行小字，写明点一下要花多少积分 */
+    rebuildHint: string;
+
     backToList: string;
     logout: string;
     /** 状态提示 */

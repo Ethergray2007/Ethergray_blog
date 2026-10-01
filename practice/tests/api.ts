@@ -59,6 +59,8 @@ const neverLoggedIn: ResolveUser = async () => null;
 const rebuildCalls: string[] = [];
 const spyNotifyRebuild: NotifyRebuild = async reason => {
   rebuildCalls.push(reason);
+
+  return "triggered";
 };
 
 /* ------------------------------------------------------------------
@@ -431,9 +433,11 @@ check("请求体不是合法 JSON 时返回 400", badJson.status === 400, `实�
 console.log("\n=== 10. 文章改动与站点重建 ===");
 
 /**
- * 页面是构建时生成的静态 HTML，所以改完文章要通知 Netlify 重建一次。
- * 但重建要一两分钟、还占构建额度，不能什么操作都触发 ——
- * 规则是"改动前后只要有一边是已发布状态"。
+ * 页面是构建时生成的静态 HTML，所以文章有变动时要通知 Netlify 重建一次。
+ *
+ * 但**不能什么操作都触发**：Netlify 免费套餐每次生产部署花 15 积分
+ * （一个月 300），而构建还要一两分钟。规则是"只有站点上该有哪些页面
+ * 变了才自动重建"—— 见 posts.ts 里的 changesPublicationStatus。
  *
  * 每条断言前都清空记录，这样看到的就只是**这一次**操作的结果。
  */
@@ -470,11 +474,22 @@ check(
 
 rebuildCalls.length = 0;
 
-await asUser("PATCH", `/api/posts/${draftOneId}`, { title: "已发布的文章改标题" });
+await asUser("PATCH", `/api/posts/${draftOneId}`, {
+  title: "已发布的文章改标题",
+  body: "顺便改正文",
+});
 
+/**
+ * 这条是本节最**省钱**的一条。
+ *
+ * 改一篇已发布文章的正文，站点上的页面还在、只是内容旧了 ——
+ * 不重建也不会"错"，只是暂时不同步。而如果这里自动重建，
+ * 改五遍错别字就是 5 × 15 = 75 积分。所以交给后台的
+ * 「立即重建」按钮，作者满意了再花那 15 分。
+ */
 check(
-  "改已发布的文章要触发重建",
-  rebuildCalls.length === 1,
+  "改已发布文章的内容不触发重建（交给手动按钮）",
+  rebuildCalls.length === 0,
   `实际触发 ${rebuildCalls.length} 次`
 );
 
@@ -537,6 +552,49 @@ await asGuest("POST", "/api/posts", { title: "偷偷发的", status: "published"
 
 check(
   "未登录的写操作不触发重建",
+  rebuildCalls.length === 0,
+  `实际触发 ${rebuildCalls.length} 次`
+);
+
+/* ------------------------------------------------------------------
+ * 手动重建：POST /api/rebuild
+ *
+ * 这是"改一篇已发布文章的错别字"之后唯一的出路 —— 那种改动不会自动
+ * 重建（太贵），要作者自己按按钮。
+ * ----------------------------------------------------------------- */
+rebuildCalls.length = 0;
+
+const manualRebuild = await asUser("POST", "/api/rebuild");
+
+check(
+  "手动重建接口能触发一次",
+  manualRebuild.status === 200 && rebuildCalls.length === 1,
+  `状态 ${manualRebuild.status}，触发 ${rebuildCalls.length} 次`
+);
+
+/**
+ * 接口必须把结果回给前端。
+ *
+ * 没配 NETLIFY_BUILD_HOOK_URL 时，触发是"成功"了但什么都不会发生。
+ * 前端要靠这个字段如实告诉作者，否则他会一直刷新等一个不会来的部署。
+ */
+check(
+  "手动重建会把结果返回给前端",
+  manualRebuild.body?.outcome === "triggered",
+  `实际返回 ${JSON.stringify(manualRebuild.body)}`
+);
+
+rebuildCalls.length = 0;
+
+const guestRebuild = await asGuest("POST", "/api/rebuild");
+
+check(
+  "手动重建未登录返回 401",
+  guestRebuild.status === 401,
+  `实际 ${guestRebuild.status}`
+);
+check(
+  "未登录时手动重建不会真的触发",
   rebuildCalls.length === 0,
   `实际触发 ${rebuildCalls.length} 次`
 );

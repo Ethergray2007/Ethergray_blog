@@ -92,6 +92,22 @@ export class NotLoggedInError extends Error {
 }
 
 /**
+ * 触发重建的结果。
+ *
+ * 和后端 src/lib/rebuild.ts 的 RebuildOutcome 一一对应 ——
+ * 但**不能直接 import 那个文件**：它在服务端跑，里面有 process.env
+ * 和 console，打进浏览器包既没用又难看。所以这里另写一份类型，
+ * 两边改动时要一起改。
+ */
+export type RebuildOutcome = "triggered" | "not-configured" | "failed";
+
+/** 写操作的返回：文章本身 + 这次有没有触发重建（null 表示没触发） */
+export type SaveResult = {
+  post: AdminPost;
+  rebuild: RebuildOutcome | null;
+};
+
+/**
  * 发一个请求到我们自己的接口。
  *
  * @throws NotLoggedInError 当后端返回 401
@@ -148,27 +164,45 @@ export const postsApi = {
   },
 
   /** 新建 */
-  async create(input: Partial<AdminPost>): Promise<AdminPost> {
-    const data = await request<{ post: AdminPost }>("/api/posts", {
+  async create(input: Partial<AdminPost>): Promise<SaveResult> {
+    return await request<SaveResult>("/api/posts", {
       method: "POST",
       body: JSON.stringify(input),
     });
-
-    return data.post;
   },
 
   /** 修改（只传要改的字段） */
-  async update(id: number, input: Partial<AdminPost>): Promise<AdminPost> {
-    const data = await request<{ post: AdminPost }>(`/api/posts/${id}`, {
+  async update(id: number, input: Partial<AdminPost>): Promise<SaveResult> {
+    return await request<SaveResult>(`/api/posts/${id}`, {
       method: "PATCH",
       body: JSON.stringify(input),
     });
-
-    return data.post;
   },
 
   /** 删除 */
   async remove(id: number): Promise<void> {
     await request(`/api/posts/${id}`, { method: "DELETE" });
+  },
+};
+
+/**
+ * 站点点重建（把数据库里的改动发布到线上）。
+ *
+ * 【为什么保存之后还要单独点一下】
+ *   见 src/lib/rebuild.ts 的文件头。简单说：Netlify 免费套餐每次生产
+ *   部署花 15 积分（一个月 300），而"改一篇已发布文章的错别字"不重建
+ *   也不会错，只是站点上暂时是旧内容。所以那种改动由作者自己决定
+ *   什么时候花这 15 分。
+ *
+ * @returns 结果。没配 NETLIFY_BUILD_HOOK_URL 时返回 "not-configured" ——
+ *          页面据此如实告诉作者"点了也不会重建"，而不是假装成功
+ */
+export const rebuildApi = {
+  async trigger(): Promise<RebuildOutcome> {
+    const data = await request<{ outcome: RebuildOutcome }>("/api/rebuild", {
+      method: "POST",
+    });
+
+    return data.outcome;
   },
 };

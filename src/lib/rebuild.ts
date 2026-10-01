@@ -14,6 +14,25 @@
  *   新建一个，把给出的地址填进环境变量 NETLIFY_BUILD_HOOK_URL
  *   （本地 .env 和 Netlify 的环境变量里都要有）。
  *
+ * 【什么时候会触发 —— 这条和钱有关，别随手改】
+ *   Netlify 免费套餐**每次生产部署花 15 积分**，一个月总共 300。
+ *   也就是说一次手滑的自动重建 = 少一次上线机会。所以规则定得很紧：
+ *
+ *     自动（见 api/_routes/posts.ts 的 changesPublicationStatus）
+ *       新建并直接发布 · 草稿→已发布 · 已发布→草稿 · 删除已发布的文章
+ *       —— 这些都会让**站点上该有哪些页面**发生变化，不重建就是错的
+ *
+ *     靠后台的「立即重建」按钮（POST /api/rebuild）
+ *       改一篇已发布文章的正文/标题/标签
+ *       —— 页面还是那个页面，只是内容旧了。改五遍错别字就自动重建
+ *          五次要 75 积分，而按一次按钮只花 15 分
+ *
+ *     永远不触发
+ *       草稿的任何改动（站点上本来就看不到）
+ *
+ *   代价是"改完已发布的文章，站点不会自己更新"。所以后台保存后必须
+ *   **明确提示**要去点那个按钮，不能让人以为保存完就上线了。
+ *
  * 【为什么失败不抛错】
  *   文章**已经存进数据库了**。这时如果因为"通知失败"让接口返回 500，
  *   用户会以为文章没保存，然后重写一遍 —— 那才是真的麻烦。
@@ -41,13 +60,24 @@
 /* eslint-disable no-console -- 理由见上面「为什么这个文件允许用 console」 */
 
 /**
+ * 触发重建的结果。
+ *
+ * 【为什么要把结果返回出去，而不是只记日志】
+ *   这个功能会花掉 Netlify 的部署额度（免费套餐一次生产部署 15 积分），
+ *   所以"到底触发了没有"必须让调用方知道 —— 后台要能如实告诉作者
+ *   "已请求重建"还是"没配置，点了也没用"。
+ *   只写日志的话，界面上永远是"成功"，而作者会一直刷新等一个不会来的部署。
+ */
+export type RebuildOutcome = "triggered" | "not-configured" | "failed";
+
+/**
  * 触发重建的函数形状。
  *
  * 做成类型并作为参数传给 createApi，是为了让测试能塞一个替身进来
  * （否则测试会真的去请求 Netlify）。这就是依赖注入 ——
  * 和 createApi 的 db、resolveUser 是同一个套路。
  */
-export type NotifyRebuild = (reason: string) => Promise<void>;
+export type NotifyRebuild = (reason: string) => Promise<RebuildOutcome>;
 
 /**
  * 等 Netlify 响应的时间上限。
@@ -72,10 +102,10 @@ export const notifyNetlifyRebuild: NotifyRebuild = async reason => {
    */
   if (!url) {
     console.log(
-      `[rebuild] 没配置 NETLIFY_BUILD_HOOK_URL，跳过自动重建（${reason}）`
+      `[rebuild] 没配置 NETLIFY_BUILD_HOOK_URL，跳过重建（${reason}）`
     );
 
-    return;
+    return "not-configured";
   }
 
   try {
@@ -89,15 +119,19 @@ export const notifyNetlifyRebuild: NotifyRebuild = async reason => {
         `[rebuild] Netlify 拒绝了重建请求：HTTP ${response.status}（${reason}）`
       );
 
-      return;
+      return "failed";
     }
 
     console.log(`[rebuild] 已通知 Netlify 重建：${reason}`);
+
+    return "triggered";
   } catch (error) {
     console.error(
       `[rebuild] 通知重建失败：${
         error instanceof Error ? error.message : String(error)
       }（${reason}）`
     );
+
+    return "failed";
   }
 };

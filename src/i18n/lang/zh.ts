@@ -58,8 +58,8 @@ export default {
   },
 
   footer: {
-    copyrightLine: "版权所有 © {{year}} {{author}}",
-    allRightsReserved: "保留所有权利。",
+    copyrightLine: "© {{year}} {{author}}",
+    tagline: "记录学习过程本身",
     secondaryNav: "次要导航",
   },
 
@@ -149,6 +149,14 @@ export default {
     save: "保存",
     saving: "保存中……",
     saved: "已保存",
+    rebuild: "立即重建",
+    rebuilding: "正在请求……",
+    rebuildOk: "已请求重建，约 1~2 分钟后生效。",
+    rebuildNotConfigured: "没有配置 NETLIFY_BUILD_HOOK_URL，点了也不会重建。",
+    rebuildFailed: "通知 Netlify 失败了，看服务端日志。",
+    savedNeedsRebuild:
+      "已保存到数据库。要让它出现在站点上，点右边的「立即重建」。",
+    rebuildHint: "每次重建消耗 Netlify 15 积分",
     backToList: "返回列表",
     logout: "登出",
 

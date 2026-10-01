@@ -54,8 +54,8 @@ export default {
     allPosts: "All Posts",
   },
   footer: {
-    copyrightLine: "Copyright © {{year}} {{author}}",
-    allRightsReserved: "All rights reserved.",
+    copyrightLine: "© {{year}} {{author}}",
+    tagline: "Notes on learning, kept in public",
     secondaryNav: "Secondary navigation",
   },
   pages: {
@@ -140,6 +140,15 @@ export default {
     save: "Save",
     saving: "Saving...",
     saved: "Saved",
+    rebuild: "Rebuild now",
+    rebuilding: "Requesting...",
+    rebuildOk: "Rebuild requested. Live in about 1–2 minutes.",
+    rebuildNotConfigured:
+      "NETLIFY_BUILD_HOOK_URL is not configured, so nothing will rebuild.",
+    rebuildFailed: "Could not reach Netlify. Check the server logs.",
+    savedNeedsRebuild:
+      "Saved to the database. Click “Rebuild now” to publish it to the site.",
+    rebuildHint: "Each rebuild costs Netlify 15 credits",
     backToList: "Back to list",
     logout: "Sign out",
 
