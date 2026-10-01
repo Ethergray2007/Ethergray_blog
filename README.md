@@ -158,10 +158,22 @@ npm run dev
 数据库里文章的 id 是 10，页面上「编辑本页」却是 `/admin/posts/undefined`。
 生产构建每次都是全新的，不受影响。
 
-连接串放在环境变量 `DATABASE_URL` 里：
+连接串放在环境变量 `DATABASE_URL` 里。**三个地方都要配，它们是互不相干的**：
 
-- 本地：项目根目录建 `.env` 文件，写入 `DATABASE_URL=postgresql://...`
-- 线上：Netlify 后台 → Site configuration → Environment variables
+| 在哪           | 干什么用的                     | 怎么配                                                                        |
+| -------------- | ------------------------------ | ----------------------------------------------------------------------------- |
+| 本地 `.env`    | `npm run dev` / `build` / 脚本 | 项目根目录建 `.env`，写入 `DATABASE_URL=postgresql://...`                     |
+| GitHub Actions | CI 里的类型检查和构建          | 仓库 → Settings → Secrets and variables → Actions → **New repository secret** |
+| Netlify        | 线上构建**和**线上接口         | Site configuration → Environment variables，勾上 **Contains secret values**   |
+
+⚠️ **在 GitHub 加了 secret 不等于 Netlify 也有**，反过来也一样。这个坑踩过：
+线上部署报"缺少环境变量 DATABASE_URL"，而 GitHub 的 CI 是绿的。
+
+**怎么确认是 Netlify 这边的问题**：看构建日志里 `Resolved config` 那段的
+`environment` 列表——如果只有一个 `NODE_VERSION`，就是这个原因。
+
+**不用纠结「范围 / Scopes」**：Netlify 免费套餐只有 `All scopes` 一种选择，
+按用途限制范围（比如只给 Functions）是付费功能。配上了就能被构建读到。
 
 **`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
 PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
