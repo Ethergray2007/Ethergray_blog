@@ -115,7 +115,24 @@ export const notifyNetlifyRebuild: NotifyRebuild = async reason => {
   }
 
   try {
-    const response = await fetch(url, {
+    /**
+     * 拼上 trigger_title —— Netlify 支持的一个可选查询参数，
+     * 它会**替换部署列表里那条默认消息**。
+     *
+     * 加了之后，Netlify 的 Deploys 页面直接能看出"这次部署是哪次保存
+     * 触发的"（比如「发布了《xxx》」），而不是一串要自己对照时间的默认文字。
+     * 代价为零，排查"文章改了怎么没上线"时省很多事。
+     *
+     * ⚠️ 必须用 URLSearchParams 拼，不能手工字符串拼接 ——
+     *    reason 里是中文和《》，直接拼进查询串会坏掉。
+     *
+     * 参数说明见官方文档的 Parameters 一节：
+     *   https://docs.netlify.com/build/configure-builds/build-hooks/
+     */
+    const hookUrl = new URL(url);
+    hookUrl.searchParams.set("trigger_title", reason);
+
+    const response = await fetch(hookUrl, {
       method: "POST",
       signal: AbortSignal.timeout(REBUILD_TIMEOUT_MS),
     });
