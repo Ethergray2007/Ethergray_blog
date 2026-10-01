@@ -1,0 +1,36 @@
+# 行尾统一成 LF
+# ============================================================
+# 【为什么需要这个文件】
+# .prettierrc 里规定了 endOfLine: "lf"，但 git 在没有 .gitattributes
+# 时，会按平台默认（Windows 上是 core.autocrlf）决定检出时的行尾。
+#
+# 于是踩过这个坑：src/pages/posts/[...slug]/index.astro 在 Windows 上
+# 被检出成 CRLF（512 个 CR），而 prettier 按 LF 校验 ——
+# `npm run format:check` 报错，但那个文件本身一个字都没改过。
+# 表现是"我没动它，检查却是红的"，很难联想到行尾。
+#
+# 它还骗过我一次：当时同时有另一个文件格式不合格，我先看到的是那个，
+# 于是认定"红灯跟行尾无关"，差点把真正的原因漏过去。
+#
+# 写死 eol=lf 之后，检出、提交、CI 三处的行尾都一致，
+# 这类警告不会再出现。
+# ============================================================
+
+# 所有文本文件：自动识别，检出时统一用 LF
+* text=auto eol=lf
+
+# 明确声明图片和字体是二进制（-text = 不按文本处理）。
+#
+# 为什么不用 `binary` 这个内置宏：它等价于 `-diff -merge -text`，
+# 但按 .gitattributes 的规则，**同一属性后来者覆盖先来的** ——
+# 上面那行的 eol=lf 依然会生效。实测 `git check-attr eol` 对 .gif
+# 仍报 lf，说明属性没被完全置为未设置状态。
+# 直接写 -text，语义最明确：这些文件不参与任何行尾转换。
+*.gif -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.webp -text
+*.ico -text
+*.woff2 -text
+*.ttf -text
