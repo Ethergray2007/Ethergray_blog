@@ -34,7 +34,6 @@
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",
     "@astrojs/netlify": "^8.2.6",
-    "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/vite": "^4.3.0",
@@ -44,6 +43,7 @@
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.45.3",
     "elysia": "^1.4.30",
+    "feed": "^6.0.0",
     "katex": "^0.18.9",
     "lodash.kebabcase": "^4.1.1",
     "postgres": "^3.4.9",
@@ -69,6 +69,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^10.4.1",
     "eslint-plugin-astro": "^1.7.0",
+    "fast-xml-parser": "^5.11.2",
     "pagefind": "^1.5.2",
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
