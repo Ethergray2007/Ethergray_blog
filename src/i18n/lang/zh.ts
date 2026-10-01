@@ -15,18 +15,21 @@ export default {
   },
 
   post: {
-    publishedAt: "发表于",
     updatedAt: "更新于",
     toc: "目录",
+    headingLink: "本节链接",
     sharePostIntro: "分享这篇文章：",
     sharePostOn: "分享到 {{platform}}",
     sharePostViaEmail: "通过邮件分享这篇文章",
     tagLabel: "标签",
     backToTop: "返回顶部",
-    goBack: "返回",
     editPage: "编辑页面",
     previousPost: "上一篇",
     nextPost: "下一篇",
+    copy: "复制",
+    copyCode: "复制代码",
+    copied: "已复制",
+    copyFailed: "复制失败",
   },
 
   pagination: {
@@ -36,7 +39,6 @@ export default {
   },
 
   home: {
-    socialLinks: "社交链接",
     badge: "博客",
     heroTitle: "记录学习的地方",
     heroLead: "一个个人博客，写技术，也写学习过程本身。",
@@ -56,7 +58,6 @@ export default {
   },
 
   footer: {
-    copyright: "版权所有",
     copyrightLine: "版权所有 © {{year}} {{author}}",
     allRightsReserved: "保留所有权利。",
     secondaryNav: "次要导航",

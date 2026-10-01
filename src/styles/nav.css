@@ -1,0 +1,157 @@
+/**
+ * 玻璃拟态吸顶导航
+ * ============================================================
+ * 自包含模块。想删掉玻璃效果？
+ *   1. 删掉这个文件
+ *   2. 删掉 global.css 里的 @import "./nav.css"
+ *   3. 删掉 Header.astro 里 header 上的 sticky / top-0 / z-40 / id="site-header"
+ *
+ * 只删这个文件、保留那几个 class 的话，导航仍然吸顶，
+ * 但会退回成不透明底色（可用的降级状态，不会坏）。
+ *
+ * ------------------------------------------------------------
+ * 【为什么不写在 Header.astro 的 class 里】
+ *
+ * 玻璃效果牵连四个属性，而且每一个都要分主题给不同值：
+ *
+ *   background-color   浅色=白玻璃 / 深色=深玻璃
+ *   backdrop-filter    模糊 + 提高饱和度
+ *   border-color       滚动后才显示
+ *   box-shadow         滚动后才显示
+ *
+ * 全塞进 class 字符串会变成一长串 `bg-white/85 dark:bg-[#0e1119]/85 …`，
+ * 难读也难改。收成一个文件之后，调玻璃浓度只需要改一处。
+ *
+ * ------------------------------------------------------------
+ * 【参考站是怎么做的】
+ *
+ * elysia.nodejs.cn 的顶栏用 VitePress 的这个变量：
+ *     --vp-nav-bg-color: color-mix(in srgb, var(--vp-c-bg) 95%, transparent)
+ * 也就是"背景色掺 5% 透明"，再加 backdrop-blur。
+ * 我们照这个思路做，但浓度调得更低一点（见下面数值的说明）。
+ * ============================================================
+ */
+
+/**
+ * 玻璃本体。
+ *
+ * 【两个数值是调过的，不是随手写的】
+ *
+ * 1. 背景不透明度 82%（浅色 0.82 / 深色 0.78）
+ *    参考站用 95%，那是**只加 5% 透明**——几乎就是不透明的，
+ *    模糊基本看不出来。我们压到 82% 左右，玻璃感才真正出现。
+ *
+ *    ⚠️ 但这个值不能太低：导航条压在**正文文字**上滚动，
+ *    透明度低于 70% 时，底下的字会隐约透上来，
+ *    读导航文字会被干扰（这叫"视觉噪声"）。
+ *    82% 是"看得出是玻璃"和"不干扰读字"之间的位置。
+ *
+ * 2. backdrop-filter 加了 saturate(180%)
+ *    只写 blur 的话，玻璃后面的内容会显得发灰；
+ *    补一点饱和度，透出来的颜色才是"鲜"的 ——
+ *    这是 Apple 那套毛玻璃的标准配方，不是我们发明的。
+ */
+#site-header {
+  /* 滚动到顶部时不显示边框（首屏是深色的，多一条线反而脏） */
+  border-bottom: 1px solid transparent;
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+#site-header .navbar {
+  /* 覆盖 Header.astro 里的 bg-base-100（不透明，会把玻璃效果挡死） */
+  background-color: transparent;
+
+  /* 内层不再画自己的边框，交给外层的 #site-header 统一管 */
+  border-bottom-color: transparent;
+
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+}
+
+/*
+ * 玻璃的三层背景。
+ *
+ * 【为什么要三层而不是一个 background-color】
+ * 单一色值在两种主题下都不好看：纯白玻璃在浅色模式下像没做效果，
+ * 纯深色玻璃在深色模式下和背景分不开。
+ * 用"同色相的半透明"打底 + 一层极淡的对角渐变提亮，
+ * 玻璃才有"厚度"——右下略深、左上略亮，和真实玻璃受光一致。
+ *
+ * linear-gradient 那一层是**极低透明度**的白色/黑色，
+ * 只负责让平面色值有方向感，不该被看出来。
+ */
+[data-theme="light"] #site-header .navbar {
+  background-image: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.92) 0%,
+    rgb(247 247 251 / 0.82) 100%
+  );
+}
+
+[data-theme="dark"] #site-header .navbar {
+  background-image: linear-gradient(
+    180deg,
+    rgb(14 17 25 / 0.86) 0%,
+    rgb(11 14 21 / 0.78) 100%
+  );
+}
+
+/**
+ * 滚动之后：出现下边框 + 一点阴影。
+ *
+ * 【为什么"滚动后才出现"而不是一直有】
+ * 页面在顶部时，首页导航条压的是深色首屏。
+ * 那时如果有一条浅色分隔线，会在首屏上凭空多画一道横线，
+ * 破坏首屏的完整感。
+ * 滚动之后底下是浅色内容区，这条线才起到"分层"的作用。
+ *
+ * 【为什么阴影这么淡（0.04 / 0.3）】
+ * 吸顶导航已经有模糊和边框在分隔它了，阴影只是补一点"浮起来"的感觉。
+ * 阴影重了会变成一张卡片悬在页面上方，那是另一种设计语言。
+ */
+#site-header[data-scrolled="true"] {
+  border-bottom-color: var(--color-base-300);
+}
+
+[data-theme="light"] #site-header[data-scrolled="true"] {
+  box-shadow: 0 1px 12px rgb(20 20 29 / 0.04);
+}
+
+[data-theme="dark"] #site-header[data-scrolled="true"] {
+  box-shadow: 0 1px 12px rgb(0 0 0 / 0.3);
+}
+
+/**
+ * 不支持 backdrop-filter 时的降级。
+ *
+ * Safari 9~17 需要 -webkit- 前缀（上面已经写了），
+ * 但仍有极少数环境完全不支持。那种情况下模糊不会生效，
+ * 只靠 82% 的背景色挡不住底下的文字 —— 所以要把它提到不透明。
+ *
+ * 判断方式用 @supports not，而不是去嗅探浏览器版本 ——
+ * 后者会在新版本发布后出错。
+ */
+@supports not (backdrop-filter: blur(1px)) {
+  [data-theme="light"] #site-header .navbar {
+    background-image: none;
+    background-color: #ffffff;
+  }
+
+  [data-theme="dark"] #site-header .navbar {
+    background-image: none;
+    background-color: #0e1119;
+  }
+}
+
+/**
+ * 减少动态效果。
+ * 只有过渡动画，关掉即可（不影响玻璃本身）。
+ */
+@media (prefers-reduced-motion: reduce) {
+  #site-header {
+    transition: none;
+  }
+}

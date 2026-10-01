@@ -253,6 +253,119 @@ npm run build        # 4. 最慢，但最接近真实运行环境
 
 ## 这个项目特有的坑
 
+### 设计系统：只有一套 token，改颜色前必读
+
+**这个项目曾经同时跑着两套互不相干的颜色体系，这才是「页面显得业余」的真正原因。**
+
+```text
+src/styles/theme.css           自定义的 --background / --foreground / --accent
+@plugin "daisyui";（光秃秃的）  daisyUI 预设的 --color-base-100 / --color-primary / …
+```
+
+因为没关掉 daisyUI 的颜色层，它的 `[data-theme=dark]` 会**压过**我们自己的
+`--background`。于是同一个页面里：`text-primary` / `border-base-300` / `btn-primary`
+走 daisyUI 的靛蓝紫，而 `text-base-content-strong` / `section-heading` 走自定义的橙蓝。
+这不是审美问题，是**没有单一事实来源**。
+
+**现在的结构（改视觉前先读懂这几层怎么配合）：**
+
+```text
+src/styles/theme.css        唯一事实来源。用 @plugin "daisyui/theme" 定义 light / dark
+                            所有 --color-* 语义色 + 圆角 + 字体 + 文字三档
+src/styles/global.css       @plugin "daisyui" { themes: false }  ← 不能删
+                            并把下面几个样式文件串起来
+src/styles/atmosphere.css   页面背景：网格底纹 + 光晕（自包含模块）
+src/styles/hero.css         首屏：固定深色舞台 + 7 层 mesh gradient
+```
+
+**四条必须遵守的规则：**
+
+```text
+□ themes: false 不能删
+  删了之后 daisyUI 的内置颜色层会重新发出来，压过我们的主题，
+  表现是"改了颜色但页面没变"。这个坑踩过。
+
+□ 改颜色只改 theme.css，不要在组件里写死色值
+  唯一例外是首屏 hero.css —— 它是**固定深色区**、不跟随主题切换，
+  所以那里的色值是写死的，文件里注明了原因。
+
+□ 正文颜色用三档工具类，不要自己编 /50 /60 /70
+  text-base-content-strong  要读的文字（页面说明、卡片摘要）
+  text-base-content-muted   辅助说明（页脚、副标题）
+  text-base-content-faint   元数据（日期、计数）
+  这三档的数值是按 WCAG 对比度**算出来的**，表格在 theme.css 里。
+  随手多加一个透明度 = 层级重新变糊 —— 原来"整页发灰"就是这么来的。
+
+□ 字体：正文用 --font-sans（系统无衬线栈，零网络请求），
+  代码和数字才用 --font-mono（Google Sans Code）
+  正文以前用的是等宽字体，中文会被硬塞进等宽格子里。
+```
+
+**颜色与参考站的关系**：整套视觉参照 [elysia.nodejs.cn](https://elysia.nodejs.cn/)。
+强调色 `#f06292` 直接来自它的 `--vp-c-brand-1`，首屏那 7 层光晕也照搬了它的
+mesh gradient 配方（两个关键细节写在 `hero.css` 里：色标停在 50%、定位故意疏密不均）。
+它是 VitePress + Tailwind 手写 CSS，**没有用任何 UI 组件库** ——
+所以"换成 Elysia 用的那套 UI"这件事不存在，观感是自己写出来的。
+
+### `git diff` 显示的差异 ≠「这次会话改的」
+
+**我在这个坑上犯过错，代价是构建当场变红。**
+
+看到 `git diff src/i18n/types.ts` 有变化，就认定是当前会话改的，
+于是 `git restore --source=HEAD` 回退 —— 结果把**之前就存在的未提交改动**
+一起冲掉了（那个文件里既有新改动，也有旧的未完成工作）。
+
+```text
+□ git diff 的基线是 HEAD（上一次提交），不是「你会话开始时的状态」
+□ 回退之前先逐段核对内容，确认哪些是本次改的、哪些原本就有
+□ 不要因为"文件时间戳是刚才"就断定它是这次会话写的 ——
+  子代理、格式化工具、编辑器都可能更新它
+```
+
+### 构建可能因为**下载字体超时**而整体失败，而且报错会骗人
+
+**这是实测遇到过的，不是理论风险。** 表现是这样的：
+
+```text
+[WARN] [assets] No data found for font family Google Sans Code. Review your configuration
+[ERROR] Error: Cannot find the font path.
+[ERROR] [build] Caught error rendering /og.png
+build exit: 1
+```
+
+**看到这三行不要往字体配置上找** —— `astro.config.ts` 里的 `fonts` 段是对的。
+真正的原因是：**Astro 在构建时要联网去 Google Fonts 下载字体**，
+而那一次请求超时了：
+
+```text
+code: 'UND_ERR_CONNECT_TIMEOUT'
+```
+
+于是字体没进缓存 → `fontData` 里没有该字重 → `getFontPathByWeight()` 返回
+`undefined` → `og.png.ts` 抛出 `Cannot find the font path.`，整个构建失败。
+
+**这条报错链里没有一句话提到网络**，所以很容易误判成配置写错、
+或者以为 satori 不认字体格式。正确的排查顺序是：
+
+```text
+1. 确认能不能连上 fonts.googleapis.com（这台机器直连会超时，见下面代理那节）
+2. 看缓存目录 node_modules/.astro/fonts/ 里有没有文件
+3. 两边都不行就是下载失败 —— 重跑一次 build 通常就好（瞬时故障）
+```
+
+**为什么这个坑暂时没法彻底消除**：字体缓存放在 `node_modules/.astro/fonts/`，
+而 `node_modules/` 不进 git —— 所以**每次全新克隆、每次 Netlify 构建都要重新下载**。
+Astro 7 也没有「只预下载字体」的命令（`astro --help` 里没有），
+所以没法把它拆成一个可以单独重试的步骤。
+
+**想彻底解决**（目前没做，留作后续）：把 ttf 提交进仓库，
+改用自定义 provider 指过去，不再依赖构建时联网。
+代价是仓库里多几个字体文件，以及要改 `astro.config.ts` 的 `fonts` 段。
+
+⚠️ 顺带记住：**`formats` 里的 `ttf` 不能删**。
+satori 底层的 opentype.js 不认 woff2，删了会报
+`Unsupported OpenType signature wOF2`。
+
 ### 推送代码：必须走代理，而且可能要关掉证书吊销检查
 
 这台机器直连 github.com 会超时，必须走本地代理：

@@ -87,13 +87,14 @@ const {
 
 const { Content, headings } = await render(post);
 
-let ogImageUrl: string | undefined;
-
-if (typeof initOgImage === "string") {
-  ogImageUrl = initOgImage;
-} else if (initOgImage?.src) {
-  ogImageUrl = initOgImage.src;
-}
+/**
+ * 封面图。
+ *
+ * 以前这里要判两种类型（Astro 的图片对象 / 普通字符串），因为文章还在
+ * 文件系统里时，ogImage 可以写成相对于文章文件的图片路径。
+ * 现在文章存在数据库里，没有文件可以比对，它只可能是一个字符串。
+ */
+let ogImageUrl: string | undefined = initOgImage;
 
 if (!ogImageUrl && config.features.dynamicOgImage) {
   const postUrl = getPostUrl(post.id, post.filePath, locale).replace(
@@ -182,6 +183,11 @@ const ogImage = ogImageUrl
     <article
       id="article"
       class="card card-border bg-base-100 min-w-0 shadow-sm"
+      data-heading-link-label={t.post.headingLink}
+      data-copy-label={t.post.copy}
+      data-copy-code-label={t.post.copyCode}
+      data-copied-label={t.post.copied}
+      data-copy-failed-label={t.post.copyFailed}
     >
       <div class="card-body min-w-0 p-5 sm:p-8 lg:p-10">
         <div
@@ -329,11 +335,25 @@ const ogImage = ogImageUrl
    */
 
   function addHeadingLinks() {
-    const headings = Array.from(
-      document.querySelectorAll(
-        "#article h2, #article h3, #article h4, #article h5, #article h6"
-      )
-    );
+    const article = document.getElementById("article");
+
+    if (!article) {
+      return;
+    }
+
+    /*
+     * 无障碍文案从 data-* 属性上读，不在脚本里写死。
+     *
+     * 【为什么要绕这一下】
+     * 这段是 is:inline 脚本 —— 它在浏览器里跑，拿不到服务端渲染时的
+     * t 对象（i18n）。原来这里直接写着英文 "Link to this section"，
+     * 于是中文站点上的读屏提示是英文的。
+     * 按项目约定，界面文案必须走 src/i18n/，所以由模板把译好的
+     * 字符串写到 data-heading-link-label 上，脚本只负责读取。
+     */
+    const label = article.dataset.headingLinkLabel ?? "";
+
+    const headings = Array.from(article.querySelectorAll("h2, h3, h4, h5, h6"));
 
     for (const heading of headings) {
       if (heading.querySelector(".heading-link")) {
@@ -349,11 +369,13 @@ const ogImage = ogImageUrl
       const link = document.createElement("a");
 
       link.className =
-        "heading-link ms-2 no-underline opacity-75 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100";
+        "heading-link ms-2 no-underline text-primary opacity-60 transition-opacity hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100";
 
       link.href = `#${heading.id}`;
 
-      link.setAttribute("aria-label", "Link to this section");
+      if (label) {
+        link.setAttribute("aria-label", label);
+      }
 
       const span = document.createElement("span");
 

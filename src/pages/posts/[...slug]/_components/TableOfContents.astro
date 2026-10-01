@@ -52,9 +52,44 @@ const visibleHeadings = headings.filter(
 {
   /* 少于两条就不显示目录，避免占地方 */
   visibleHeadings.length > 1 && (
-    <details class="card card-border bg-base-100 group mb-6 shadow-sm sm:mb-8">
-      <summary class="cursor-pointer list-none p-4 font-semibold select-none sm:px-5">
+    /*
+     * ⚠️ open 是有意加的，默认展开。
+     *
+     * 原来的写法没有 open，目录默认是折叠的 —— 而 <summary> 里
+     * 只有一个词「目录」。结果页面上呈现为一张**空卡片**：
+     * 占了卡片的内边距和位置，却不提供任何信息，
+     * 读者得先意识到"这里能点"才会看到内容。
+     *
+     * 展开之后摘要行变成一个小标题，列表直接可见 ——
+     * 该有的信息一眼就在，需要收起的人仍然可以点它折起来，
+     * 两种需求都满足。
+     */
+    <details
+      open
+      class="card card-border bg-base-100 group mb-6 shadow-sm sm:mb-8"
+    >
+      <summary class="hover:text-primary flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold transition-colors select-none sm:px-5">
         <span class="inline-flex items-center gap-2">{t.post.toc}</span>
+
+        {/*
+          折叠指示箭头。
+          用 CSS 的 group-open: 旋转，不写 JS —— details 的展开状态
+          浏览器自己管，脚本去同步它只会多一个出错的地方。
+          aria-hidden：它是纯视觉提示，读屏软件已经从 details 的
+          语义里知道这是可展开的了。
+        */}
+        <svg
+          class="text-base-content-faint size-4 shrink-0 transition-transform duration-200 group-open:rotate-180"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </summary>
 
       <nav class="px-4 pb-4 sm:px-5" aria-label={t.post.toc}>

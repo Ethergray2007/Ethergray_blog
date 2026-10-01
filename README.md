@@ -58,27 +58,30 @@ Personal blog built with **Astro**.
 
 每个功能都做成**自包含**的：删除时不需要动别的地方，照着下表删就行。
 
-| 功能            | 相关文件                                                                            | 怎么删                                                                                                   |
-| --------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 文章目录        | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                       | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                      |
-| 数学公式        | `src/styles/katex.css`<br>`astro.config.ts` 里的 `remarkMath` / `rehypeKatex`       | 删 `katex.css` 和 `global.css` 里 import 它那行；删配置里两个插件；卸载 `remark-math rehype-katex katex` |
-| 图表 Mermaid    | `astro.config.ts` 里的 `mermaid()` 集成                                             | 删那个集成和它的 import；卸载 `astro-mermaid mermaid`                                                    |
-| RSS / Atom 订阅 | `src/lib/feed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`              | 照 `src/lib/feed.ts` 文件头写的 4 步做                                                                   |
-| 友链页          | `src/pages/friends.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`    | 照 `getFriends.ts` 文件头写的 6 步做                                                                     |
-| 说说 /notes     | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`          | 照 `getNotes.ts` 文件头写的 6 步做                                                                       |
-| 项目 /projects  | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/` | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 里那份独立数据）                           |
-| 近况页 /now     | `src/pages/now.astro`                                                               | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮                              |
-| 代码块复制      | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                        | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                   |
-| 评论区          | 没有内置                                                                            | ——                                                                                                       |
-| Pagefind 搜索   | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`            | 改成 `search: false`，页面自动跳 404                                                                     |
-| 归档页          | `src/pages/archives/`                                                               | `features.showArchives` 改成 `false`                                                                     |
-| 动态 OG 图      | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                   | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                   |
-| 主题切换        | `src/scripts/theme.ts`                                                              | `features.lightAndDarkMode` 改成 `false`                                                                 |
-| 分享按钮        | `astro-paper.config.ts` 的 `shareLinks`                                             | 把数组清空：`shareLinks: []`                                                                             |
-| 编辑本页链接    | `astro-paper.config.ts` 的 `features.editPost`                                      | 改成 `{ enabled: false }`                                                                                |
-| 在线写作后台    | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                       | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                      |
-| 练习册          | `practice/`                                                                         | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                 |
-| 学习路线        | `docs/`                                                                             | 整个目录删掉                                                                                             |
+| 功能                  | 相关文件                                                                                        | 怎么删                                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 文章目录              | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                   | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                                      |
+| 数学公式              | `src/styles/katex.css`<br>`astro.config.ts` 里的 `remarkMath` / `rehypeKatex`                   | 删 `katex.css` 和 `global.css` 里 import 它那行；删配置里两个插件；卸载 `remark-math rehype-katex katex`                 |
+| 图表 Mermaid          | `astro.config.ts` 里的 `mermaid()` 集成                                                         | 删那个集成和它的 import；卸载 `astro-mermaid mermaid`                                                                    |
+| RSS / Atom 订阅       | `src/lib/feed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`                          | 照 `src/lib/feed.ts` 文件头写的 4 步做                                                                                   |
+| 友链页                | `src/pages/friends.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`                | 照 `getFriends.ts` 文件头写的 6 步做                                                                                     |
+| 说说 /notes           | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                      | 照 `getNotes.ts` 文件头写的 6 步做                                                                                       |
+| 项目 /projects        | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`             | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 里那份独立数据）                                           |
+| 近况页 /now           | `src/pages/now.astro`                                                                           | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮                                              |
+| 代码块复制            | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                    | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                                   |
+| 氛围层（网格 + 光晕） | `src/styles/atmosphere.css`                                                                     | 删这个文件，再删 `global.css` 里的 `@import "./atmosphere.css"` 和 `Layout.astro` 里的 `<div class="atmosphere">` 那一段 |
+| 评论区                | 没有内置                                                                                        | ——                                                                                                                       |
+| Pagefind 搜索         | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                        | 改成 `search: false`，页面自动跳 404                                                                                     |
+| 归档页                | `src/pages/archives/`                                                                           | `features.showArchives` 改成 `false`                                                                                     |
+| 动态 OG 图            | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                               | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                                   |
+| 主题切换              | `src/scripts/theme.ts`                                                                          | `features.lightAndDarkMode` 改成 `false`                                                                                 |
+| 分享按钮              | `astro-paper.config.ts` 的 `shareLinks`                                                         | 把数组清空：`shareLinks: []`                                                                                             |
+| 编辑本页链接          | `astro-paper.config.ts` 的 `features.editPost`                                                  | 改成 `{ enabled: false }`                                                                                                |
+| 在线写作后台          | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                   | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                      |
+| 文章存数据库          | `src/db/loaders/posts.ts`<br>`src/content.config.ts` 里的 `loader`<br>`scripts/import-posts.ts` | 照 `src/db/loaders/posts.ts` 文件头写的 3 步做（换回 `glob()` + 把文章放回 `src/content/posts/`）                        |
+| 保存后自动重建        | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                      | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                                |
+| 练习册                | `practice/`                                                                                     | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                                 |
+| 学习路线              | `docs/`                                                                                         | 整个目录删掉                                                                                                             |
 
 ## 📚 学习资料 / Learning
 
@@ -101,7 +104,59 @@ npm run db:generate    # 改完 schema 后生成迁移文件
 npm run db:migrate     # 把迁移应用到数据库
 npm run db:studio      # 打开可视化界面查看数据
 npm run db:test        # 跑数据层测试
+npm run posts:import   # 把 src/content/posts/ 下的 Markdown 导入数据库
 ```
+
+### 文章存在数据库里
+
+**文章不在 git 里了，在数据库的 `posts` 表里。** 在后台写完点保存，
+内容就进库了，不用改代码、不用提交。
+
+页面**仍然**是构建时生成的静态 HTML —— 这点没变，读者那边一点没变慢。
+实现方式是给 Astro 的文章集合换了一个「数据来源」：
+
+```text
+以前：  glob()  从 src/content/posts/*.md 读
+现在：  postsFromDatabase()  从数据库的 posts 表读   ← src/db/loaders/posts.ts
+```
+
+上层代码**一行都没改**：`getCollection("posts")`、`render(post)`、
+`post.data.xxx` 全都照旧，公式、代码高亮、目录也跟着照旧。
+因为 Astro 的 Content Layer 本来就允许集合的数据来自任何地方。
+
+**代价有两个，都要知道：**
+
+```text
+1. 构建需要能连上数据库
+   npm run build 和 npx astro check 都会去读文章，
+   所以本地要 .env、Netlify 要环境变量、GitHub Actions 要配 secret
+   （名字都叫 DATABASE_URL）。
+
+2. 内容不再有 git 历史
+   改错了没法 git diff / git revert，只能靠数据库自己的备份。
+```
+
+**改完文章怎么上线**：后台保存后会自动通知 Netlify 重新构建
+（约 1~2 分钟生效），靠的是环境变量 `NETLIFY_BUILD_HOOK_URL`。
+没配也能用，只是要等下一次推送代码才生效。
+
+**为什么不做成"保存即生效"**（把文章页改成按需渲染）：
+搜索索引（Pagefind）是构建时产物，运行时渲染出来的文章**搜不到**。
+也就是说"保存即生效"本来就做不到 —— 想要搜索就躲不掉重新构建。
+既然躲不掉，就让页面继续是静态 HTML，把好处留着。
+
+**本地开发遇到怪事，先删 `.astro/` 再重启**：
+
+```powershell
+Remove-Item -Recurse -Force .astro   # 集合数据的缓存
+npm run dev
+```
+
+改了数据来源（`src/content.config.ts` 的 loader、或 `src/db/loaders/posts.ts`）
+之后，`.astro/data-store.json` 这个缓存**不一定会重建**。症状很误导人：
+页面渲染出来的是旧数据，看起来像"代码写错了"。实测过一次 ——
+数据库里文章的 id 是 10，页面上「编辑本页」却是 `/admin/posts/undefined`。
+生产构建每次都是全新的，不受影响。
 
 连接串放在环境变量 `DATABASE_URL` 里：
 
@@ -185,7 +240,7 @@ http://localhost:4321/admin
 （见 `src/pages/api/session/[...path].ts`）。
 
 ```bash
-npm run api:test       # 跑 API 测试（用内存数据库，44 项断言）
+npm run api:test       # 跑 API 测试（用内存数据库，53 项断言）
 ```
 
 ### 接口一览
@@ -217,13 +272,15 @@ npm run api:test       # 跑 API 测试（用内存数据库，44 项断言）
 
 完整说明见 `.env.example`，这里只列清单：
 
-| 变量                   | 用途                           |
-| ---------------------- | ------------------------------ |
-| `DATABASE_URL`         | 数据库连接串（要带 `-pooler`） |
-| `BETTER_AUTH_SECRET`   | 登录状态加密用的密钥           |
-| `GITHUB_CLIENT_ID`     | GitHub OAuth App 的 Client ID  |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App 的密钥        |
-| `GITHUB_OWNER_ID`      | 只允许这个 GitHub 用户登录     |
+| 变量                     | 用途                                       |
+| ------------------------ | ------------------------------------------ |
+| `DATABASE_URL`           | 数据库连接串（要带 `-pooler`）             |
+| `BETTER_AUTH_SECRET`     | 登录状态加密用的密钥                       |
+| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID              |
+| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的密钥                    |
+| `GITHUB_OWNER_ID`        | 只允许这个 GitHub 用户登录                 |
+| `NETLIFY_BUILD_HOOK_URL` | 保存文章后自动触发重建（见「数据库」那节） |
 
-⚠️ `BETTER_AUTH_SECRET` 和 `GITHUB_CLIENT_SECRET` 泄露 = 别人能冒充你登录。
+⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 和 `NETLIFY_BUILD_HOOK_URL`
+泄露都会出事（前两个能冒充你登录，最后一个谁拿到都能触发构建）。
 不要提交到 git（`.env` 已在 `.gitignore` 里）。

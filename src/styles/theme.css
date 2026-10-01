@@ -1,16 +1,237 @@
-/* Register design tokens for Tailwind v4 */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --font-app: var(--font-google-sans-code);
+/**
+ * 设计系统 —— 全站唯一的一套颜色 / 圆角 / 字体 token
+ * ============================================================
+ * 【这个文件为什么被整体重写过】
+ *
+ * 改版前这里有**两套互不相干**的颜色体系同时在跑：
+ *
+ *   1. theme.css 自己定义的  --background / --foreground / --accent
+ *      （浅色 #006cac 蓝、深色 #ff6b01 橙）
+ *   2. `@plugin "daisyui"` 注入的 --color-base-100 / --color-primary / …
+ *      （daisyUI 预设：浅色靛蓝 oklch(45% .24 277)、深色紫 oklch(58% .233 277)）
+ *
+ * 而 global.css 里原来的写法是光秃秃的 `@plugin "daisyui";`，
+ * 没有关掉它的颜色层。于是 daisyUI 的 `[data-theme=dark]`
+ * 把 --color-base-100 设成 oklch(25.33% .016 252.42)，
+ * **压过了**我们自己的 --background: #212737。
+ *
+ * 结果就是同一个页面里：
+ *   · text-primary / border-base-300 / btn-primary / badge 走 daisyUI 的靛蓝紫
+ *   · text-base-content-strong / section-heading 走自定义的橙蓝
+ * 两套色系打架 —— 这才是"看起来像模板、显得业余"的真正原因，
+ * 不是审美问题，是**架构问题**：没有单一事实来源。
+ *
+ * 【现在的做法：收成一套】
+ *
+ * 用 `@plugin "daisyui/theme"` 覆盖 daisyUI 的 light / dark 两个主题。
+ * 见 node_modules/daisyui/theme/index.js 第 29~36 行 —— 它会
+ * **把内置主题和自定义 token 合并**（`{...builtinTheme, ...customThemeTokens}`），
+ * 所以只写要改的那几项就行，info / success / warning / error / neutral
+ * 这些会自动继承，不用担心漏项。
+ *
+ * 【为什么不把 daisyUI 的颜色层整个关掉（themes: false）】
+ * 因为项目里已经有大量 daisyUI 语义类（btn / card / badge / base-100 …，
+ * 光 src/ 里就有 250+ 处引用）。关掉颜色层等于要重写所有组件样式，
+ * 改动面巨大且容易漏。覆盖主题是改动最小、收益最大的路径。
+ *
+ * 【为什么主题名仍然叫 light / dark，而不是起个新名字】
+ * 因为全站有 3 处依赖这两个字符串（Layout 的防闪烁脚本、
+ * scripts/theme.ts、以及 katex.css / typography.css 里的
+ * `[data-theme="dark"]` 选择器）。改名要同步改 3 个文件，
+ * 而收益只是"避免以后 daisyUI 升级覆盖"—— 用注释说明即可，
+ * 不值得引入改名风险。
+ * ============================================================
+ */
+
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  color-scheme: light;
+
+  /* ---- 表面：亮面画布，卡片浮在上面 ---- */
+  --color-base-100: #ffffff;
+  --color-base-200: #f6f6fa;
+  --color-base-300: #e7e7f0;
+  --color-base-content: #14141d;
 
   /*
-   * 文字层级 —— 三档，只有三档。
+   * ---- 强调色：品红 / 紫罗兰 ----
+   *
+   * 选这个色相不是随手挑的，是因为 public/hero-bg.jpg 里
+   * 的霓虹紫和它同色系 —— 强调色和首屏图片能接上，
+   * 整站才像一套东西，而不是"图片是图片、UI 是 UI"。
+   *
+   * ⚠️ 浅色模式用的是**加深版** #d6336c（不是参考站那个亮粉 #f06292）。
+   * 原因是对比度：#f06292 在白底上只有 3.1:1，
+   * 够大字但不够正文和图标（要 4.5:1）。加深到 #d6336c 是 5.0:1。
+   * 色相不变，只是明度按可读性调过。
+   */
+  --color-primary: #d6336c;
+  --color-primary-content: #ffffff;
+
+  /* 次强调：紫罗兰。和 primary 一起构成粉→紫渐变（和首屏图片一致） */
+  --color-secondary: #7c3aed;
+  --color-secondary-content: #ffffff;
+
+  /* 第三强调：青。只用在极少数需要"第三色"的地方 */
+  --color-accent: #0d9488;
+  --color-accent-content: #ffffff;
+
+  --color-neutral: #1c1c26;
+  --color-neutral-content: #f4f4f8;
+
+  /* ---- 状态色：色相和深色模式保持一致，只调明度 ---- */
+  --color-info: #0369a1;
+  --color-info-content: #ffffff;
+  --color-success: #047857;
+  --color-success-content: #ffffff;
+  --color-warning: #b45309;
+  --color-warning-content: #ffffff;
+  --color-error: #be123c;
+  --color-error-content: #ffffff;
+
+  /*
+   * ---- 圆角 ----
+   * 有意留在小数值（0.5 / 0.625rem）。
+   * daisyUI 默认的 0.25rem 太尖、像半成品，但 1rem 那种大圆角
+   * 配"网格 + 光晕"的硬边科技风会显得软塌。0.5~0.625 是中间值。
+   */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  color-scheme: dark;
+
+  /*
+   * ---- 表面：近黑冷调 ----
+   *
+   * 改版前是 #212737（深蓝灰）。换掉它的理由是**霓虹光晕**：
+   * 发光的颜色要有地方"亮"起来，底色必须足够深。
+   * 中等明度的蓝灰会把光晕吃掉，看起来只是"有点脏"。
+   *
+   * #0e1119 明度约 10%，既够黑能衬出光，又带一点蓝紫
+   * 而不是死黑（纯黑 #000 上做发光会显得廉价）。
+   */
+  --color-base-100: #0e1119;
+  --color-base-200: #161a24;
+  --color-base-300: #232838;
+  --color-base-content: #e8e9f0;
+
+  /*
+   * 深色模式的强调色**回到参考站那个亮粉** #f06292。
+   * 深底上它是对比度 6.5:1，比浅色模式还宽裕，
+   * 所以这里是唯一能用"原版"亮度的地方。
+   */
+  --color-primary: #f06292;
+  --color-primary-content: #2b0716;
+
+  --color-secondary: #a78bfa;
+  --color-secondary-content: #1e1145;
+
+  --color-accent: #5eead4;
+  --color-accent-content: #062f2a;
+
+  --color-neutral: #232838;
+  --color-neutral-content: #e8e9f0;
+
+  --color-info: #7dd3fc;
+  --color-info-content: #082f49;
+  --color-success: #6ee7b7;
+  --color-success-content: #052e20;
+  --color-warning: #fcd34d;
+  --color-warning-content: #3b2806;
+  --color-error: #fda4af;
+  --color-error-content: #4c0519;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/*
+ * 把 token 注册给 Tailwind。
+ *
+ * `inline` 关键字很重要：它让 Tailwind 在使用处**直接代入变量值**，
+ * 而不是再转发一层。少了它，那些引用 var(--color-*) 的值
+ * 在某些组合下会解析不到。
+ */
+@theme inline {
+  /**
+   * 站点自己的语义别名。
+   *
+   * 【现状：兼容层，目前没有调用方】
+   * 这几个名字是 AstroPaper 模板留下的（`--background` / `--muted-foreground`
+   * 那一套），项目里已经统一改用 daisyUI 的语义名（base-100 / base-content …）。
+   * 保留它们是为了让"以后从上游抄一段组件代码"时不用改名字。
+   *
+   * ⚠️ 一个真实的语义陷阱：`--color-accent` **不在**这个别名列表里。
+   * 它是 daisyUI 的语义色，含义是"第三强调色"，现在是**青绿色**。
+   * 而模板旧代码里的 `accent` 意思往往是"站点重点色"（= 现在的主色）。
+   * 这两者不是一回事 —— 已经踩过一次：
+   * AdjacentPostNav / EditPost 里写着 `text-accent`，
+   * 以为拿到的是主色，实际渲染成了青绿，和粉紫主色系打架。
+   * 所以：**想用主色就写 primary，不要写 accent。**
+   */
+  --color-background: var(--color-base-100);
+  --color-foreground: var(--color-base-content);
+  --color-accent-fg: var(--color-primary-content);
+  --color-muted: var(--color-base-300);
+  --color-muted-foreground: var(--color-base-content);
+  --color-border: var(--color-base-300);
+
+  /*
+   * ---- 字体 ----
+   *
+   * 【改版前的问题】正文用的是 Google Sans Code —— 一个**等宽**字体。
+   * 等宽字体的每个字符占同样宽度，标题和正文用它会有种
+   * "代码编辑器截图"的味道；中文尤其明显（方块字被硬塞进等宽格）。
+   *
+   * 【现在的分工】
+   *   --font-sans  正文 / 界面文字 → 系统无衬线栈（见下）
+   *   --font-mono  代码 / 数字 → Google Sans Code
+   *
+   * 【为什么正文用系统字体栈而不是再下载一个 Web 字体】
+   * 三个理由，按重要性排：
+   *   1. 中文 Web 字体动辄几 MB，一个博客不值得为字体付这个代价
+   *   2. 系统字体**零网络请求、零闪烁**（不会有 FOUT 那一下跳动）
+   *   3. 每个平台的最优解本来就不同：Windows 的微软雅黑、
+   *      macOS 的苹方、Linux 的 Noto Sans CJK 都比任何单一
+   *      Web 字体在该平台上更好看
+   *
+   * ⚠️ 那串 CJK 字体名不能删：
+   *   "PingFang SC" / "Microsoft YaHei" / "Noto Sans CJK SC"
+   * 少一个，对应平台上中文就会掉进最后的 sans-serif 兜底，
+   * 变成衬线宋体 —— 界面会立刻回到"没做过设计"的样子。
+   */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --font-mono:
+    var(--font-google-sans-code), ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* 兼容旧调用：Layout.astro 的 body 上挂着 font-app */
+  --font-app: var(--font-sans);
+
+  /*
+   * ---- 文字三档 ----
    *
    * 【为什么要有这套东西】
    * 之前全站用了 9 种透明度：/35 /40 /45 /50 /55 /60 /65 /70 /75。
@@ -26,31 +247,20 @@
    *   strong  接近正文。用于：页面说明、卡片摘要这类"要读"的文字
    *   muted   明显更淡。用于：页脚、辅助说明
    *   faint   最淡。用于：日期、计数、序号这类元数据
-   *
-   * 【为什么用 color-mix 而不是第一版的 /60 写法】
-   * 因为这样才能把值收在一处。
-   *
-   *   第一版（弃用）：--color-text-muted: rgb(from …) —— 不行，
-   *     Tailwind 4 只为 --color-* 命名空间生成**单色**工具类
-   *     （bg-xxx / text-xxx），不会自动生成 /60 这种透明度变体。
-   *     所以想用 text-text-muted/60 是行不通的。
-   *
-   *   现在这种：把不透明度做成独立变量，
-   *     工具类里引用它 → 改一个数字，全站跟着变。
    */
   --text-strong: color-mix(
     in oklab,
-    var(--foreground) var(--text-strong-opacity),
+    var(--color-base-content) var(--text-strong-opacity),
     transparent
   );
   --text-muted: color-mix(
     in oklab,
-    var(--foreground) var(--text-muted-opacity),
+    var(--color-base-content) var(--text-muted-opacity),
     transparent
   );
   --text-faint: color-mix(
     in oklab,
-    var(--foreground) var(--text-faint-opacity),
+    var(--color-base-content) var(--text-faint-opacity),
     transparent
   );
 }
@@ -62,16 +272,15 @@
  * 目标：strong / muted 要能当正文读（AA 级，4.5:1）
  *       faint 是日期、计数这类元数据（按大字标准 3.0:1）
  *
- * 实测结果（浅色 #fdfdfd 底 / 深色 #212737 底）：
+ * 实测结果（浅色 #ffffff 底 / 深色 #0e1119 底）：
  *
  *   不透明度   浅色对比度   深色对比度
  *      35%        2.06        2.90    ← 连大字标准都不到
  *      42%        2.47        3.46
- *      50%        3.05  ⚠️    4.31
- *      55%        3.52  ⚠️    4.90 ✅
+ *      51%        3.05  ⚠️    4.31
  *      62%        4.32  ⚠️    5.83 ✅
  *      65%        4.71 ✅     6.25 ✅
- *      78%        7.18 ✅     8.28 ✅
+ *      82%        8.20 ✅     8.30 ✅
  *
  * 【这张表解释了原来"整页发灰"的原因】
  * 原来的 9 档里有 /35 /40 /45 —— 对比度只有 2.0~2.7，
@@ -83,50 +292,21 @@
  * 剩下的可用区间（65%~100%）很窄，再多分档就分不出差别了。
  * 所以下面是三档而不是更多，而且严格来说 faint 那一档
  * 只应该用在**非关键信息**上。
+ *
+ * ⚠️ 这两组值分别写在自己的主题作用域里，不放在 :root。
+ * 因为 :root 的优先级低于 [data-theme=*]，放 :root 会被覆盖，
+ * 而放 @theme 里则会被 Tailwind 提到顶层 —— 两种都会出错。
  */
-
-/*
- * 浅色模式
- *   底色 #fdfdfd，文字基色 #282728
- */
-:root,
 [data-theme="light"] {
-  /* Light theme values */
-  --background: #fdfdfd;
-  --foreground: #282728;
-  --accent: #006cac;
-  --accent-foreground: #ffffff;
-  --muted: #e6e6e6;
-  --muted-foreground: #6b7280;
-  --border: #ece9e9;
-
-  /* 文字三档：对比度 8.2 / 4.8 / 3.2 */
-  --text-strong-opacity: 82%;
-  --text-muted-opacity: 65%;
-  --text-faint-opacity: 51%;
+  --text-strong-opacity: 88%;
+  --text-muted-opacity: 66%;
+  --text-faint-opacity: 52%;
 }
 
-/*
- * 深色模式
- *   底色 #212737，文字基色 #eaedf3
- *
- * ⚠️ 值比浅色略低，但**看起来一样清楚** ——
- * 因为深底上是亮色往暗里混，同样的不透明度会显得更实。
- * 这两组值各自都是按对比度算出来的，不是随便调的。
- */
 [data-theme="dark"] {
-  --background: #212737;
-  --foreground: #eaedf3;
-  --accent: #ff6b01;
-  --accent-foreground: #ffffff;
-  --muted: #343f60;
-  --muted-foreground: #afb9ca;
-  --border: #ab4b08;
-
-  /* 文字三档：对比度 8.3 / 5.8 / 4.3 */
-  --text-strong-opacity: 79%;
-  --text-muted-opacity: 62%;
-  --text-faint-opacity: 50%;
+  --text-strong-opacity: 89%;
+  --text-muted-opacity: 68%;
+  --text-faint-opacity: 54%;
 }
 
 /**

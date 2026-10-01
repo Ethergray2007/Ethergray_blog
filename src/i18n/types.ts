@@ -16,19 +16,40 @@ export interface UIStrings {
     projects: string;
   };
   post: {
-    publishedAt: string;
     updatedAt: string;
     /** 文章目录（TOC）的标题 */
     toc: string;
+    /**
+     * 悬停在正文标题旁那个「#」锚点链接上的说明。
+     *
+     * 读屏软件会念它 —— 「#」这个符号本身没有语义，
+     * 不解释的话用户只会听到「井号，链接」。
+     */
+    headingLink: string;
     sharePostIntro: string;
     sharePostOn: string;
     sharePostViaEmail: string;
     tagLabel: string;
     backToTop: string;
-    goBack: string;
     editPage: string;
     previousPost: string;
     nextPost: string;
+    /**
+     * 代码块复制按钮。
+     *
+     * 【为什么这些文案要放在这里】
+     * 它们写在 CopyCodeButton.astro 的 <script> 里（客户端脚本），
+     * 而脚本是**在浏览器里跑**的，读不到服务端渲染时用的 t 对象 ——
+     * 所以走"服务端把文案渲染进 data-*、脚本再去读"的路子：
+     * 文章页把这四条写到 article 的 data-copy-* 上，
+     * 和标题锚点用的 data-heading-link-label 是同一套办法。
+     * 不能因为"它在 JS 里"就把中文写死在脚本里，那样英文站点会半中半英。
+     */
+    copy: string;
+    /** 读屏软件用的按钮说明，比按钮上的字更完整 */
+    copyCode: string;
+    copied: string;
+    copyFailed: string;
   };
   pagination: {
     prev: string;
@@ -42,7 +63,6 @@ export interface UIStrings {
     page: string;
   };
   home: {
-    socialLinks: string;
     /** 首页徽标文案，例如 “Blog” */
     badge: string;
     /** 首页大标题 */
@@ -84,7 +104,6 @@ export interface UIStrings {
     allPosts: string;
   };
   footer: {
-    copyright: string;
     /**
      * 完整版权行，可用 `{{year}}` / `{{author}}` 占位。
      * 放在语言文件里拼好，避免在模板里多个表达式相邻导致空格被 HTML 吞掉。

@@ -181,6 +181,22 @@ const atomHref = getRelativeLocaleUrl(
   <body
     class="bg-base-100 font-app text-base-content selection:bg-primary/20 selection:text-base-content flex min-h-svh flex-col"
   >
+    {
+      /*
+      氛围层：网格底纹 + 角落光晕（样式见 src/styles/atmosphere.css）。
+
+      ⚠️ 它必须是 body 的**第一个**子元素，而且 z-index 是 -1。
+      放在这里是让"页面背景"成为一个显式的东西，而不是隐藏在
+      body 的背景色里 —— 想删掉整个氛围效果时，删这一段就行。
+
+      aria-hidden：纯装饰，读屏软件不需要知道它存在。
+    */
+    }
+    <div class="atmosphere" aria-hidden="true">
+      <div class="atmosphere__grid"></div>
+      <div class="atmosphere__glow"></div>
+    </div>
+
     <slot />
 
     <script>

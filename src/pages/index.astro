@@ -125,6 +125,19 @@ const homePath = getRelativeLocaleUrl(locale, "");
 
     {
       /*
+      网格底纹 + 霓虹光晕。
+      两层都是纯装饰，所以 aria-hidden —— 读屏软件不用念它们。
+
+      ⚠️ 顺序有讲究：必须在 scrim（压暗层）**之上**、文字层之下。
+      放到 scrim 下面就等于被压暗层盖住，什么都看不见。
+    */
+    }
+    <div class="hero__grid" aria-hidden="true"></div>
+
+    <div class="hero__glow" aria-hidden="true"></div>
+
+    {
+      /*
       干净的「左图右文」—— 首屏只负责"我是谁"，不掺文章内容。
 
       ⚠️ 之前这里塞过一张「最新一篇」的小卡片，这次去掉了。原因：
@@ -243,7 +256,21 @@ const homePath = getRelativeLocaleUrl(locale, "");
       ============================================================
     */
     }
-    <MotionShowcase />
+    {
+      /*
+      ⚠️ 「动图」区块（MotionShowcase）原来在这个位置 ——
+      也就是「从哪看起」**上面**。改版时把它移到了文章列表下面。
+
+      理由是构图问题：那两张 GIF 在页面上占了将近一整屏。
+      放在这里会把"从哪看起"和"最近文章"一起挤到第二屏 ——
+      读者打开首页看到的是两张动图，而不是"这个站有什么内容"。
+
+      首页的信息优先级应该是：
+        首屏（我是谁）→ 有什么 → 最近写了什么 → 这些动图
+      动图是装饰性的趣味内容，排在最后不影响任何人，
+      放前面却会挡住主要内容。
+    */
+    }
 
     <section id="browse">
       <div class="mb-5">
@@ -326,6 +353,9 @@ const homePath = getRelativeLocaleUrl(locale, "");
         </section>
       )
     }
+
+    <!-- Motion（装饰性内容，排在所有正文区块之后） -->
+    <MotionShowcase />
 
     <!-- All Posts -->
     <section
