@@ -70,6 +70,7 @@ Personal blog built with **Astro**.
 | 近况页 /now           | `src/pages/now.astro`                                                                           | 删这个文件，再删 Header 里的「近况」链接（桌面 + 移动各一处）和首页那个按钮                                              |
 | 代码块复制            | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                    | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                                   |
 | 氛围层（网格 + 光晕） | `src/styles/atmosphere.css`                                                                     | 删这个文件，再删 `global.css` 里的 `@import "./atmosphere.css"` 和 `Layout.astro` 里的 `<div class="atmosphere">` 那一段 |
+| 列表页极光射线        | `src/components/PageGlow.astro`<br>`src/styles/page-glow.css`                                   | 删这两个文件，再删 `Main.astro` 里的 import 和 `<PageGlow />`，以及 `global.css` 里的 `@import "./page-glow.css"`        |
 | 评论区                | 没有内置                                                                                        | ——                                                                                                                       |
 | Pagefind 搜索         | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                        | 改成 `search: false`，页面自动跳 404                                                                                     |
 | 归档页                | `src/pages/archives/`                                                                           | `features.showArchives` 改成 `false`                                                                                     |
@@ -155,6 +156,16 @@ npm run posts:import   # 把 src/content/posts/ 下的 Markdown 导入数据库
 
 没配 `NETLIFY_BUILD_HOOK_URL` 也能用，只是改完文章要等下一次推送代码才生效；
 后台会如实显示"没配置，点了也不会重建"。
+
+配它的时候有两个坑：
+
+```text
+□ 建 hook 时**分支要选生产分支**（main）。
+  选成 develop 的话触发的是免费的预览部署 —— 文章不会出现在正式站点上。
+
+□ 本地 .env 里**不要填**这个变量，只在 Netlify 的环境变量里配。
+  本地填了的话，开发时随手点一下保存就会真的触发一次线上生产构建（15 积分）。
+```
 
 **为什么不做成"保存即生效"**（把文章页改成按需渲染）：
 搜索索引（Pagefind）是构建时产物，运行时渲染出来的文章**搜不到**。

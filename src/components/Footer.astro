@@ -101,7 +101,7 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   ]}
   {...attrs}
 >
-  <div class="site-shell py-8 sm:py-10">
+  <div class="site-shell py-7 sm:py-8">
     {
       /*
       上半：站点名 + 一句定位。
@@ -109,7 +109,7 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
       加个标题反而会让读屏软件的"按标题跳转"多出一个没用的落点。
     */
     }
-    <div class="flex flex-col gap-1.5">
+    <div class="flex flex-col gap-1">
       <span class="text-base-content text-sm font-semibold">
         {config.site.title}
       </span>
@@ -126,10 +126,10 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
       所以用边框色的淡版本，不用品牌渐变（渐变留给最上面那条）。
     */
     }
-    <div class="border-base-300/70 my-6 border-t sm:my-7"></div>
+    <div class="border-base-300/70 mt-5 mb-4 border-t"></div>
 
     <div
-      class="flex flex-col items-center gap-5 sm:flex-row sm:justify-between sm:gap-6"
+      class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6"
     >
       <!-- 版权 -->
       <p class="text-base-content-faint order-2 text-xs sm:order-1">

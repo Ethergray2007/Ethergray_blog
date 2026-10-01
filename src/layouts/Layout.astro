@@ -178,11 +178,20 @@ const atomHref = getRelativeLocaleUrl(
     <ClientRouter />
   </head>
 
-  <body
-    class="bg-base-100 font-app text-base-content selection:bg-primary/20 selection:text-base-content flex min-h-svh flex-col"
-  >
-    {
+  {
+    (
       /*
+    ⚠️ body 上**故意没有** bg-base-100。
+    
+    页面底色由 atmosphere.css 设在 html/body 上（--page-bg），
+    它比 base-100 深一档，卡片压在它上面才有浮起来的感觉。
+    这里再写一个 bg-base-100 会把那个底色盖成纯白 ——
+    表现是页面下方出现一条白带（fixed 的氛围层只覆盖视口，
+    盖不到的部分就露出 body 这个白色背景）。这个坑踩过。
+  */
+
+      <body class="font-app text-base-content selection:bg-primary/20 selection:text-base-content flex min-h-svh flex-col">
+        {/*
       氛围层：网格底纹 + 角落光晕（样式见 src/styles/atmosphere.css）。
 
       ⚠️ 它必须是 body 的**第一个**子元素，而且 z-index 是 -1。
@@ -190,17 +199,16 @@ const atomHref = getRelativeLocaleUrl(
       body 的背景色里 —— 想删掉整个氛围效果时，删这一段就行。
 
       aria-hidden：纯装饰，读屏软件不需要知道它存在。
-    */
-    }
-    <div class="atmosphere" aria-hidden="true">
-      <div class="atmosphere__grid"></div>
-      <div class="atmosphere__glow"></div>
-    </div>
+    */}
+        <div class="atmosphere" aria-hidden="true">
+          <div class="atmosphere__grid" />
+          <div class="atmosphere__glow" />
+        </div>
 
-    <slot />
+        <slot />
 
-    <script>
-      import "@/scripts/theme";
-    </script>
-  </body>
+        <script>import "@/scripts/theme";</script>
+      </body>
+    )
+  }
 </html>

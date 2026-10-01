@@ -1,0 +1,45 @@
+---
+/**
+ * 页面顶部极光射线（ray）
+ * ============================================================
+ * 自包含模块：只依赖 src/styles/page-glow.css。
+ *
+ * 想删掉这个效果？
+ *   1. 删掉这个文件
+ *   2. 删掉 Main.astro 里的 import 和 <PageGlow /> 那一行
+ *   3. 删掉 src/styles/page-glow.css 和 global.css 里的 @import
+ *
+ * ------------------------------------------------------------
+ * 【它是什么，为什么需要】
+ *
+ * 这是参考站 elysia.nodejs.cn **博客列表页**的招牌视觉，
+ * 原文在它的产物 CSS 里叫 `.ray`：
+ *
+ *   --stripes: repeating-linear-gradient(100deg, #fff 0%, #fff 7%,
+ *              transparent 10%, transparent 12%, #fff 16%);
+ *   --rainbow: repeating-linear-gradient(100deg, #60a5fa 10%, #e879f9 16%,
+ *              #5eead4 22%, #60a5fa 30%);
+ *   background-image: var(--stripes), var(--rainbow);
+ *   mask-image: radial-gradient(at 100% 0, #000 40%, #0000 70%);
+ *
+ * 两层都是 repeating-linear-gradient、角度都是 100deg —— 这是关键：
+ *   · rainbow 层给颜色（蓝 → 品红 → 青，循环）
+ *   · stripes 层给**条纹**（0~7% 实、10%~12% 空、16% 又实）
+ *     它像一把"梳子"，把下面连续的彩虹梳成一条条斜向的光带。
+ * 少了 stripes 那层，就只是一团斜的彩色渐变，不是射线。
+ *
+ * 【为什么加在列表页而不是首页】
+ * 首页已经有首屏那 7 层 mesh gradient 了，再加射线会互相打架。
+ * 而列表页（文章 / 标签 / 归档 / 说说 / 项目 / 友链 …）原本是
+ * "标题 + 一条渐变线 + 内容"，顶上很空 —— 射线正好补这个位置。
+ *
+ * 【为什么它是纯 div、没有 <img> 或 canvas】
+ * 整层效果只用 CSS 渐变 + 一个 mask，零图片、零 JS、零额外请求。
+ * 参考站也是这么做的，所以它才能压在内容后面还不影响性能。
+ * ============================================================
+ */
+---
+
+<div class="page-glow" aria-hidden="true">
+  <div class="page-glow__ray -animate"></div>
+</div>
