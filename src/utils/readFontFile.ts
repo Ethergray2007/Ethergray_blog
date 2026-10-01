@@ -48,10 +48,29 @@ const FONT_CACHE_DIR = "node_modules/.astro/fonts";
  * 读取一个字重对应的字体文件。
  *
  * @param path fontData 里的字体地址，例如 "/_astro/fonts/3eddf4b9....ttf"
+ *             （线上可能带查询串，见下面）
  * @returns 可以直接交给 satori 的 ArrayBuffer
  */
 export async function readFontFile(path: string): Promise<ArrayBuffer> {
-  const file = basename(path);
+  /**
+   * ⚠️ 必须**先去掉查询串**再取文件名。
+   *
+   * Astro 给的地址在线上会长这样：
+   *   /_astro/fonts/ccba4fb3766b1b6e.ttf?dpl=6abde91986103b000947ddaf
+   * 那个 `?dpl=` 是 Netlify 自己加的资源版本号（跟着部署 id 走）。
+   *
+   * 而 basename() **不认查询串** —— 它会把
+   * "ccba4fb3766b1b6e.ttf?dpl=..." 整个当成文件名，于是报：
+   *
+   *   ENOENT: no such file or directory, open
+   *     'node_modules/.astro/fonts/ccba4fb3766b1b6e.ttf?dpl=...'
+   *
+   * 这个坑的特点：**本地构建没有那个参数，怎么试都是好的**，
+   * 只有线上部署会挂 —— 所以别在本地找原因。
+   */
+  const [pathname] = path.split("?");
+  const file = basename(pathname ?? path);
+
   const fullPath = join(FONT_CACHE_DIR, file);
 
   const buffer = await readFile(fullPath);
