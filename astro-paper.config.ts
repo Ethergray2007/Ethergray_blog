@@ -24,7 +24,14 @@ export default defineAstroPaperConfig({
     showBackButton: true,
     editPost: {
       enabled: true,
-      url: "https://github.com/Ethergray2007/Ethergray_blog/edit/main/",
+      /**
+       * 编辑地址的**前缀**，后面拼文章在数据库里的 id。
+       *
+       * 以前这里填的是 GitHub 的编辑地址，因为文章是 git 里的 Markdown 文件。
+       * 文章搬进数据库之后 GitHub 上没有这个文件了，所以改成指向后台的编辑页。
+       * 换成别的写作后台时，改这一行就行。
+       */
+      url: "/admin/posts/",
     },
     search: "pagefind",
   },

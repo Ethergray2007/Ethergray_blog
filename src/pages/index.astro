@@ -9,8 +9,13 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
+import MotionShowcase from "@/components/MotionShowcase.astro";
 
 import { getSortedPosts } from "@/utils/getSortedPosts";
+import { getUniqueTags } from "@/utils/getUniqueTags";
+import { getFriends } from "@/utils/getFriends";
+import { getNotes } from "@/utils/getNotes";
+import { getProjects } from "@/utils/getProjects";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -26,25 +31,129 @@ const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 
+/**
+ * 「从哪看起」那一排入口。
+ *
+ * 数量全部来自**真实的内容集合**，不是写死的数字 ——
+ * 所以加了文章、加了友链，这里会跟着变。
+ *
+ * 为什么要在这里再查一遍集合（下面「最近文章」用的是 posts）：
+ * 这四个集合本来就各查各的，没有共用列表可比。
+ * 而且 getUniqueTags / getFriends 这些函数已经处理好了
+ * 排序、去重、过滤草稿，直接调用比自己在这里重写一遍可靠。
+ */
+const [friendEntries, noteEntries, projectEntries] = await Promise.all([
+  getCollection("friends"),
+  getCollection("notes"),
+  getCollection("projects"),
+]);
+
+const browseItems = [
+  {
+    href: getRelativeLocaleUrl(locale, "posts"),
+    label: t.nav.posts,
+    desc: t.home.recentPostsDesc,
+    count: posts.length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "notes"),
+    label: t.nav.notes,
+    desc: t.pages.notesDesc,
+    count: getNotes(noteEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "projects"),
+    label: t.nav.projects,
+    desc: t.pages.projectsDesc,
+    count: getProjects(projectEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "friends"),
+    label: t.nav.friends,
+    desc: t.pages.friendsDesc,
+    count: getFriends(friendEntries).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "tags"),
+    label: t.nav.tags,
+    desc: t.pages.tagsDesc,
+    count: getUniqueTags(posts).length,
+  },
+  {
+    href: getRelativeLocaleUrl(locale, "archives"),
+    label: t.nav.archives,
+    desc: t.pages.archivesDesc,
+    count: sortedPosts.length,
+  },
+];
+
 const homePath = getRelativeLocaleUrl(locale, "");
 ---
 
 <Layout>
   <Header />
 
-  <main
-    id="main-content"
-    data-layout="index"
-    data-home-path={homePath}
-    class="content-shell py-8 sm:py-10 lg:py-12"
-  >
-    <!-- Hero -->
-    <section
-      id="hero"
-      class="card border-base-300 bg-base-100 border shadow-sm"
-    >
-      <div class="card-body p-6 sm:p-8 lg:p-10">
-        <div class="mb-4 flex flex-wrap items-center gap-2">
+  {
+    /*
+    ============================================================
+    首屏
+    ============================================================
+    ⚠️ 它在 <main> **外面**，这是有意的。
+
+    因为 main 用的是 content-shell（max-w-5xl 限宽 + 左右留白），
+    背景图放进去会被限制成一条竖条 —— 看起来是"一个卡片"，
+    而不是"一个首屏"。移出来之后背景才能铺满整个屏幕宽度。
+
+    容器（限宽 + 留白）改到内部那层，这样文字仍然和下方的
+    文章列表对齐，不会因为铺满而跑到屏幕最左边。
+    ============================================================
+  */
+  }
+  <section id="hero">
+    {
+      /*
+      背景图（.hero__bg 的 background-image）+ 压暗层，两层都绝对定位铺满。
+      文字那层用 z-10 压在上面（见下面那个 div）。
+
+      背景图为什么用 CSS 而不是 <img>：见 src/styles/hero.css 里的说明 ——
+      一句话是"离线压好的 108 KB 比构建时处理 6 MB 原图更划算"。
+    */
+    }
+    <div class="hero__bg" aria-hidden="true"></div>
+
+    <div class="hero__scrim" aria-hidden="true"></div>
+
+    {
+      /*
+      网格底纹 + 霓虹光晕。
+      两层都是纯装饰，所以 aria-hidden —— 读屏软件不用念它们。
+
+      ⚠️ 顺序有讲究：必须在 scrim（压暗层）**之上**、文字层之下。
+      放到 scrim 下面就等于被压暗层盖住，什么都看不见。
+    */
+    }
+    <div class="hero__grid" aria-hidden="true"></div>
+
+    <div class="hero__glow" aria-hidden="true"></div>
+
+    {
+      /*
+      干净的「左图右文」—— 首屏只负责"我是谁"，不掺文章内容。
+
+      ⚠️ 之前这里塞过一张「最新一篇」的小卡片，这次去掉了。原因：
+      首页只有一篇文章时，它和下面「最近文章」里那张卡**是同一篇** ——
+      同一屏出现两次，看着像出错。
+      而且左栏只有一张小卡片、还和右栏文字底端对齐，
+      两栏之间没有任何关系，读起来很散。
+
+      现在的分工：
+        首屏  我是谁（标题 + 说明 + 入口）
+        下面  有什么内容（文章列表）
+    */
+    }
+    <div class="content-shell hero__content">
+      <div class="hero__text">
+        <div class="mb-5 flex flex-wrap items-center gap-2">
           <span class="badge badge-primary badge-soft">
             {t.home.badge}
           </span>
@@ -62,30 +171,47 @@ const homePath = getRelativeLocaleUrl(locale, "");
           </a>
         </div>
 
-        <h1
-          class="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl"
-        >
+        {
+          /*
+          标题用 text-5xl 而不是 6xl：
+          中文没有词间空格，同样字号下视觉重量比英文大得多，
+          6xl 的中文标题会显得压人。
+        */
+        }
+        <h1 class="hero__title text-4xl font-black sm:text-5xl">
           {t.home.heroTitle}
         </h1>
 
-        <p
-          class="text-base-content/70 mt-4 max-w-2xl text-lg leading-8 sm:text-xl"
-        >
+        {
+          /*
+          ⚠️ 三段文字的宽度**统一**成 max-w-xl。
+          之前标题是 max-w-3xl、正文是 max-w-2xl —— 右边缘参差不齐，
+          看起来像没对齐。统一之后右边是一条直线。
+        */
+        }
+        <p class="hero__lead mt-4 max-w-xl text-lg leading-8">
           {t.home.heroLead}
         </p>
 
-        <p class="text-base-content/60 mt-2 max-w-2xl leading-7">
+        <p class="hero__more mt-2 max-w-xl leading-7">
           {t.home.heroMore}
         </p>
 
-        <div class="mt-6 flex flex-wrap gap-3">
+        <div class="mt-7 flex flex-wrap gap-3">
+          {
+            /*
+          指向仓库首页而不是 #readme ——
+          README 是给开发者看的，访客点进去会一头雾水；
+          仓库首页至少能看到这是个什么项目。
+        */
+          }
           <a
-            href="https://github.com/Ethergray2007/Ethergray_blog#readme"
+            href="https://github.com/Ethergray2007/Ethergray_blog"
             target="_blank"
             rel="noreferrer"
             class="btn btn-primary"
           >
-            {t.home.viewReadme}
+            {t.home.viewSource}
           </a>
 
           <a
@@ -100,21 +226,100 @@ const homePath = getRelativeLocaleUrl(locale, "");
           </a>
         </div>
       </div>
+    </div>
+  </section>
+
+  <main
+    id="main-content"
+    data-layout="index"
+    data-home-path={homePath}
+    class="content-shell pt-10 pb-8 sm:pt-12 sm:pb-10 lg:pb-12"
+  >
+    {
+      /*
+      ============================================================
+      从哪看起
+      ============================================================
+      列各内容类型的入口 + 真实数量。
+
+      【为什么需要这一块】
+      顶部导航为了清爽只留了 4 个内容链接，「标签」「归档」移到了页脚。
+      但那样它们也更难被发现 —— 这个区块正好把缺口补回来。
+
+      【和顶部导航的分工】
+        顶部   去哪儿（始终可见，4 个内容类型）
+        这里   有什么（带数量，一眼看出哪个板块有内容）
+
+      数量是**真实**的（来自各内容集合），不是装饰性数字。
+      某个板块为空时它会显示 0 —— 这也是诚实的：
+      与其藏起来，不如让人一眼看出"这里还没东西"。
+      ============================================================
+    */
+    }
+    {
+      /*
+      ⚠️ 「动图」区块（MotionShowcase）原来在这个位置 ——
+      也就是「从哪看起」**上面**。改版时把它移到了文章列表下面。
+
+      理由是构图问题：那两张 GIF 在页面上占了将近一整屏。
+      放在这里会把"从哪看起"和"最近文章"一起挤到第二屏 ——
+      读者打开首页看到的是两张动图，而不是"这个站有什么内容"。
+
+      首页的信息优先级应该是：
+        首屏（我是谁）→ 有什么 → 最近写了什么 → 这些动图
+      动图是装饰性的趣味内容，排在最后不影响任何人，
+      放前面却会挡住主要内容。
+    */
+    }
+
+    <section id="browse">
+      <div class="mb-5">
+        <h2 class="section-heading">{t.home.browseTitle}</h2>
+
+        <p class="section-lede">{t.home.browseDesc}</p>
+      </div>
+
+      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          browseItems.map(item => (
+            <li>
+              <a
+                href={item.href}
+                class="card border-base-300 bg-base-100 hover:border-primary/60 hover:bg-base-200/60 group flex h-full flex-row items-center justify-between gap-3 border p-4 transition-colors"
+              >
+                <span class="min-w-0">
+                  <span class="block truncate font-semibold">{item.label}</span>
+                  <span class="text-base-content-muted mt-0.5 block truncate text-sm">
+                    {item.desc}
+                  </span>
+                </span>
+
+                {/*
+                  数量。用 tabular-nums 让它等宽 ——
+                  否则 1 和 8 宽度不同，右侧会跳。
+                */}
+                <span class="text-base-content-faint group-hover:text-primary shrink-0 font-mono text-lg tabular-nums transition-colors">
+                  {item.count}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
     </section>
 
     <!-- Featured -->
     {
       featuredPosts.length > 0 && (
-        <section id="featured" class="mt-10 sm:mt-12">
+        <section
+          id="featured"
+          class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
+        >
           <div class="mb-5 flex items-end justify-between gap-4">
             <div>
-              <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
-                {t.home.featured}
-              </h2>
+              <h2 class="section-heading">{t.home.featured}</h2>
 
-              <p class="text-base-content/55 mt-1 text-sm sm:text-base">
-                {t.home.featuredDesc}
-              </p>
+              <p class="section-lede">{t.home.featuredDesc}</p>
             </div>
           </div>
 
@@ -135,13 +340,9 @@ const homePath = getRelativeLocaleUrl(locale, "");
           class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
         >
           <div class="mb-5">
-            <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">
-              {t.home.recentPosts}
-            </h2>
+            <h2 class="section-heading">{t.home.recentPosts}</h2>
 
-            <p class="text-base-content/55 mt-1 text-sm sm:text-base">
-              {t.home.recentPostsDesc}
-            </p>
+            <p class="section-lede">{t.home.recentPostsDesc}</p>
           </div>
 
           <ul>
@@ -152,6 +353,9 @@ const homePath = getRelativeLocaleUrl(locale, "");
         </section>
       )
     }
+
+    <!-- Motion（装饰性内容，排在所有正文区块之后） -->
+    <MotionShowcase />
 
     <!-- All Posts -->
     <section

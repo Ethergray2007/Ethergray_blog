@@ -1,0 +1,39 @@
+/**
+ * 数学公式（KaTeX）的样式
+ * ============================================================
+ * KaTeX 渲染出来的公式是**一堆带特定 class 的 span**，
+ * 必须加载它自己的 CSS 才能正确排版 —— 否则上下标会错位、
+ * 分数线会消失、根号会散架。
+ *
+ * 为什么单独一个文件而不是写进 typography.css：
+ *   这样"想删掉数学公式功能"时，删除动作是集中的、看得见的：
+ *   删这个文件 + astro.config.ts 里的两个插件 + 两个依赖。
+ *
+ * 想删掉数学公式？
+ *   1. 删掉这个文件，以及 global.css 里 import 它的那一行
+ *   2. 删掉 astro.config.ts 里的 remarkMath 和 rehypeKatex
+ *   3. 卸载依赖：npm uninstall remark-math rehype-katex katex
+ *   4. 删掉 README 的「可选模块」表里那一行
+ * ============================================================
+ */
+
+/* KaTeX 自带的样式表。字体文件会一起被打包 */
+@import "katex/dist/katex.min.css";
+
+/**
+ * 长公式在手机上会横向溢出，撑破页面布局。
+ * 让公式块可以横向滚动，而不是把整个页面顶宽。
+ */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+}
+
+/**
+ * 深色模式下 KaTeX 默认的黑色文字会看不清。
+ * 主题色变量由 theme.css 定义，这里跟着走。
+ */
+[data-theme="dark"] .katex {
+  color: var(--color-base-content);
+}

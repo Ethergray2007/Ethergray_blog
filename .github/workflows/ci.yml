@@ -24,6 +24,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # 文章存在数据库里，而文章集合是在构建时从库里读的
+    # （见 src/db/loaders/posts.ts），所以 astro check 和 build
+    # 都需要能连上数据库。
+    #
+    # ⚠️ 这个 secret 要自己去配一次：
+    #    仓库 → Settings → Secrets and variables → Actions → New repository secret
+    #    名字 DATABASE_URL，值是 Neon 的连接串（和本地 .env 里那条一样）
+    #
+    # 没配的话，下面两步会以"连不上数据库"失败 —— 那是**故意的**：
+    # 让构建在有数据的情况下跑，而不是悄悄跳过。构建产物是真实页面，
+    # 数据读不到就应该红，不该绿着上线。
+    #
+    # 注意：来自 fork 的 PR 拿不到 secret，这类 PR 的构建会失败。
+    # 个人仓库没有外部贡献者，暂时不管；真要收 PR 时再单独处理。
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
     steps:
       - name: "☁️ Checkout repository"
         uses: actions/checkout@v4
@@ -52,3 +69,28 @@ jobs:
 
       - name: "🚀 Build the project"
         run: npm run build
+
+      # ⚠️ 必须放在 build **之后**，不能挪到前面。
+      #
+      # feed:test 里有一组"真实构建产物"检查：它读 dist/rss.xml 和
+      # dist/atom.xml。dist/ 不存在时那组会打印「⏭️ 不存在（先跑
+      # npm run build）」然后**跳过**，但整个测试仍然 exit 0 ——
+      # 也就是说放前面的话，CI 会显示绿灯而实际上那 15 条断言一条没跑。
+      #
+      # 【为什么这些测试能在 CI 里跑】
+      # 全部 7 套测试都设计成**不联网、不需要数据库**：
+      #   · 数据层用 PGlite（进程内的 PostgreSQL）现场建空库
+      #   · API 层用 alwaysLoggedIn / neverLoggedIn 替身代替真实登录
+      #   · 重建通知用替身，不会真的去请求 Netlify
+      #
+      # 注意和上面两步的区别：**测试**不需要数据库，但**构建**需要
+      # （文章要从库里读）。所以上面配了 DATABASE_URL 的 secret，
+      # 而这里不需要 —— 别把两者搞混。
+      #
+      # 【它覆盖什么】
+      # 142 条断言：访问控制、文章增删改查、参数校验、状态码、错误格式、
+      # 数据库约束、订阅源格式、三个内容集合的排序规则、
+      # "文章改动后该不该触发站点重建"，以及"数据库行 → 页面字段"的映射。
+      # 这些以前只在本地跑，是 CI 里最大的一个窟窿。
+      - name: "✅ Run tests"
+        run: npm test

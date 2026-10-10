@@ -1,11 +1,12 @@
 import type { APIRoute } from "astro";
 import satori from "satori";
 import sharp from "sharp";
-import { fontData, experimental_getFontFileURL } from "astro:assets";
+import { fontData } from "astro:assets";
 import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
+import { readFontFile } from "@/utils/readFontFile";
 import config from "@/config";
 
-export const GET: APIRoute = async context => {
+export const GET: APIRoute = async () => {
   const fonts = fontData["--font-google-sans-code"];
   const regularFontPath = getFontPathByWeight(fonts, 400);
   const boldFontPath = getFontPathByWeight(fonts, 700);
@@ -14,13 +15,14 @@ export const GET: APIRoute = async context => {
     throw new Error("Cannot find the font path.");
   }
 
+  /**
+   * 从磁盘读，不用 fetch —— 原因见 src/utils/readFontFile.ts 的文件头。
+   * 简短版：这两个路由是预渲染的，构建时没人在服务那个字体地址，
+   * fetch 拿回来的是一张 HTML 错误页。
+   */
   const [regularData, boldData] = await Promise.all([
-    fetch(experimental_getFontFileURL(regularFontPath, context.url)).then(res =>
-      res.arrayBuffer()
-    ),
-    fetch(experimental_getFontFileURL(boldFontPath, context.url)).then(res =>
-      res.arrayBuffer()
-    ),
+    readFontFile(regularFontPath),
+    readFontFile(boldFontPath),
   ]);
 
   const svg = await satori(

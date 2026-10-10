@@ -1,0 +1,93 @@
+---
+/**
+ * 友链页  /friends
+ * ============================================================
+ * 自包含：只依赖 src/utils/getFriends.ts 和内容集合 src/content/friends/。
+ *
+ * 想删掉这个页面？
+ *   照 src/utils/getFriends.ts 文件头写的 6 步做。
+ *
+ * 【现在这个页面是空的，这是有意的】
+ * 页面上只放**我自己认识的、真的在看的**博客，不对外开放申请。
+ * 所以既没有"想交换友链？把信息按这个格式发给我"那种区块，
+ * 也没有「在线」标记 —— 那种标记要么是假的（手写的），
+ * 要么要去探测几十个外部地址（慢、而且对别人不礼貌）。
+ *
+ * 想加一个友链：在 src/content/friends/ 下新建一个 Markdown 文件，
+ * 字段照着 src/content.config.ts 里的 friends schema 填。
+ * ============================================================
+ */
+import { getCollection } from "astro:content";
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Footer from "@/components/Footer.astro";
+import Main from "@/components/Main.astro";
+
+import { getFriends } from "@/utils/getFriends";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const entries = await getCollection("friends");
+const friends = getFriends(entries);
+---
+
+<Layout
+  title={`${t.pages.friendsTitle} | ${config.site.title}`}
+  description={t.pages.friendsDesc}
+>
+  <Header />
+  <Breadcrumb />
+  <Main pageTitle={t.pages.friendsTitle} pageDesc={t.pages.friendsDesc}>
+    {
+      friends.length === 0 ? (
+        <p class="text-base-content-muted">{t.friends.empty}</p>
+      ) : (
+        <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {friends.map(friend => (
+            <li>
+              <a
+                href={friend.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="card bg-base-200 hover:bg-base-300 h-full p-4 transition-colors"
+              >
+                <div class="flex items-center gap-3">
+                  {/*
+                    头像用 <img> 而不是 Astro 的 <Image>：
+                    这些图片在**别人的服务器**上，Astro 只能处理本地图片。
+                    加 loading="lazy" 和 referrerpolicy 是基本礼貌 ——
+                    不把我们页面的来源信息带过去。
+                  */}
+                  <img
+                    src={friend.avatar}
+                    alt=""
+                    width="48"
+                    height="48"
+                    loading="lazy"
+                    decoding="async"
+                    referrerpolicy="no-referrer"
+                    class="bg-base-300 size-12 shrink-0 rounded-full object-cover"
+                  />
+                  <div class="min-w-0">
+                    <span class="block truncate font-semibold">
+                      {friend.title}
+                    </span>
+                    <p class="text-base-content-muted mt-1 line-clamp-2 text-sm">
+                      {friend.description}
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </Main>
+  <Footer />
+</Layout>

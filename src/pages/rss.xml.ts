@@ -1,22 +1,18 @@
-import rss from "@astrojs/rss";
-import { getCollection } from "astro:content";
-import { getSortedPosts } from "@/utils/getSortedPosts";
-import { getPostUrl } from "@/utils/getPostPaths";
-import config from "@/config";
+/**
+ * RSS 2.0 订阅  /rss.xml
+ * ============================================================
+ * 内容在 src/lib/feed.ts 里统一构建（和 Atom 共用一份配置），
+ * 这里只决定输出成哪种格式。
+ *
+ * 想删掉？见 src/lib/feed.ts 文件头写的 4 步。
+ * ============================================================
+ */
+import { createFeed } from "@/lib/feed";
 
 export async function GET() {
-  const posts = await getCollection("posts");
-  const sortedPosts = getSortedPosts(posts);
+  const feed = await createFeed();
 
-  return rss({
-    title: config.site.title,
-    description: config.site.description,
-    site: config.site.url,
-    items: sortedPosts.map(({ data, id, filePath }) => ({
-      link: getPostUrl(id, filePath, config.site.lang),
-      title: data.title,
-      description: data.description,
-      pubDate: new Date(data.modDatetime ?? data.pubDatetime),
-    })),
+  return new Response(feed.rss2(), {
+    headers: { "content-type": "application/rss+xml; charset=utf-8" },
   });
 }

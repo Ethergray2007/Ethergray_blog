@@ -1,0 +1,92 @@
+---
+/**
+ * 后台登录页  /admin
+ * ============================================================
+ * 自包含：只依赖 src/utils/adminApi.ts 和 i18n。
+ *
+ * 想删掉这个页面？连同 src/pages/admin/ 整个目录一起删。
+ *
+ * 【为什么只有一个 GitHub 按钮，没有用户名密码表单】
+ * 登录交给 Better Auth + GitHub OAuth：
+ *   · 不用记密码，也就不会忘
+ *   · 数据库里不存任何用户信息，没有密码可泄露
+ *   · 只有 GITHUB_OWNER_ID 指定的账号能进来，别人授权了也没用
+ *
+ * 【为什么 prerender = false】
+ * 需要每次请求时由服务端渲染（而不是构建时生成静态 HTML）。
+ * 博客正文页仍然是静态的，不受影响。
+ * ============================================================
+ */
+import Layout from "@/layouts/Layout.astro";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+export const prerender = false;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+/**
+ * 登录失败时 Better Auth 会把人送回这个页面，并在地址栏带上原因。
+ * 在服务端直接读出来渲染，客户端就不用再解析 URL 了。
+ */
+const errorMessage = Astro.url.searchParams.get("error");
+---
+
+<Layout title={`${t.admin.loginTitle} | ${config.site.title}`}>
+  <main
+    class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16"
+  >
+    <h1 class="mb-8 text-center text-2xl font-bold">{t.admin.loginTitle}</h1>
+
+    <div class="card bg-base-200 p-6 shadow-sm">
+      {
+        /*
+        登录失败的原因。
+        role="alert" 让屏幕阅读器立刻读出来 —— 无障碍的基本要求。
+      */
+      }
+      {
+        errorMessage && (
+          <p role="alert" class="text-error mb-4 text-center text-sm">
+            {errorMessage}
+          </p>
+        )
+      }
+
+      <button id="github-login" type="button" class="btn btn-primary w-full">
+        {t.admin.signInWithGithub}
+      </button>
+
+      <p class="mt-4 text-center text-xs opacity-60">{t.admin.githubHint}</p>
+    </div>
+
+    <p class="mt-6 text-center text-sm">
+      <a href="/" class="link link-hover">{t.notFound.goHome}</a>
+    </p>
+  </main>
+</Layout>
+
+<script>
+  import { getCurrentUser, signInWithGitHub } from "@/utils/adminApi";
+
+  document
+    .querySelector<HTMLButtonElement>("#github-login")
+    ?.addEventListener("click", () => {
+      /**
+       * 整页跳转到 GitHub，授权完它会把人送回 /admin/posts。
+       * 所以这里不需要 try/catch —— 没有"结果"可以等。
+       */
+      signInWithGitHub("/admin/posts");
+    });
+
+  /**
+   * 已经登录过就直接进后台，不用再点一次。
+   * 失败就忽略 —— 没登录是正常情况。
+   */
+  void getCurrentUser().then(user => {
+    if (user) {
+      location.replace("/admin/posts");
+    }
+  });
+</script>

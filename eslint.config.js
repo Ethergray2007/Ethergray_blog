@@ -16,6 +16,11 @@ export default [
       "dist/**",
       ".astro/**",
       "practice/**",
+      /**
+       * .netlify 是适配器生成的构建产物（每次 astro build 都会重新生成）。
+       * 它里面有几百个打包后的文件，lint 它们既没意义又很慢。
+       */
+      ".netlify/**",
       // 工具/编辑器产生的杂项目录，不属于项目源码
       // （.dsh-probe 是 DSH harness 临时生成的）
       ".dsh-probe/**",
@@ -38,4 +43,12 @@ export default [
     },
   },
   { rules: { "no-console": "error" } },
+  {
+    /**
+     * scripts/ 下都是命令行工具，输出结果只能靠 console ——
+     * 这是它们的正常用法，不是调试残留。
+     */
+    files: ["scripts/**/*.ts"],
+    rules: { "no-console": "off" },
+  },
 ];

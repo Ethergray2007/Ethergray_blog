@@ -46,11 +46,16 @@ interface FeaturesConfig {
   showArchives?: boolean;
   /** Show back button on post detail pages. Defaults to true. */
   showBackButton?: boolean;
-  /** "Edit page" link shown on post detail pages. */
+  /**
+   * 文章页上的「编辑本页」链接。
+   *
+   * url 是**前缀**，后面拼文章在数据库里的 id（例如 "/admin/posts/" → "/admin/posts/3"）。
+   * 文章存在数据库里之后，它指向写作后台而不是 GitHub。
+   */
   editPost?:
     | {
         enabled: true;
-        /** Base URL for the edit link, e.g. GitHub edit URL */
+        /** 编辑地址前缀，后面拼文章 id */
         url: string;
       }
     | { enabled: false };

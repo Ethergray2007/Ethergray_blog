@@ -13,7 +13,14 @@ type Props = {
 const { hideEditPost, post, class: className = "" } = Astro.props;
 
 const editPost = config.features.editPost;
-const href = editPost.enabled ? `${editPost.url}${post.filePath}` : "";
+
+/**
+ * 编辑地址拼的是**数据库里的 id**，不是 filePath。
+ *
+ * 文章存在数据库里，GitHub 上已经没有这个文件了，所以「编辑本页」
+ * 指向后台编辑页（/admin/posts/123）。这也正是现在改文章的地方。
+ */
+const href = editPost.enabled ? `${editPost.url}${post.data.dbId}` : "";
 const showEditPost = editPost.enabled && !hideEditPost && href.trim() !== "";
 
 const t = useTranslations(Astro.currentLocale);
@@ -26,7 +33,7 @@ const t = useTranslations(Astro.currentLocale);
       target="_blank"
       rel="noopener noreferrer"
       class:list={[
-        "hover:text-accent text-muted-foreground flex justify-baseline gap-1.5",
+        "hover:text-primary text-base-content-muted flex justify-baseline gap-1.5",
         className,
       ]}
     >

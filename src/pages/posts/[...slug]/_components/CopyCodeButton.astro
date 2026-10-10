@@ -7,12 +7,22 @@
  * 为什么按钮是"浏览器里挂上去的"？
  *   代码块是 Markdown 在**构建时**渲染成 HTML 的，
  *   服务端并不知道有几个代码块、每个在哪。
- *   所以这个组件的 <script> 在浏览器里跑，找到所有代码块再挂按钮。
+ *   所以这个组件的 script 在浏览器里跑，找到所有代码块再挂按钮。
  *   这就是"服务端渲染"和"客户端脚本"配合的典型例子。
+ *
+ * ⚠️ 在 .astro 文件里提到标签名或行内代码时，不要写出对应的符号。
+ *
+ *   这个文件的注释曾经因此报过两次 PARSE_ERROR：
+ *     1. 写出带尖括号的 script 标签名 → 编译器把它当成真正的
+ *        script 标签开头，后面的中文被当成 JavaScript 解析
+ *     2. 写出反引号 → 编译器把它当成模板字符串的开头，
+ *        一路"未终止"，整个组件解析失败
+ *
+ *   用文字描述（"script 标签""反引号"）就不会有问题。
  *
  * 想删掉这个功能？
  *   1. 删掉这个文件
- *   2. 删掉文章页里的 <CopyCodeButton /> 那一行
+ *   2. 删掉文章页里的 CopyCodeButton 那一行
  * ============================================================
  */
 ---
@@ -77,9 +87,39 @@
     }
   }
 
+  /**
+   * 按钮上的四段文案来自文章页的 data-* 属性。
+   *
+   * 【为什么不直接写在下面】
+   * 这个 script 是在浏览器里跑的，读不到服务端渲染时用的 t 对象。
+   * 写死中文的话，英文站点会半中半英 —— 所以由文章页用 t.post.*
+   * 渲染进 data-copy-*，这里再去读。
+   * （标题锚点用的是同一套办法：data-heading-link-label）
+   */
+  function getLabels() {
+    // 文章页一定会给这四条，见 posts/[...slug]/index.astro 里的 article 标签
+    const el = document.getElementById("article");
+
+    return {
+      copy: el?.dataset.copyLabel ?? "",
+      copyCode: el?.dataset.copyCodeLabel ?? "",
+      copied: el?.dataset.copiedLabel ?? "",
+      failed: el?.dataset.copyFailedLabel ?? "",
+    };
+  }
+
   function initCopyButtons() {
-    // 只处理围栏代码块。Astro 给它们加了 .astro-code 类，
-    // 行内代码（`这样`）没有这个类，所以不会被误加按钮。
+    const labels = getLabels();
+
+    /**
+     * 只处理围栏代码块。Astro 给它们加了 .astro-code 类，
+     * 行内代码（用反引号括起来的那种）没有这个类，不会被误加按钮。
+     *
+     * ⚠️ 上面这句原本写的是带反引号的「行内代码」，结果这个 script
+     *   里的注释被当成模板字符串的开头，把后面的代码全吞了，
+     *   整个组件报 PARSE_ERROR。
+     *   在 script 标签内的注释里不要使用反引号。
+     */
     const blocks = document.querySelectorAll<HTMLElement>("pre.astro-code");
 
     blocks.forEach(block => {
@@ -90,27 +130,48 @@
 
       block.dataset.copyReady = "true";
 
+      /*
+       * 为什么要在代码块外面再包一层？
+       *
+       * 代码块自己有 overflow-x: auto（长行要能横向滚）。
+       * 按钮如果直接挂在它里面，"右边缘"指的是**内容**的右边缘，
+       * 横向滚动时按钮会跟着滚走 —— 实测滚动 426px，按钮从左下
+       * 飘到代码文字上面去。
+       *
+       * 包一层之后，外层不滚动，按钮相对外层定位，就永远待在
+       * 右上角。外层没有任何自己的样式，margin 会正常合并，
+       * 所以段落间距和包之前完全一样。
+       */
+      let holder = block.parentElement;
+
+      if (!holder?.classList.contains("code-block")) {
+        holder = document.createElement("div");
+        holder.className = "code-block";
+        block.before(holder);
+        holder.append(block);
+      }
+
       const button = document.createElement("button");
       button.type = "button";
       button.className = "code-copy-btn";
-      button.textContent = "复制";
+      button.textContent = labels.copy;
       // 读屏软件靠这个知道按钮是干什么的
-      button.setAttribute("aria-label", "复制代码");
+      button.setAttribute("aria-label", labels.copyCode);
 
       button.addEventListener("click", async () => {
         const ok = await copyText(getCodeText(block));
 
-        button.textContent = ok ? "已复制" : "复制失败";
+        button.textContent = ok ? labels.copied : labels.failed;
         button.dataset.state = ok ? "done" : "error";
 
         // 1.5 秒后恢复，避免按钮一直停在"已复制"
         window.setTimeout(() => {
-          button.textContent = "复制";
+          button.textContent = labels.copy;
           delete button.dataset.state;
         }, 1500);
       });
 
-      block.append(button);
+      holder.append(button);
     });
   }
 
@@ -121,9 +182,29 @@
   document.addEventListener("astro:page-load", initCopyButtons);
 </script>
 
-<style>
-  /* 让按钮能绝对定位到代码块右上角 */
-  pre.astro-code {
+<!--
+  ⚠️ 这里必须写 is:global，不能是普通的 scoped 样式。
+
+  普通 <style> 会被 Astro 加上 data-astro-cid-xxx 属性选择器，
+  而那个属性只加在**组件模板里写出来的元素**上。
+  这个组件的模板是空的，代码块来自 Markdown、按钮来自下面的脚本，
+  两者都没有那个属性 —— 于是整段样式一条都匹配不上。
+
+  踩过的坑：产物里**根本没有** .code-copy-btn 这条规则（不是"被覆盖"，
+  是被整段丢掉）。表现是复制按钮变成一个没样式的原生按钮，
+  挤在代码内容末尾、被 overflow-x 裁掉一半，只看得见一个「复」字。
+  dev 和 build 都一样，因为作用域是编译期决定的。
+
+  写 is:global 之后选择器保持原样。pre.astro-code 和 .code-copy-btn
+  都只出现在文章页，不会污染别处。
+  （src/pages/search.astro 里的 #pagefind-search 出于同样原因是 is:global）
+-->
+<style is:global>
+  /*
+   * 外层容器。它自己不产生任何视觉，只负责"不滚动"，
+   * 这样按钮的右边缘才是屏幕上的右边缘（见上面脚本里的注释）。
+   */
+  .code-block {
     position: relative;
   }
 
@@ -149,7 +230,7 @@
       background-color 150ms ease;
   }
 
-  pre.astro-code:hover .code-copy-btn,
+  .code-block:hover .code-copy-btn,
   .code-copy-btn:focus-visible {
     opacity: 1;
   }

@@ -2,7 +2,6 @@
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
-import IconArchive from "@/assets/icons/IconArchive.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
@@ -49,7 +48,29 @@ const isDarkInitially = false;
   {t.a11y.skipToContent}
 </a>
 
-<header class="site-shell">
+{
+  /*
+  ============================================================
+  ⚠️ 这里的结构不能随手改，有两个位置是有原因的：
+
+  1. header 是 **sticky**（吸顶）。滚动时导航条始终可见 ——
+     这是参考站 elysia.nodejs.cn 的做法，也是长文页面最实用的改进。
+
+  2. 玻璃拟态的样式**不写在这里，写在 src/styles/nav.css**。
+     原因是需要 `backdrop-filter` + 半透明背景，
+     而背景色必须**跟随主题**（浅色模式是白色玻璃，深色模式是深色玻璃）。
+     用内联的 dark: 变体也能写，但玻璃效果牵连好几个属性
+     （背景、边框、模糊、滚动后的阴影），
+     散在 class 字符串里以后很难改 —— 收进一个文件更符合本项目
+     "一个功能 = 一组自包含文件"的约定。
+
+  data-scrolled 由 nav.css 里的小脚本维护：
+  页面在顶部时不显示下边框（首屏是深色的，加边框会多一条线），
+  滚动之后才出现，让玻璃条和内容之间有个交代。
+  ============================================================
+  */
+}
+<header id="site-header" class="site-shell sticky top-0 z-40">
   <div
     class="navbar border-base-300 bg-base-100 min-h-16 border-b px-0 sm:min-h-20"
   >
@@ -81,59 +102,68 @@ const isDarkInitially = false;
             </a>
           </li>
 
-          <!-- Tags -->
+          <!-- Friends -->
           <li>
             <a
-              href={getRelativeLocaleUrl(locale, "tags")}
-              class:list={["font-medium", { "menu-active": isActive("/tags") }]}
-              aria-current={isActive("/tags") ? "page" : undefined}
-            >
-              {t.nav.tags}
-            </a>
-          </li>
-
-          <!-- About -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "about")}
+              href={getRelativeLocaleUrl(locale, "friends")}
               class:list={[
                 "font-medium",
-                { "menu-active": isActive("/about") },
+                { "menu-active": isActive("/friends") },
               ]}
-              aria-current={isActive("/about") ? "page" : undefined}
+              aria-current={isActive("/friends") ? "page" : undefined}
             >
-              {t.nav.about}
+              {t.nav.friends}
             </a>
           </li>
 
-          <!-- Now -->
+          <!-- Notes -->
           <li>
             <a
-              href={getRelativeLocaleUrl(locale, "now")}
-              class:list={["font-medium", { "menu-active": isActive("/now") }]}
-              aria-current={isActive("/now") ? "page" : undefined}
+              href={getRelativeLocaleUrl(locale, "notes")}
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/notes") },
+              ]}
+              aria-current={isActive("/notes") ? "page" : undefined}
             >
-              {t.nav.now}
+              {t.nav.notes}
             </a>
           </li>
 
-          <!-- Archives -->
+          <!-- Projects -->
+          <li>
+            <a
+              href={getRelativeLocaleUrl(locale, "projects")}
+              class:list={[
+                "font-medium",
+                { "menu-active": isActive("/projects") },
+              ]}
+              aria-current={isActive("/projects") ? "page" : undefined}
+            >
+              {t.nav.projects}
+            </a>
+          </li>
+
           {
-            features.showArchives && (
-              <li>
-                <a
-                  href={getRelativeLocaleUrl(locale, "archives")}
-                  class:list={{
-                    "menu-active": isActive("/archives"),
-                  }}
-                  class="btn btn-ghost btn-square"
-                  title={t.nav.archives}
-                  aria-label={t.nav.archives}
-                >
-                  <IconArchive class="size-5" />
-                </a>
-              </li>
-            )
+            /*
+            ============================================================
+            这里原本还有「标签」「关于」「近况」三个文字链接，
+            以及一个「归档」图标按钮，现在都去掉了。
+
+            判断依据：那 7 个链接不是同一类东西 ——
+              内容类型（站点主体）    文章 说说 项目 友链
+              辅助页面（只看一次）    关于 近况 标签 归档
+
+            后者移到页脚（见 Footer.astro）。理由：
+              · 顶部是导航，作用是"去哪"，不是"全部入口的清单"
+              · 页脚本来就有空间（原来只有版权 + 社交图标），
+                而且"关于""归档"这类链接放页脚是通行做法
+              · 顶部从 10 个可点元素降到 6 个
+
+            ⚠️ 那三个页面本身没有被删，只是入口换了位置。
+            直接访问 /about、/now、/tags、/archives 仍然正常。
+            ============================================================
+          */
           }
 
           <!-- Search -->
@@ -230,61 +260,50 @@ const isDarkInitially = false;
           </a>
         </li>
 
-        <!-- Tags -->
+        <!-- Friends -->
         <li>
           <a
-            href={getRelativeLocaleUrl(locale, "tags")}
+            href={getRelativeLocaleUrl(locale, "friends")}
             class:list={{
-              "menu-active": isActive("/tags"),
+              "menu-active": isActive("/friends"),
             }}
             data-mobile-menu-link
           >
-            {t.nav.tags}
+            {t.nav.friends}
           </a>
         </li>
 
-        <!-- About -->
+        <!-- Notes -->
         <li>
           <a
-            href={getRelativeLocaleUrl(locale, "about")}
+            href={getRelativeLocaleUrl(locale, "notes")}
             class:list={{
-              "menu-active": isActive("/about"),
+              "menu-active": isActive("/notes"),
             }}
             data-mobile-menu-link
           >
-            {t.nav.about}
+            {t.nav.notes}
           </a>
         </li>
 
-        <!-- Now -->
+        <!-- Projects -->
         <li>
           <a
-            href={getRelativeLocaleUrl(locale, "now")}
+            href={getRelativeLocaleUrl(locale, "projects")}
             class:list={{
-              "menu-active": isActive("/now"),
+              "menu-active": isActive("/projects"),
             }}
             data-mobile-menu-link
           >
-            {t.nav.now}
+            {t.nav.projects}
           </a>
         </li>
 
-        <!-- Archives -->
         {
-          features.showArchives && (
-            <li>
-              <a
-                href={getRelativeLocaleUrl(locale, "archives")}
-                class:list={{
-                  "menu-active": isActive("/archives"),
-                }}
-                data-mobile-menu-link
-              >
-                <IconArchive class="size-5" />
-                {t.nav.archives}
-              </a>
-            </li>
-          )
+          /*
+          这里原本还有「标签」「关于」「近况」「归档」四项。
+          它们移到了页脚 —— 理由见桌面端导航那段注释。
+        */
         }
 
         <!-- Search -->
@@ -315,6 +334,16 @@ const isDarkInitially = false;
 </dialog>
 
 <script>
+  /**
+   * 跨页面切换保持的全局回调（见文件末尾 initHeaderScrollState 的说明）。
+   * 声明在这里是因为 TS 不知道我们往 window 上挂了东西。
+   */
+  declare global {
+    interface Window {
+      __navScrollSync?: () => void;
+    }
+  }
+
   function initMobileMenu() {
     const dialog = document.querySelector<HTMLDialogElement>("#mobile-menu");
 
@@ -353,4 +382,49 @@ const isDarkInitially = false;
 
   document.addEventListener("astro:page-load", initMobileMenu);
   initMobileMenu();
+
+  /**
+   * 吸顶导航的滚动状态（样式见 src/styles/nav.css）。
+   *
+   * 【为什么用 data-scrolled 属性，而不是在 JS 里直接改样式】
+   * 让 JS 只负责"判断状态"，颜色交给 CSS ——
+   * 这样浅色/深色两套值仍然写在 CSS 里，JS 不需要知道主题。
+   * 如果在这里写 style.boxShadow，主题一变就得再来问一次 JS。
+   *
+   * 【为什么挂在 document 上、而且要 prevent 重复绑定】
+   * ClientRouter 切换页面时 header 是新的 DOM，但 document 还是同一个。
+   * 不标记的话每切一次页面就多一个 scroll 监听，切十次就有十个 ——
+   * 表现是滚动开始变卡，而且很难联想到原因。
+   */
+  function initHeaderScrollState() {
+    const header = document.querySelector<HTMLElement>("#site-header");
+
+    if (!header) return;
+
+    const sync = () => {
+      header.dataset.scrolled = window.scrollY > 8 ? "true" : "false";
+    };
+
+    sync();
+
+    if (document.documentElement.dataset.navScrollBound === "true") {
+      /*
+       * 已经绑过了，只更新一次状态就返回。
+       * 把最新的 header 元素交给全局的那一个监听器 ——
+       * 否则它还在更新被换掉的那个旧节点（等于失效）。
+       */
+      window.__navScrollSync = sync;
+      return;
+    }
+
+    document.documentElement.dataset.navScrollBound = "true";
+    window.__navScrollSync = sync;
+
+    window.addEventListener("scroll", () => window.__navScrollSync?.(), {
+      passive: true,
+    });
+  }
+
+  document.addEventListener("astro:page-load", initHeaderScrollState);
+  initHeaderScrollState();
 </script>

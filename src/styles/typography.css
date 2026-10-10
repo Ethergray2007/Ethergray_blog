@@ -53,7 +53,8 @@
     }
 
     figcaption {
-      @apply text-base-content/60;
+      /* 图注是"辅助说明"→ muted 档。别再写 /60 那种自己编的透明度 */
+      @apply text-base-content-muted;
     }
 
     table {
@@ -76,7 +77,8 @@
     }
 
     blockquote {
-      @apply border-s-primary/80 text-base-content/70 wrap-break-word;
+      /* 引用块是"要读的文字"→ strong 档（三档定义见 theme.css） */
+      @apply border-s-primary/80 text-base-content-strong wrap-break-word;
     }
 
     details:not(.callout) {

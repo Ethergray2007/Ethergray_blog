@@ -81,6 +81,13 @@ const tooling = [
   },
 ];
 
+/**
+ * 「其他开源依赖」那张表。
+ *
+ * ⚠️ 只写**真的还在用**的包。这里原来列着 remark-collapse 和 remark-toc，
+ *   而两个都早就从 package.json 里删掉了（目录功能改成读 Astro 的 headings 之后
+ *   更用不着）—— 致谢页写着不存在的依赖，比漏写更糟。
+ */
 const ecosystem = [
   "Astro RSS",
   "Astro Sitemap",
@@ -88,8 +95,6 @@ const ecosystem = [
   "Lodash Kebab Case",
   "Slugify",
   "rehype-callouts",
-  "remark-collapse",
-  "remark-toc",
   "ESLint",
   "Prettier",
 ];
@@ -130,7 +135,7 @@ const navLinks = [
             <span class="text-primary">站在很多开源项目上。</span>
           </h1>
 
-          <p class="text-base-content/60 mt-6 max-w-3xl text-base leading-8">
+          <p class="text-base-content-muted mt-6 max-w-3xl text-base leading-8">
             Ethergray Blog
             并不是从零开始编写的。这个页面记录本站使用的主要开源项目，
             并向这些项目的作者、维护者和贡献者表示感谢。
@@ -140,7 +145,7 @@ const navLinks = [
         <div class="card border-base-300 bg-base-100 border shadow-sm">
           <div class="card-body p-6">
             <div class="flex items-center justify-between">
-              <span class="text-base-content/50 text-sm"> 本页涵盖 </span>
+              <span class="text-base-content-faint text-sm"> 本页涵盖 </span>
               <span class="badge badge-primary"> OSS </span>
             </div>
 
@@ -183,8 +188,8 @@ const navLinks = [
         >
           Core Stack
         </p>
-        <h2 class="mt-2 text-3xl font-black tracking-tight">核心开源项目</h2>
-        <p class="text-base-content/55 mt-2 max-w-2xl text-sm leading-7">
+        <h2 class="section-heading">核心开源项目</h2>
+        <p class="text-base-content-muted mt-2 max-w-2xl text-sm leading-7">
           构成本站整体框架、主题与 UI 的主要项目。
         </p>
       </div>
@@ -218,12 +223,14 @@ const navLinks = [
                   </a>
                 </div>
 
-                <p class="text-base-content/60 mt-4 leading-7">
+                <p class="text-base-content-muted mt-4 leading-7">
                   {project.description}
                 </p>
 
                 <div class="card-actions mt-6 justify-between">
-                  <span class="text-base-content/40 text-xs">Open Source</span>
+                  <span class="text-base-content-faint text-xs">
+                    Open Source
+                  </span>
 
                   <a
                     href={project.url}
@@ -289,7 +296,7 @@ const navLinks = [
         >
           Tooling
         </p>
-        <h2 class="mt-2 text-3xl font-black tracking-tight">内容与构建工具</h2>
+        <h2 class="section-heading">内容与构建工具</h2>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -303,7 +310,7 @@ const navLinks = [
                   <span class="badge badge-outline badge-sm">{item.role}</span>
                 </div>
 
-                <p class="text-base-content/55 mt-3 text-sm leading-7">
+                <p class="text-base-content-muted mt-3 text-sm leading-7">
                   {item.description}
                 </p>
 
@@ -335,7 +342,7 @@ const navLinks = [
           >
             Ecosystem
           </p>
-          <h2 class="mt-2 text-3xl font-black tracking-tight">其他开源依赖</h2>
+          <h2 class="section-heading">其他开源依赖</h2>
         </div>
 
         <div class="badge badge-ghost">npm dependencies</div>
@@ -353,7 +360,7 @@ const navLinks = [
 
           <div class="divider"></div>
 
-          <p class="text-base-content/55 text-sm leading-7">
+          <p class="text-base-content-muted text-sm leading-7">
             上述依赖主要用于 RSS、Sitemap、日期处理、Slug、
             Markdown/Remark/Rehype 处理、代码高亮、代码质量检查与格式化等工作。
           </p>
@@ -369,9 +376,9 @@ const navLinks = [
             <div>
               <div class="badge badge-primary badge-soft">Thank You</div>
 
-              <h2 class="mt-4 text-3xl font-black">感谢每一位开源贡献者</h2>
+              <h2 class="section-heading">感谢每一位开源贡献者</h2>
 
-              <p class="text-base-content/65 mt-4 max-w-3xl leading-8">
+              <p class="text-base-content-strong mt-4 max-w-3xl leading-8">
                 感谢所有维护这些项目的人。正是这些开源项目，
                 让个人开发者可以在已有成果之上继续学习、修改和创造。
               </p>
@@ -399,7 +406,7 @@ const navLinks = [
         <div class="collapse-title text-lg font-bold">许可证与使用说明</div>
 
         <div class="collapse-content">
-          <div class="text-base-content/60 pt-2 text-sm leading-7">
+          <div class="text-base-content-muted pt-2 text-sm leading-7">
             <p>
               本仓库当前保留的主许可证为 MIT
               License，原许可证文件中的版权信息属于 Sat Naing。

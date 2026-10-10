@@ -1,0 +1,250 @@
+/**
+ * 页面顶部的极光射线（ray）
+ * ============================================================
+ * 自包含模块：只被 src/components/PageGlow.astro 用到。
+ *
+ * 想删掉这个效果？
+ *   1. 删掉这个文件
+ *   2. 删掉 global.css 里的 @import "./page-glow.css"
+ *   3. 删掉 PageGlow.astro（以及 Main.astro 里那一行）
+ *
+ * ------------------------------------------------------------
+ * 【配方来自参考站 elysia.nodejs.cn 的 .ray，不是自己调的】
+ *
+ * 它博客列表页顶部那层斜向彩色光带，产物 CSS 里是这样的：
+ *
+ *   --stripes: repeating-linear-gradient(100deg, #fff 0%, #fff 7%,
+ *              transparent 10%, transparent 12%, #fff 16%);
+ *   --rainbow: repeating-linear-gradient(100deg, #60a5fa 10%, #e879f9 16%,
+ *              #5eead4 22%, #60a5fa 30%);
+ *   background-image: var(--stripes), var(--rainbow);
+ *   mask-image: radial-gradient(at 100% 0, #000 40%, #0000 70%);
+ *   filter: invert();                     ← 浅色模式
+ *   .dark & { filter: opacity(50%) saturate(200%); }
+ *
+ * ------------------------------------------------------------
+ * 【两个关键细节，少一个就不像】
+ *
+ * 1. **两层都是 100deg 的 repeating-linear-gradient**
+ *    rainbow 层负责颜色（蓝 #60a5fa → 品红 #e879f9 → 青 #5eead4，循环），
+ *    stripes 层负责形状 —— 它是一条"梳子"：
+ *      0~7%   不透明（露出彩虹）
+ *      7~10%  过渡
+ *      10~12% 完全透明（挖空）
+ *      12~16% 过渡回不透明
+ *    下面连续的彩虹被这把梳子梳成一条条**斜向光带**。
+ *    只留 rainbow 的话，得到的是一团斜的彩色渐变，不是射线。
+ *
+ * 2. **浅色模式用 filter: invert() 整个反转**
+ *    这看着很反直觉（为什么要反转？），但它是这套配色能同时
+ *    在两种主题下成立的原因：
+ *      浅色模式：白底上先铺白条 + 彩虹，invert 之后白条变黑条、
+ *                彩虹变成反相色 —— 在浅底上是"深色光带"
+ *      深色模式：不反转，直接把彩虹提饱和度、降不透明度
+ *    如果按"直觉"给浅色模式单独配一套颜色，两套值会慢慢跑偏。
+ *
+ * ------------------------------------------------------------
+ * 【和首页那套 mesh gradient 的分工】
+ *
+ *   首页首屏（hero.css）  7 层径向渐变，向内聚的光斑，很深很重
+ *   列表页顶部（这里）    斜向条纹 + 彩虹，很淡很轻（浅色 30%）
+ *
+ * 两者都是"氛围"，但形状完全不同（光斑 vs 斜纹），
+ * 所以不会打架；而且它们不出现在同一个视口里。
+ * ============================================================
+ */
+
+/**
+ * 外层容器。
+ *
+ * 【为什么要有外层，不直接给 ray 定位】
+ * 需要一个"裁剪框"：
+ *   · overflow: hidden 把超出高度的部分切掉
+ *   · mask-image 让右边缘淡出，不要有生硬的竖切边
+ * 把裁剪放在容器上、动画放在子元素上，两层职责分开，
+ * 改动画不会影响裁剪。
+ *
+ * 高度用 vh 而不是固定 px：射线占屏幕上方约三成，
+ * 视口越高它越高 —— 这是参考站的做法（h-[30vh]）。
+ */
+.page-glow {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 30vh;
+  overflow: hidden;
+  pointer-events: none;
+
+  /*
+   * ⚠️ 透明度是这套效果能不能成立的关键，不是可选项。
+   *
+   * 第一次移植时漏了这一层，直接把 100% 强度的彩虹铺上去，
+   * 结果是几条饱和到发光的彩色光带横在标题旁边 —— 像故障艺术，
+   * 而不是"氛围"。参考站的实际取值是：
+   *   浅色模式 opacity 0.3
+   *   深色模式 opacity 0.55
+   * 也就是说它**本来就只打算让人勉强感觉到**。
+   */
+  opacity: 0.3;
+
+  /*
+   * content-visibility 让浏览器跳过视口外部分的渲染工作。
+   * 这层是纯装饰的、面积又不小，值得省这一下。
+   */
+  content-visibility: auto;
+  contain-intrinsic-size: 100vw 30vh;
+
+  /*
+   * 从右上角向外淡出，而且**淡得很彻底**。
+   *
+   * 参考站原文是 `radial-gradient(at 100% 0, #000 40%, #0000 70%)`，
+   * 但那是画在**整屏宽**的元素上的；我们这层只有 content-shell 那么宽
+   * （max-w-5xl ≈ 1024px），同样的百分比意味着淡出距离短了一半，
+   * 于是颜色还没淡完就被容器裁掉，右边缘出现一条生硬的竖直切边。
+   *
+   * 所以这里把实心区压到 10%、完全透明提前到 62% ——
+   * 让颜色在**碰到容器边缘之前**就已经没了。
+   *
+   * ⚠️ 但光靠径向遮罩还不够：径向在**正下方**衰减得慢，
+   * 于是容器底边会出现一条生硬的水平切边（一个矩形的下边）。
+   * 所以再叠一层自下而上的线性遮罩，两层遮罩是**相乘**关系，
+   * 底部那条边才会真正淡掉。
+   */
+  -webkit-mask-image:
+    linear-gradient(to bottom, #000 45%, transparent 100%),
+    radial-gradient(at 100% 0, #000 10%, transparent 62%);
+  mask-image:
+    linear-gradient(to bottom, #000 45%, transparent 100%),
+    radial-gradient(at 100% 0, #000 10%, transparent 62%);
+
+  /*
+   * ⚠️ 多层 mask 默认按 `add`（并集）合成 —— 那等于两层遮罩只要有一层
+   * 通过就显示，底部那条边照样留着。
+   * 要的是**交集**（两层都同意才显示），所以必须显式写 intersect。
+   */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/**
+ * 射线本体。
+ *
+ * ⚠️ 两层渐变的**顺序不能换**：
+ * background-image 里先写的在上层。stripes（梳子）必须在 rainbow 之上，
+ * 才能把彩虹梳成条。反过来写就只剩一张连续彩虹。
+ */
+.page-glow__ray {
+  --ray-stripes: repeating-linear-gradient(
+    100deg,
+    #fff 0%,
+    #fff 7%,
+    transparent 10%,
+    transparent 12%,
+    #fff 16%
+  );
+  --ray-rainbow: repeating-linear-gradient(
+    100deg,
+    #60a5fa 10%,
+    #e879f9 16%,
+    #5eead4 22%,
+    #60a5fa 30%
+  );
+
+  position: absolute;
+  inset: 0;
+  background-image: var(--ray-stripes), var(--ray-rainbow);
+  background-position: 50% 50%;
+
+  /*
+   * ⚠️ background-size 决定"条纹有多宽"，直接影响观感，别照抄参考站的
+   * 那个 300% 200% —— 那个值是配它整屏宽的元素算的。
+   *
+   * 我们这层只有约 1024px 宽，用 300% 会让 100deg 的重复周期变得很短，
+   * 屏幕上同时出现五六条彩色光带，密得像条形码。
+   * 放大到 520% 420% 之后，视口里只剩一两条宽而缓的光带，
+   * 才是"氛围"该有的疏密。
+   */
+  background-size: 520% 420%;
+
+  /*
+   * 浅色模式：整个反转（理由见文件头第 2 点）。
+   */
+  filter: invert();
+}
+
+/**
+ * 缓慢平移，让射线"流动"起来。
+ *
+ * 90s 是参考站的取值，看着几乎不动 —— 这就是对的：
+ * 背景动画一旦能明显看出来在动，就会抢正文的注意力。
+ * 它的作用是"这页面是活的"，不是"看这个动画"。
+ *
+ * ⚠️ 动画加在 ::after 上（而不是本体），是为了配合
+ * mix-blend-mode: difference 那层叠加 —— 见下。
+ */
+.page-glow__ray::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--ray-stripes), var(--ray-rainbow);
+  background-size: 200% 100%;
+
+  /*
+   * difference 混合模式：和下面那层做"差值"。
+   * 效果是两层重叠的地方颜色互相抵消/增强，射线里会多出
+   * 一些更亮的细丝 —— 这是参考站的做法，也是它看着"有层次"
+   * 而不是"一条平渐变"的原因。
+   */
+  mix-blend-mode: difference;
+}
+
+.-animate.page-glow__ray::after {
+  animation: page-glow-ray 90s linear infinite;
+}
+
+/**
+ * 动画只在水平方向平移背景。
+ * 只动 background-position，不碰 transform —— 后者会触发
+ * 整个元素的重新合成，成本比换背景位置高。
+ */
+@keyframes page-glow-ray {
+  0% {
+    background-position: 50% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/**
+ * 深色模式：**不反转**，改成提饱和度 + 降不透明度。
+ *
+ * 深底上如果照搬 invert，颜色会变脏（反相后的彩虹是暗色，
+ * 压在近黑底上等于没有）。
+ * saturate(200%) 让颜色更亮，opacity(50%) 压住整体强度。
+ */
+[data-theme="dark"] .page-glow__ray {
+  filter: opacity(50%) saturate(200%);
+}
+
+/**
+ * 尊重「减少动态效果」。
+ *
+ * 这条不是可选项：前庭功能障碍的人会因为持续移动的背景产生眩晕，
+ * 而且这种大面积、低对比的移动最难被察觉、最容易让人不适。
+ * 关掉动画后射线本身仍然在（静态的），效果不打折太多。
+ */
+@media (prefers-reduced-motion: reduce) {
+  .-animate.page-glow__ray::after {
+    animation: none;
+  }
+}
+
+/**
+ * 打印时关掉。彩色斜纹打进纸里既费墨又没有信息量。
+ */
+@media print {
+  .page-glow {
+    display: none;
+  }
+}

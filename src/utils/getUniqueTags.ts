@@ -13,18 +13,22 @@ type Tag = {
  * - Drafts and scheduled posts are excluded via `postFilter()`
  * - `tag` is the slug used in URLs; `tagName` is the original label for display
  * - Uniqueness is based on the slug (so differently-cased labels collapse)
+ *
+ * ⚠️ 纯标点的标签会被丢掉（`slugifyStr("·")` 和 `slugifyStr("……")` 都是空串）。
+ *   不丢的话，这个标签的网址会变成 /tags//，标签页的 getStaticPaths 还会
+ *   拿到一个空的 tag 参数 —— 生成畸形路由或者构建告警。
  */
 export function getUniqueTags(posts: CollectionEntry<"posts">[]) {
-  const tags: Tag[] = posts
+  return posts
     .filter(postFilter)
     .flatMap(post => post.data.tags)
     .map(tag => ({ tag: slugifyStr(tag), tagName: tag }))
+    .filter(value => value.tag.length > 0)
     .filter(
       (value, index, self) =>
         self.findIndex(tag => tag.tag === value.tag) === index
     )
     .sort((tagA, tagB) => tagA.tag.localeCompare(tagB.tag));
-  return tags;
 }
 
 /** 带文章数量的标签 */
@@ -52,6 +56,13 @@ export function countTags(tagGroups: string[][]): TagWithCount[] {
 
   for (const rawTag of tagGroups.flat()) {
     const tag = slugifyStr(rawTag);
+
+    // 纯标点的标签转出来是空串，网址会变成 /tags//，直接跳过
+    // （和 getUniqueTags 保持一致，否则两个函数的标签数量对不上）
+    if (tag.length === 0) {
+      continue;
+    }
+
     const existing = counter.get(tag);
 
     if (existing) {
