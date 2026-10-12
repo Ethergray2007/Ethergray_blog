@@ -65,16 +65,10 @@ export interface UIStrings {
   home: {
     /** 首页徽标文案，例如 “Blog” */
     badge: string;
-    /** 首页大标题 */
-    heroTitle: string;
     /** 首页主介绍段落 */
     heroLead: string;
-    /** 首页补充介绍段落 */
-    heroMore: string;
     /** 首页按钮：查看仓库说明 */
     viewSource: string;
-    /** 首页按钮：进入个人主页 */
-    viewProfile: string;
     featured: string;
     /** 精选区块副标题 */
     featuredDesc: string;

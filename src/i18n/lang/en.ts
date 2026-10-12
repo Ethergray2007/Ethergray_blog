@@ -37,12 +37,8 @@ export default {
   },
   home: {
     badge: "Blog",
-    heroTitle: "Where I keep my notes",
     heroLead: "A personal blog about tech, and about learning itself.",
-    heroMore:
-      "Notes on algorithms, programming and computer graphics, plus the technical writing worth keeping around.",
     viewSource: "Source code",
-    viewProfile: "Profile",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
     motionTitle: "Motion",
