@@ -7,6 +7,8 @@ import { getAssetPath } from "@/utils/withBase";
 
 import config from "@/config";
 
+import BackToTop from "@/components/BackToTop.astro";
+
 import "@/styles/global.css";
 
 type Props = {
@@ -206,6 +208,14 @@ const atomHref = getRelativeLocaleUrl(
         </div>
 
         <slot />
+
+        {/*
+          回到顶部按钮。
+          ⚠️ 它必须直接挂在 body 下 —— 祖先元素上只要有
+          filter / backdrop-filter / transform，就会成为 fixed 的
+          包含块，按钮就不再相对视口定位。理由见组件文件头。
+        */}
+        <BackToTop />
 
         <script>import "@/scripts/theme";</script>
       </body>

@@ -1,0 +1,115 @@
+---
+/**
+ * 回到顶部按钮
+ * ============================================================
+ * 自包含模块：只依赖 src/styles/back-to-top.css。
+ *
+ * 想删掉这个功能？
+ *   1. 删掉这个文件
+ *   2. 删掉 Layout.astro 里的 import 和 <BackToTop /> 那一行
+ *   3. 删掉 src/styles/back-to-top.css 和 global.css 里的 @import
+ *
+ * ------------------------------------------------------------
+ * 【几个数值来自 Firefly（CuteLeaf/Firefly）的 BackToTop.astro】
+ *
+ *   显示阈值   滚动超过 200px 才出现（源码注释："当滚动超过200px时显示按钮"）
+ *   滚动手势   window.scroll({ top: 0, behavior: "smooth" })
+ *   按钮尺寸   40×40（它的 m3-fab--small）
+ *   位置       右下角，bottom 32px
+ *
+ * 【为什么是 200px 而不是"一滚动就出现"】
+ * 页面上方 200px 内基本还在首屏，用户没往下看过，不需要"回到顶部"。
+ * 过早出现的浮动按钮是纯干扰。
+ *
+ * 【为什么按钮自带定位，而不是放在某个容器里】
+ * ⚠️ Firefly 源码里有一条硬注释：
+ *     "There can't be a filter on parent element, or it will break `fixed`"
+ * 父元素上只要有 filter / backdrop-filter / transform / will-change，
+ * 就会成为 fixed 的包含块，按钮就不再相对视口定位，而是相对那个父元素 ——
+ * 表现是"按钮跑到页面中间跟着内容滚"。
+ * 所以它必须直接挂在 body 下、不能塞进任何带滤镜的容器里。
+ * ============================================================
+ */
+import IconArrowNarrowUp from "@/assets/icons/IconArrowNarrowUp.svg";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+---
+
+<button
+  id="back-to-top"
+  type="button"
+  class="back-to-top"
+  aria-label={t.post.backToTop}
+  title={t.post.backToTop}
+  data-back-to-top
+>
+  <IconArrowNarrowUp class="size-5" />
+</button>
+
+<script>
+  /**
+   * 跨页面切换保持的全局回调（见文件末尾的说明）。
+   * 声明在这里是因为 TS 不知道我们往 window 上挂了东西。
+   */
+  declare global {
+    interface Window {
+      __backToTopSync?: () => void;
+    }
+  }
+
+  /**
+   * 滚动阈值与显隐。
+   *
+   * 【为什么挂在 document 上、而且要防止重复绑定】
+   * ClientRouter 切换页面时按钮是新的 DOM，但 document 还是同一个。
+   * 不标记的话每切一次页面就多一个 scroll 监听，切十次就有十个 ——
+   * 表现是滚动开始变卡，而且很难联想到原因。
+   * （参考站的源码注释里也专门提了这一点。）
+   */
+  function initBackToTop() {
+    const button =
+      document.querySelector<HTMLButtonElement>("[data-back-to-top]");
+
+    if (!button) return;
+
+    const sync = () => {
+      button.classList.toggle("is-visible", window.scrollY > 200);
+    };
+
+    if (!button.dataset.bound) {
+      button.dataset.bound = "true";
+
+      button.addEventListener("click", () => {
+        /*
+         * 用原生 scroll + behavior: smooth，不自己写 requestAnimationFrame
+         * 补间。浏览器原生的平滑滚动会**跟随系统的"减少动态效果"设置** ——
+         * 开了那个偏好的人会直接跳上去而不是滚上去。
+         * 手写补间反而要自己处理这件事。
+         */
+        window.scroll({ top: 0, behavior: "smooth" });
+      });
+    }
+
+    sync();
+
+    /*
+     * 只绑一次全局监听，并把最新的按钮交给它 —— 理由见上面那段注释。
+     * 这里存的是"当前该同步哪个按钮"，而不是"再绑一个监听"。
+     */
+    window.__backToTopSync = sync;
+
+    if (!document.documentElement.dataset.backToTopBound) {
+      document.documentElement.dataset.backToTopBound = "true";
+
+      window.addEventListener("scroll", () => window.__backToTopSync?.(), {
+        passive: true,
+      });
+    }
+  }
+
+  document.addEventListener("astro:page-load", initBackToTop);
+  initBackToTop();
+</script>

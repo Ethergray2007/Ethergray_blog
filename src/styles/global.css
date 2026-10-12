@@ -6,6 +6,7 @@
 @import "./atmosphere.css";
 @import "./nav.css";
 @import "./page-glow.css";
+@import "./back-to-top.css";
 @import "rehype-callouts/theme/obsidian";
 
 /**
