@@ -25,6 +25,21 @@ export default [
       // （.dsh-probe 是 DSH harness 临时生成的）
       ".dsh-probe/**",
       "**/.dsh-probe/**",
+      /**
+       * 临时调研 / 验证目录。
+       *
+       * ⚠️ 这一条不能省，而且**光加 .gitignore 不够**：
+       * 上面的 ignores 是 ESLint 的**显式列表**，它不读 .gitignore。
+       * 所以一个没被 git 跟踪的临时目录照样会被 lint ——
+       * 而临时脚本里必有 console.log，于是 `npx eslint .` 直接变红，
+       * CI 的 lint 关卡跟着挂。
+       *
+       * 这个坑踩过一次：code-review/ 下放了几个验证脚本，
+       * eslint 报了 11 个 no-console 错，但那些文件根本不该被检查。
+       */
+      "code-review/**",
+      "**/code-review/**",
+      ".diag/**",
     ],
   },
   ...eslintPluginAstro.configs.recommended,

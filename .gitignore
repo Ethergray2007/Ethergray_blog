@@ -56,3 +56,23 @@ practice/_*
 
 # archify（画架构图技能）的中间产物，不是项目内容
 .archify/
+
+# 临时调研 / 验证目录
+#
+# 和 practice/_* 是同一个约定：**临时写的东西不进仓库**。
+# 但这次是新起的目录名，所以要在两处都登记（少一处就漏）：
+#   .gitignore            从源头不跟踪
+#   eslint.config.js      否则 npx eslint . 会把里面的 console.log 当错误
+#
+# ⚠️ ESLint 的 ignores 是显式列表，它**不读 .gitignore** ——
+#    只加这里是不够的。这个坑踩过一次。
+code-review/
+.diag/
+
+# AgentTeams 的团队状态（team.json + 各成员 inbox/*.jsonl）
+#
+# 它是 DSH 运行时的**状态文件**，不是项目内容 —— 里面记的是
+# 某个会话里谁认领了哪个任务，人和事都过期了，进仓库只会是噪音。
+# 而且 team.json 动辄 70 KB 以上，多来几轮评审就更大。
+.agent-teams/
+
