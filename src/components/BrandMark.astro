@@ -1,0 +1,75 @@
+---
+/**
+ * 品牌标识（logo mark + 站名）
+ * ============================================================
+ * 自包含模块：只依赖 config 和 i18n。
+ *
+ * 想删掉它？页眉页脚里把 <BrandMark /> 换回一行纯文字即可。
+ *
+ * ------------------------------------------------------------
+ * 【为什么需要它】
+ *
+ * 改版前页眉最左边就是一个光秃秃的文字链接：
+ *
+ *     Ethergray Blog
+ *
+ * 这在浏览器里表现为"一段字"，没有任何图形锚点。参考站的写法是
+ * **图形标识 + 文字的 lockup**（elysia.svg + "ElysiaJS 中文网"），
+ * 这是页眉能立住的最基本条件 —— 人对图形的识别是瞬间的，
+ * 对文字要先读一遍。
+ *
+ * 【为什么用文字方块而不是直接放 favicon.png】
+ * favicon.png 是 64×64 的 GitHub 头像，当 32px 的标识用会糊，
+ * 而且那是"另一张图"，和站点的品牌色没有关系。
+ * 用主色→次色的渐变方块 + 首字母，有三个好处：
+ *   · 矢量、任何尺寸都清晰，也不多一个网络请求
+ *   · 它本身就是品牌色的载体 —— 页眉第一眼就看到了品牌色
+ *   · 换站点名字时它自动跟着变（取 config.site.title 首字母）
+ *
+ * 【为什么首字母用英文而不是中文】
+ * 中文首字（"记"）在小方块里笔画太密，32px 下会糊成一团；
+ * 而且中文没有"首字母"这个概念，取第一个字是硬凑的。
+ * 站名是 "Ethergray Blog"，取 E 是自然的选择。
+ * 站点名改成中文开头时，正则取不到 A-Za-z 会退回第一个字符，
+ * 那时再按需要调整这一处就行。
+ * ============================================================
+ */
+import config from "@/config";
+
+type Props = {
+  /** 尺寸档位。页眉用 md，页脚用 sm */
+  size?: "sm" | "md";
+  /** 是否显示站名文字。默认显示 */
+  showTitle?: boolean;
+  class?: string;
+};
+
+const { size = "md", showTitle = true, class: className = "" } = Astro.props;
+
+const { site } = config;
+
+/*
+ * 取站名里的第一个拉丁字母当首字母。
+ * 全角字符和中文会被跳过 —— 理由见文件头最后一段。
+ */
+const initial =
+  site.title.match(/[A-Za-z]/)?.[0]?.toUpperCase() ?? site.title[0];
+---
+
+<span class:list={["inline-flex items-center gap-2.5", className]}>
+  <span
+    class:list={[
+      "brand-mark grid shrink-0 place-items-center rounded-lg font-black text-white select-none",
+      { "size-7 text-sm": size === "sm", "size-8 text-base": size === "md" },
+    ]}
+    aria-hidden="true"
+  >
+    {initial}
+  </span>
+
+  {
+    showTitle && (
+      <span class="text-base-content truncate font-semibold">{site.title}</span>
+    )
+  }
+</span>
