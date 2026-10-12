@@ -11,6 +11,14 @@ export default defineAstroPaperConfig({
     lang: "zh",
     timezone: "Asia/Shanghai",
     dir: "ltr",
+
+    /**
+     * 建站日期 —— 页脚那个「本站已运行 N 天」计数器用的。
+     *
+     * 用的是第一篇文章的日期（2026-09-25）。想改成别的日子直接改这里。
+     * 不想要这个计数器？把这一行删掉（或者注释掉）就不会显示了。
+     */
+    siteStart: "2026-09-25",
   },
   posts: {
     perPage: 4,

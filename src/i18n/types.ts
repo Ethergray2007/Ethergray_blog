@@ -127,6 +127,20 @@ export interface UIStrings {
      * 没有它的话，用户只能听到一串没有上下文的光秃秃链接。
      */
     secondaryNav: string;
+    /**
+     * 「本站已运行」计数器的标签。
+     *
+     * 时长数字由**客户端脚本**算出来（服务端算的话，静态页一构建
+     * 数字就固定了，放几天还是"运行 3 天"）。
+     * 所以这里只有标签，「天 / 时 / 分」这些单位走下面的
+     * runningDays / runningHours / runningMinutes。
+     */
+    runningLabel: string;
+    runningDays: string;
+    runningHours: string;
+    runningMinutes: string;
+    /** 页脚最底行「由 … 驱动」前面的词 */
+    poweredBy: string;
   };
   pages: {
     tagTitle: string;

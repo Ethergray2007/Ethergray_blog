@@ -2,45 +2,52 @@
 /**
  * 页脚
  * ============================================================
- * 自包含模块：只依赖 i18n 和 Socials。
+ * 自包含模块：只依赖 BrandMark、Socials、i18n、config。
  *
- * 【改版前它长什么样，为什么要重做】
+ * 想删掉整个页脚？每个页面里删掉 <Footer /> 那一行即可。
+ * 只想去掉运行时长计数器？把 astro-paper.config.ts 里的
+ * `siteStart` 删掉就不会显示了（不是显示 0 天）。
  *
- * 原来的页脚是"一条灰色边框 + 左边两行版权 + 右边链接和图标"：
+ * ------------------------------------------------------------
+ * 【这一版照 Firefly（CuteLeaf/Firefly）的源码结构重写】
  *
- *   版权所有 © 2026 Ethergray          标签  归档  近况  关于
- *   保留所有权利。                                ⌂  𝕏
+ * 参考站 blog.fqzlr.top 的页脚来自 Firefly。它的结构其实**很短**：
  *
- * 三个问题，都不是审美问题而是结构问题：
+ *   1. 一条**虚线**分隔（border-dashed，不是实线）
+ *   2. 一块**单栏居中**的内容，里面三行：
+ *        自定义 HTML（备案号之类的自由区 —— 我们没有，改成品牌标识）
+ *        © 年份 站名. All Rights Reserved. / RSS / Atom / Sitemap
+ *        Powered by Astro & <主题>
  *
- *   1. **没有视觉锚点**。整块是纯文字，视线落下来没有东西接住它，
- *      看起来像"页面没写完"。页面从首屏的霓虹光晕一路读下来，
- *      到页脚突然什么都没有了。
- *   2. **信息层级是平的**。"版权所有 © 2026"和"保留所有权利"各占一行，
- *      但后者对个人博客没有任何实际作用，只是把一句法律套话铺成了两行。
- *   3. **左右两栏没有关系**。左边的版权和右边的导航各自堆着，
- *      高度还不一样，读起来很散。
+ * 我上一版做成了"左边品牌列 + 右边两栏导航"，那是**走偏了**：
+ * 调研的 53 个友链站里，Firefly / Fuwari / Shirone / AstroPaper
+ * 四个主流主题**全部单栏居中**。多栏（2~4 栏 sitemap）只出现在
+ * Butterfly / Stellar 那一代老主题，小屏上会堆成 6~8 行的
+ * "垃圾抽屉"。所以这次改回单栏。
  *
- * 【现在怎么做的】
+ * 【几个照搬的数值】
+ *   mt-10 mb-5        分隔线上 40px、下 20px（离正文远、离页脚近）
+ *   mx-32             左右各 128px。**不铺满整宽**是有意的 ——
+ *                     两侧留白让它像"一条装饰"，铺满就变成"一条分割线"
+ *   text-sm           14px
+ *   分隔符 `/`        用 <span aria-hidden> 包住，读屏不该听见一串斜杠
+ *   链接              font-weight: 500 + 主题色，hover 只降透明度
  *
- *   1. 顶部一条**品牌渐变亮线**（主色→次色），和页面标题下面那条
- *      （见 global.css 的 page-heading-rule）是同一个视觉符号 ——
- *      整站靠它把"品牌色"挂在几个关键位置，成本极低但一眼能认出来。
- *   2. 加一句**站点定位**（tagline）替代那句法律套话，页脚才有内容可读。
- *   3. 玻璃底 + 淡化边框：和顶部导航用同一套处理（见 nav.css），
- *      首尾呼应。注意这里**不用 backdrop-filter** ——
- *      页脚下面没有内容滚动，模糊没有可模糊的东西，加了只是白费性能。
- *   4. 社交图标不再裸放，收进一个有边框的小胶囊里，看着才像一个"控件"。
+ * 【为什么"运行时长"能放在静态站上】
+ * 页面是构建时生成的。在服务端算时长的话，数字在构建那一刻就写死了。
+ * 所以数字必须由客户端现算（见文件末尾那段），纯本地日期减法、不联网。
  *
- * 【为什么用 mt-auto 而不是去掉它】
- * body 是 flex-col + min-h-svh。mt-auto 让页脚在**内容不足一屏**时
- * 被推到页面底部 —— 少了它，短页面（比如 404）的页脚会浮在中间。
- * 这个 prop 保留着，某些页面会传 noMarginTop。
+ * 【关于署名】
+ * Firefly 源码里有一条明确注释：请勿随意修改或删除
+ * "Powered by Astro & Firefly" —— 这是对开源项目的尊重。
+ * 我们不是 Firefly 的用户，但**用了它的设计配方**，
+ * 所以照它的格式署名框架 Astro。这不是法律要求，是同行之间的礼节。
  * ============================================================
  */
 import type { HTMLAttributes } from "astro/types";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
+import BrandMark from "./BrandMark.astro";
 import Socials from "./Socials.astro";
 import config from "@/config";
 import { tplStr, useTranslations } from "@/i18n";
@@ -56,22 +63,19 @@ const t = useTranslations(Astro.currentLocale);
 const currentYear = new Date().getFullYear();
 
 /**
- * 次要导航。
+ * 中间那一行里的链接。
  *
- * 【为什么这些东西在页脚而不是顶部】
- * 顶部导航栏原本有 7 个文字链接 + 1 个归档图标，太挤了。
- * 而那 7 个不是同一类东西：
- *
- *   内容类型（站点主体）  文章 说说 项目 友链   ← 留在顶部
- *   辅助页面（看一次就够） 关于 近况 标签 归档   ← 移到这里
- *
- * 页脚本来就有空间（原来只有版权和社交图标），而且
- * 「关于」「归档」这类链接放页脚是通行做法 ——
- * 需要的人会往下找，不需要的人也不会被占用视线。
- *
- * 归档按功能开关决定显不显示（和顶部原来那个图标按钮同一个条件）。
+ * 订阅源 + 站点地图 + 辅助页面，**全部串成一行**用 `/` 分隔。
+ * 参考站和四个主流主题都是这么做的 —— 页脚是"收尾"，
+ * 不是"第二个导航区"，链接串成一行扫视成本比分成几栏更低。
  */
-const secondaryLinks = [
+const feedLinks = [
+  { href: "/rss.xml", label: "RSS" },
+  { href: "/atom.xml", label: "Atom" },
+  { href: "/sitemap-index.xml", label: "Sitemap" },
+];
+
+const pageLinks = [
   { href: getRelativeLocaleUrl(locale, "tags"), label: t.nav.tags },
   ...(config.features?.showArchives !== false
     ? [
@@ -91,6 +95,12 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   year: String(currentYear),
   author: config.site.author,
 });
+
+/**
+ * 建站日期。不填就不渲染那个计数器。
+ * 这里只把字符串原样交给客户端 —— 不在服务端算时长。
+ */
+const siteStart = config.site.siteStart;
 ---
 
 <footer
@@ -101,75 +111,181 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   ]}
   {...attrs}
 >
-  <div class="site-shell py-7 sm:py-8">
-    {
-      /*
-      上半：站点名 + 一句定位。
-      用 <p> 而不是 <h2> —— 页脚这里不需要进入文档大纲，
-      加个标题反而会让读屏软件的"按标题跳转"多出一个没用的落点。
-    */
-    }
-    <div class="flex flex-col gap-1">
-      <span class="text-base-content text-sm font-semibold">
-        {config.site.title}
-      </span>
+  {
+    /*
+    ⚠️ 顶部那条虚线分隔，三个细节都照参考站：
 
-      <p class="text-base-content-muted text-sm">
-        {t.footer.tagline}
-      </p>
-    </div>
+      · border-dashed —— **不是实线**。这是 Fuwari / Firefly 系的
+        辨识特征：实线看着像"表格边界"，虚线才像"这里结束了"
+      · mt-10 mb-5 —— 上 40px、下 20px，上大下小
+        （离正文远一点、离页脚内容近一点）
+      · 左右内缩 —— **不铺满整宽**。两侧留白让它像"一条装饰"，
+        铺满就变成"一条分割线"了
 
-    {
-      /*
-      中间：一条极淡的分隔线。
-      它承担的是"把页脚切成上下两半"，而不是装饰 ——
-      所以用边框色的淡版本，不用品牌渐变（渐变留给最上面那条）。
-    */
-    }
-    <div class="border-base-300/70 mt-5 mb-4 border-t"></div>
+    窄屏上 mx-32（128px×2）会把线挤没，所以从 mx-16 起步。
+  */
+  }
+  <div
+    class="border-base-300/70 mx-16 mt-10 mb-5 border-t border-dashed sm:mx-32"
+  >
+  </div>
 
-    <div
-      class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6"
-    >
-      <!-- 版权 -->
-      <p class="text-base-content-faint order-2 text-xs sm:order-1">
-        {copyrightLine}
-      </p>
+  <div class="flex flex-col items-center justify-center px-6 pb-6">
+    <div class="text-center text-sm">
+      <!-- 第一行：品牌标识（参考站这里是备案号的自由区，我们没有） -->
+      <div class="mb-3 flex items-center justify-center">
+        <BrandMark size="sm" />
+      </div>
 
-      <!-- 次要导航 + 社交链接 -->
-      <div class="order-1 flex flex-col items-center gap-4 sm:order-2">
-        <nav class="sm:justify-end" aria-label={t.footer.secondaryNav}>
-          <ul
-            class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm"
-          >
-            {
-              secondaryLinks.map(link => (
-                <li>
-                  <a
-                    href={link.href}
-                    class="text-base-content-muted hover:text-primary transition-colors"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))
-            }
-          </ul>
-        </nav>
+      <!-- 第二行：版权 + 订阅源 + 辅助页面，全部串成一行 -->
+      <div
+        class="text-base-content-muted mx-0.5 my-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5"
+      >
+        <span>{copyrightLine}</span>
 
         {
-          /*
-          社交图标收进一个有边框的小胶囊。
-          没别的原因，就是裸放的图标看起来像"还没排完版" ——
-          给它一个容器，它才像一个可以点的控件。
-        */
+          feedLinks.map(link => (
+            <>
+              <span class="text-base-content-faint/50" aria-hidden="true">
+                /
+              </span>
+              <a
+                href={link.href}
+                class="text-primary font-medium transition-opacity hover:opacity-80"
+              >
+                {link.label}
+              </a>
+            </>
+          ))
         }
-        <div
-          class="border-base-300 bg-base-100/60 flex items-center rounded-full border px-2 py-1"
-        >
+
+        {
+          pageLinks.map(link => (
+            <>
+              <span class="text-base-content-faint/50" aria-hidden="true">
+                /
+              </span>
+              <a href={link.href} class="hover:text-primary transition-colors">
+                {link.label}
+              </a>
+            </>
+          ))
+        }
+      </div>
+
+      <!-- 第三行：运行时长 + 社交 + 框架署名 -->
+      <div
+        class="text-base-content-faint mx-0.5 my-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5"
+      >
+        {
+          siteStart && (
+            <>
+              <span>
+                {t.footer.runningLabel}{" "}
+                {/*
+                  data-* 给脚本传参：
+                    data-site-start   建站日期
+                    data-running-*    三个单位（中文「天/小时/分」，
+                                      英文「d/h/m」—— 单位也要走 i18n）
+
+                  服务端先渲染一个「—」当占位符，脚本立刻替换掉 ——
+                  空着的话那一行会先塌下去再撑开，页面会跳一下（CLS）。
+                */}
+                <span
+                  class="text-base-content-muted tabular-nums"
+                  data-site-start={siteStart}
+                  data-running-days={t.footer.runningDays}
+                  data-running-hours={t.footer.runningHours}
+                  data-running-minutes={t.footer.runningMinutes}
+                >
+                  —
+                </span>
+              </span>
+
+              <span class="text-base-content-faint/50" aria-hidden="true">
+                /
+              </span>
+            </>
+          )
+        }
+
+        <span class="inline-flex items-center">
           <Socials />
-        </div>
+        </span>
+
+        <span class="text-base-content-faint/50" aria-hidden="true">/</span>
+
+        <span>
+          {t.footer.poweredBy}{" "}
+          <a
+            href="https://astro.build"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-primary font-medium transition-opacity hover:opacity-80"
+          >
+            Astro
+          </a>
+        </span>
       </div>
     </div>
   </div>
 </footer>
+
+<script>
+  /**
+   * 「本站已运行 N 天」计数器。
+   *
+   * 【为什么必须在客户端算】
+   * 页面是构建时生成的静态 HTML。服务端算的话，数字在构建那一刻
+   * 就写死了 —— 上线三天后页脚还是"运行 0 天"。
+   *
+   * 【它不联网】
+   * 纯本地日期减法，没有任何请求、没有第三方脚本。
+   * 这也是它和"访问量统计"的区别 —— 后者必须接外部服务，
+   * 所以这个站**故意不做**访问统计。
+   *
+   * 【它只算到「分」，不显示秒】
+   * 显示秒的话页脚上会有个一直在跳的数字，非常分散注意力。
+   */
+  function initRunningTime() {
+    const el = document.querySelector<HTMLElement>("[data-site-start]");
+
+    if (!el) return;
+
+    const startRaw = el.dataset.siteStart;
+
+    if (!startRaw) return;
+
+    const start = new Date(startRaw);
+
+    // 日期写错时不要显示 "NaN 天"，宁可不显示
+    if (Number.isNaN(start.getTime())) {
+      el.remove();
+      return;
+    }
+
+    const units = {
+      days: el.dataset.runningDays ?? "",
+      hours: el.dataset.runningHours ?? "",
+      minutes: el.dataset.runningMinutes ?? "",
+    };
+
+    const diff = Date.now() - start.getTime();
+
+    // 建站日期填成未来日期时 diff 是负的 —— 直接不显示
+    if (diff < 0) {
+      el.textContent = "";
+      return;
+    }
+
+    const totalMinutes = Math.floor(diff / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+
+    el.textContent = `${days} ${units.days} ${hours} ${units.hours} ${minutes} ${units.minutes}`;
+  }
+
+  document.addEventListener("astro:page-load", initRunningTime);
+  initRunningTime();
+</script>
