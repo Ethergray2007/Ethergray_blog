@@ -365,13 +365,47 @@ code: 'UND_ERR_CONNECT_TIMEOUT'
 于是字体没进缓存 → `fontData` 里没有该字重 → `getFontPathByWeight()` 返回
 `undefined` → `og.png.ts` 抛出 `Cannot find the font path.`，整个构建失败。
 
+**⚠️ 这节的结论在 2026-10-12 被修正过一次，原文写的是"重跑一次 build 通常就好"。**
+那句话只在**瞬时**超时时成立。实测碰到过一次**重跑仍然必失败**的情况，
+原因比"网络抖了一下"具体得多，两个条件叠加：
+
+```text
+① 字体元数据缓存过期
+   node_modules/.astro/fonts/google-*/**/*-data.json 里有个 expires 字段，
+   过期之后构建**必须**重新联网取元数据 —— 缓存在也没用。
+   （那次 expires 是 2026-10-08，当天 10-12，已经过期 4 天。）
+
+② Node 的 fetch 不读系统代理
+   这台机器直连 fonts.google.com 超时、必须走代理 127.0.0.1:7892，
+   而系统代理是 .NET / 浏览器读的设置，**Node 的 fetch（undici）根本不看**。
+```
+
+第 ② 条是这个坑里最会骗人的地方：**代理明明开着**，
+浏览器能开 fonts.google.com、PowerShell 的 `Invoke-WebRequest` 也返回 200，
+`npm run build` 却照样 `UND_ERR_CONNECT_TIMEOUT`。
+差别不在网络，在"谁去发这个请求"。
+
+所以本机构建的正确姿势是**显式把代理喂给 Node**：
+
+```powershell
+$env:NODE_USE_ENV_PROXY = "1"          # Node 24+ 才认这个开关
+$env:HTTPS_PROXY = "http://127.0.0.1:7892"
+$env:HTTP_PROXY  = "http://127.0.0.1:7892"
+npm run build
+```
+
 **这条报错链里没有一句话提到网络**，所以很容易误判成配置写错、
 或者以为 satori 不认字体格式。正确的排查顺序是：
 
 ```text
-1. 确认能不能连上 fonts.googleapis.com（这台机器直连会超时，见下面代理那节）
-2. 看缓存目录 node_modules/.astro/fonts/ 里有没有文件
-3. 两边都不行就是下载失败 —— 重跑一次 build 通常就好（瞬时故障）
+1. 看 data.json 里的 expires 是不是过期了（过期就必须联网，缓存救不了）
+2. 直接问 Node 能不能连上，别问浏览器 —— 两者走的代理设置不是一套：
+     node -e "fetch('https://fonts.google.com/metadata/fonts',{method:'HEAD'})
+              .then(r=>console.log('OK',r.status))
+              .catch(e=>console.log('FAIL',e.cause?.code))"
+   报 UND_ERR_CONNECT_TIMEOUT 就是 ② → 带上上面三个环境变量重跑
+3. 看缓存目录 node_modules/.astro/fonts/ 里有没有文件
+4. 都不是、且 Node 直连能通，那才是瞬时故障 —— 重跑一次
 ```
 
 **为什么这个坑暂时没法彻底消除**：字体缓存放在 `node_modules/.astro/fonts/`，
