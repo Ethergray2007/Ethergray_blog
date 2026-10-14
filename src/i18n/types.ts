@@ -164,6 +164,10 @@ export interface UIStrings {
     /** /projects 页面（项目） */
     projectsTitle: string;
     projectsDesc: string;
+
+    /** /rss 页面（RSS 订阅说明） */
+    rssTitle: string;
+    rssDesc: string;
   };
   /**
    * 友链页面上用到的零散文案。

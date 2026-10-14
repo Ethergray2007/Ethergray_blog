@@ -1,0 +1,318 @@
+---
+/**
+ * RSS 订阅说明页  /rss/
+ * ============================================================
+ * 自包含：只依赖 i18n（文案）、config（站点地址）和现成的
+ * Main / Breadcrumb / Datetime 组件。
+ *
+ * 【这一页是干什么的】
+ * 订阅源本身是 /rss.xml（一段 XML，给**阅读器**读的），这个页面是
+ * 给**人**看的说明书：订阅地址 + 一键复制 + 推荐几个阅读器 +
+ * 预览最近推出去的文章。
+ *
+ * 页面上的地址必须是**绝对地址**（https://站点/rss.xml）——
+ * 阅读器拿这个地址去别的机器上取内容，相对地址在它那儿没有意义。
+ * 它由相对路径 + Astro.site（= astro-paper.config.ts 里的 site.url）
+ * 拼出来，所以换域名时这里一行都不用改。
+ *
+ * ⚠️ 相对路径是**写死的 "/rss.xml"**，没有走 getRelativeLocaleUrl()。
+ *   那个函数在 Astro 7 里会给非页面路由补一个结尾斜杠：
+ *   getRelativeLocaleUrl("zh", "rss.xml") → "/rss.xml/"（构建产物里实测过，
+ *   Layout.astro 的 <link rel="alternate"> 现在就是这个带斜杠的地址）。
+ *   Netlify 恰好把 /rss.xml/ 也解析到了那个文件（实测两个都返回 200），
+ *   但订阅地址是要**给别人抄走**的：换个托管平台、或者阅读器不跟 301，
+ *   带斜杠的那个就 404 了。Hero.astro 里的 RSS 链接也是写的 "/rss.xml"。
+ *
+ * 【为什么只列 RSS 一个地址】
+ * RSS 2.0 所有阅读器都认；Atom 同时在 <head> 里声明着
+ * （见 src/layouts/Layout.astro），机器自己找得到。
+ * 给读者的地址只留一个，他才不用犹豫该复制哪个。
+ *
+ * 想删掉这个页面？
+ *   1. 删掉 src/pages/rss/ 整个目录
+ *   2. 删掉 Header.astro 的 moreItems 里那一行、
+ *      删掉 Breadcrumb.astro 的 navLabels 里那一行
+ *   3. 删掉三个 i18n 文件里的 nav.rss / pages.rssTitle / pages.rssDesc
+ *      和整个 rss 段（types.ts、lang/zh.ts、lang/en.ts）
+ *   4. 删掉 README「可选模块」表里那一行
+ * ============================================================
+ */
+import { getCollection } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Footer from "@/components/Footer.astro";
+import Main from "@/components/Main.astro";
+import Datetime from "@/components/Datetime.astro";
+
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { getPostUrl } from "@/utils/getPostPaths";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+/**
+ * 订阅源的两个地址：
+ *   feedHref  站内链接用的相对地址
+ *   feedUrl   绝对地址，显示出来 + 让按钮复制的那一份
+ *
+ * 为什么写死而不是走 getRelativeLocaleUrl()：见文件头那条 ⚠️。
+ * 订阅源是一个独立路由（src/pages/rss.xml.ts），不跟语言走。
+ */
+const feedHref = "/rss.xml";
+const feedUrl = new URL(feedHref, Astro.site).href;
+
+/**
+ * 「最新推送文章」列表。
+ *
+ * 用和首页「最近文章」同一套排序和条数（config.posts.perIndex）——
+ * 这一块的承诺是"订阅之后收到的就是这些"，那就该和站内看到的顺序一致。
+ */
+const latestPosts = getSortedPosts(await getCollection("posts")).slice(
+  0,
+  config.posts.perIndex
+);
+
+/**
+ * 推荐的阅读器。
+ *
+ * 这些是**软件名**（专有名词），中英文写法一样，所以不进 i18n；
+ * 需要翻译的只有两个分组标题（t.rss.webGroup / t.rss.appGroup）。
+ */
+const readerGroups = [
+  {
+    title: t.rss.webGroup,
+    readers: "Follow, Feedly, Inoreader, FreshRSS, Miniflux",
+  },
+  {
+    title: t.rss.appGroup,
+    readers: "NetNewsWire, Reeder, Read You, Fluent Reader",
+  },
+];
+---
+
+<Layout
+  title={`${t.pages.rssTitle} | ${config.site.title}`}
+  description={t.pages.rssDesc}
+>
+  <Header />
+  <Breadcrumb />
+
+  <Main pageTitle={t.pages.rssTitle} pageDesc={t.pages.rssDesc}>
+    <!-- 订阅地址 -->
+    <section>
+      <h2 class="section-heading">{t.rss.feedTitle}</h2>
+
+      <p class="section-lede">{t.rss.feedDesc}</p>
+
+      <div class="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+        {
+          /*
+          地址框。select-all 是故意的：点一下就整段选中，
+          手选（或者按钮失效时）也有办法把它拷走。
+        */
+        }
+        <code
+          class="border-base-300 bg-base-200 text-base-content flex-1 rounded-lg border px-4 py-3 font-mono text-sm break-all select-all"
+        >
+          {feedUrl}
+        </code>
+
+        <div class="flex shrink-0 items-center gap-2">
+          {
+            /*
+            按钮上的四段文案走 data-* 传进脚本 —— 脚本在浏览器里跑，
+            读不到服务端渲染时用的 t 对象。和代码块复制按钮
+            （CopyCodeButton.astro）用的是同一套办法。
+
+            aria-live：按钮上的字会从「复制链接」变成「已复制」，
+            读屏软件不会自动念一个名字变了的按钮，得靠它提醒。
+          */
+          }
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            data-copy-feed
+            data-url={feedUrl}
+            data-label={t.rss.copy}
+            data-copied={t.rss.copied}
+            data-failed={t.rss.copyFailed}
+            aria-label={t.rss.copyLabel}
+            aria-live="polite"
+          >
+            {t.rss.copy}
+          </button>
+
+          <a
+            class="btn btn-sm"
+            href={feedHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.rss.viewXml}
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 如何订阅 -->
+    <section class="border-base-300 mt-10 border-t pt-10 sm:mt-12">
+      <h2 class="section-heading">{t.rss.howToTitle}</h2>
+
+      <p class="section-lede">{t.rss.howToDesc}</p>
+
+      <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {
+          readerGroups.map(group => (
+            <div class="card border-base-300 bg-base-100 border p-4">
+              <h3 class="text-base-content-strong text-sm font-semibold">
+                {group.title}
+              </h3>
+
+              <p class="text-base-content-muted mt-1.5 text-sm leading-6">
+                {group.readers}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- 最新推送文章 -->
+    {
+      latestPosts.length > 0 && (
+        <section class="border-base-300 mt-10 border-t pt-10 sm:mt-12">
+          <h2 class="section-heading">{t.rss.latestTitle}</h2>
+
+          <p class="section-lede">{t.rss.latestDesc}</p>
+
+          <ul class="mt-5 flex flex-col gap-3">
+            {latestPosts.map(post => (
+              <li>
+                {/*
+                  一条一行：标题 + 一行摘要 + 日期。
+                  不用首页那种大卡片（Card.astro）—— 这里是"预览一下
+                  订阅会收到什么"，一行一条才看得完。
+                */}
+                <a
+                  href={getPostUrl(post.id, post.filePath, locale)}
+                  class="card border-base-300 bg-base-100 hover:border-primary/60 hover:bg-base-200/60 group flex flex-col gap-2 border p-4 transition-colors sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span class="min-w-0">
+                    <span class="group-hover:text-primary block truncate font-semibold transition-colors">
+                      {post.data.title}
+                    </span>
+
+                    {post.data.description && (
+                      <span class="text-base-content-muted mt-1 line-clamp-1 block text-sm">
+                        {post.data.description}
+                      </span>
+                    )}
+                  </span>
+
+                  <Datetime
+                    pubDatetime={post.data.pubDatetime}
+                    modDatetime={post.data.modDatetime}
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <div class="mt-8 flex justify-center">
+            <a
+              href={getRelativeLocaleUrl(locale, "posts")}
+              class="btn btn-outline"
+            >
+              {t.rss.allPosts}
+            </a>
+          </div>
+        </section>
+      )
+    }
+  </Main>
+
+  <Footer />
+</Layout>
+
+<script>
+  /**
+   * 「复制链接」按钮。
+   *
+   * 【为什么要监听 astro:page-load】
+   * 站点开了 View Transitions（Layout.astro 里的 ClientRouter）。
+   * 从别的页面点进 /rss/ 时，浏览器没有重新加载整页，而是换掉了 DOM ——
+   * 按钮是**新**元素，上面没有事件。所以除了首次执行，
+   * 每次页面切换完（astro:page-load）都要重新挂一遍。
+   * Header.astro / CopyCodeButton.astro 用的是同一个套路。
+   */
+
+  /**
+   * 复制文本到剪贴板。
+   *
+   * navigator.clipboard 只在 https 或 localhost 下可用，
+   * 所以保留一个降级方案（隐藏的 textarea + execCommand）——
+   * 和 CopyCodeButton.astro 里的那份逻辑一样。
+   */
+  async function copyText(text: string): Promise<boolean> {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // 用户拒绝授权或非安全上下文，落到下面的兜底方案
+      }
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      // 放到屏幕外，避免页面滚动
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.append(textarea);
+      textarea.select();
+      // execCommand 已被标记为过时，但它是非安全上下文下唯一可行的方案。
+      // 用 @ts-ignore 而不是 @ts-expect-error：后者在"没有错误可压制"时会
+      // 报错并中断构建，而 tsc 和 Astro 语言服务对它的判断不一致。
+      // @ts-ignore -- 故意调用被标记为 deprecated 的 API
+      const ok = document.execCommand("copy");
+      textarea.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  function initFeedCopy() {
+    const button =
+      document.querySelector<HTMLButtonElement>("[data-copy-feed]");
+
+    // 已经挂过就跳过（页面切回来时 astro:page-load 会再触发一次）
+    if (!button || button.dataset.copyReady === "true") {
+      return;
+    }
+
+    button.dataset.copyReady = "true";
+
+    button.addEventListener("click", async () => {
+      const ok = await copyText(button.dataset.url ?? "");
+
+      button.textContent = ok
+        ? (button.dataset.copied ?? "")
+        : (button.dataset.failed ?? "");
+
+      // 1.5 秒后恢复，避免按钮一直停在「已复制」
+      window.setTimeout(() => {
+        button.textContent = button.dataset.label ?? "";
+      }, 1500);
+    });
+  }
+
+  initFeedCopy();
+  document.addEventListener("astro:page-load", initFeedCopy);
+</script>

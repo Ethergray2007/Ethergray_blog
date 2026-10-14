@@ -12,6 +12,7 @@ export default {
     friends: "Friends",
     notes: "Notes",
     projects: "Projects",
+    rss: "RSS",
     more: "More",
   },
   post: {
@@ -100,6 +101,24 @@ export default {
   projects: {
     empty: "No projects yet.",
     viewSource: "View source",
+  },
+  rss: {
+    feedTitle: "Feed URL",
+    feedDesc:
+      "Paste this address into any RSS/Atom reader (Feedly, Inoreader, Follow, NetNewsWire, …) and new posts will show up automatically.",
+    copy: "Copy link",
+    copyLabel: "Copy feed URL",
+    copied: "Copied",
+    copyFailed: "Copy failed",
+    viewXml: "View raw XML",
+    howToTitle: "How to subscribe",
+    howToDesc:
+      "No account needed — paste the address above into any reader below.",
+    webGroup: "Web / cross-platform",
+    appGroup: "Desktop / mobile apps",
+    latestTitle: "Latest posts",
+    latestDesc: "This is what ends up in your reader.",
+    allPosts: "All posts",
   },
   a11y: {
     skipToContent: "Skip to content",

@@ -12,6 +12,7 @@ export default {
     friends: "友链",
     notes: "说说",
     projects: "项目",
+    rss: "RSS 订阅",
     more: "更多",
   },
 
@@ -108,6 +109,24 @@ export default {
   projects: {
     empty: "还没有项目。",
     viewSource: "查看源码",
+  },
+
+  rss: {
+    feedTitle: "订阅地址",
+    feedDesc:
+      "把下面这个地址填进任意 RSS/Atom 阅读器（Feedly、Inoreader、Follow、NetNewsWire 等），有新文章就会自动送到你手里。",
+    copy: "复制链接",
+    copyLabel: "复制订阅地址",
+    copied: "已复制",
+    copyFailed: "复制失败",
+    viewXml: "查看原始 XML",
+    howToTitle: "如何订阅",
+    howToDesc: "不用注册任何账号 —— 把上面的地址粘进下面任意一个阅读器就行。",
+    webGroup: "网页版 / 跨平台",
+    appGroup: "桌面 / 手机应用",
+    latestTitle: "最新推送文章",
+    latestDesc: "订阅之后，阅读器里收到的就是这些内容。",
+    allPosts: "查看全部文章",
   },
 
   a11y: {
