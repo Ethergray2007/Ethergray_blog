@@ -394,6 +394,27 @@ $env:HTTP_PROXY  = "http://127.0.0.1:7892"
 npm run build
 ```
 
+**⚠️ 这个开关不只管字体 —— 凡是 Node 里发的 HTTP 请求都受影响**，
+至少还有这两件（2026-10-14 实测 `astro check` 撞上过）：
+
+```text
+npm run build      下载字体（上面那条链）
+npx astro check    读 Neon 数据库里的文章 —— content loader 走 HTTP 驱动
+npm run dev        同上，起服务时就要读一次
+```
+
+症状一模一样地**不提网络**：字体报 `Cannot find the font path.`，
+数据库报 content loader 里 `loadRows()` 的栈（指向
+`src/db/loaders/posts.ts`，看着像 SQL 或者连接串写错了）。
+
+所以本地开发别一条条命令带，直接把三个变量设成**会话级**的：
+
+```powershell
+$env:NODE_USE_ENV_PROXY = "1"
+$env:HTTPS_PROXY = "http://127.0.0.1:7892"
+$env:HTTP_PROXY  = "http://127.0.0.1:7892"
+```
+
 **这条报错链里没有一句话提到网络**，所以很容易误判成配置写错、
 或者以为 satori 不认字体格式。正确的排查顺序是：
 
