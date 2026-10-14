@@ -303,15 +303,24 @@ const heroLinks = [
    * 背景视频。
    *
    * 【为什么用脚本插，而不是直接在模板里写 <video>】
-   * 因为有一类用户**不该看到会动的背景**：
-   * 系统里开着「减少动态效果」的人。这不是"高级选项"——
-   * 前庭功能障碍的人会因为大面积持续运动的画面产生眩晕和恶心，
-   * 而满屏视频正好是最容易触发的那一类。
-   * 关掉动效时留下的是构图完全相同的静态图，只是不动。
+   * 因为"插不插"本来是要按条件决定的（见下），所以位置留给了脚本。
    *
    * 【为什么不能只用 <video poster>】
    * poster 只在**视频开始播之前**显示。视频一开播它就退到后面了，
-   * 而需要它的用户恰恰要它一直在。所以静态图必须是独立的一层。
+   * 而静态图必须一直在，所以它是独立的一层（.hero__bg）。
+   *
+   * ⚠️ 这里原来有一道 `prefers-reduced-motion: reduce` 闸门：
+   * 系统开着「减少动态效果」就不插视频、只留静态图。
+   * 2026-10-12 按站主要求**去掉了**，现在一律自动播。
+   *
+   * 去掉它的代价要记住：前庭功能障碍的人会因为大面积持续运动的
+   * 画面产生眩晕和恶心，满屏视频正是最容易触发的那一类，
+   * 而「减少动态效果」是他们表达这个需求的**唯一**途径 ——
+   * 闸门没了，他们就没有选择权了。
+   *
+   * 以后要两头兼顾的话，正确的做法**不是**恢复这道闸门
+   * （站主自己的 Windows 就关着动效，恢复了他第一个看不见视频），
+   * 而是在首屏给一个明确的「播放背景」按钮，让人自己点。
    */
   function initHeroVideo() {
     const layer = document.querySelector<HTMLElement>(".hero__video-layer");
@@ -320,11 +329,6 @@ const heroLinks = [
 
     // 已经插过了（ClientRouter 重复触发时不要叠加第二个视频）
     if (layer.querySelector("video")) return;
-
-    // 用户要求减少动态效果 —— 就停在静态图上，不插视频
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
 
     const video = document.createElement("video");
 
@@ -352,10 +356,19 @@ const heroLinks = [
       video.append(source);
     }
 
+    /*
+     * ⚠️ 顺序不能换：先 append，再 play。
+     *
+     * play() 调用在一个**还没进文档**的媒体元素上，规范不保证它能播，
+     * 部分浏览器会直接拒绝（NotAllowedError）。而下面那个 catch 会把
+     * "被拒绝"当成"这个视频不能播"，静默把视频摘掉 —— 表现是首屏
+     * 永远只有静态图，控制台一句话都不说，排查时会一路往
+     * "视频文件是不是坏了"的方向找。
+     */
+    layer.append(video);
+
     // 自动播放可能被拒（省电模式等），失败就把视频摘掉露出静态图
     void video.play().catch(() => video.remove());
-
-    layer.append(video);
   }
 
   document.addEventListener("astro:page-load", initHeroVideo);
