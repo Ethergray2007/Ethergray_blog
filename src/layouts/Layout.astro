@@ -183,13 +183,13 @@ const atomHref = getRelativeLocaleUrl(
   {
     (
       /*
-    ⚠️ body 上**故意没有** bg-base-100。
-    
-    页面底色由 atmosphere.css 设在 html/body 上（--page-bg），
-    它比 base-100 深一档，卡片压在它上面才有浮起来的感觉。
-    这里再写一个 bg-base-100 会把那个底色盖成纯白 ——
-    表现是页面下方出现一条白带（fixed 的氛围层只覆盖视口，
-    盖不到的部分就露出 body 这个白色背景）。这个坑踩过。
+    ⚠️ body 上**故意没有**背景色 —— 连 bg-base-100 也不能加。
+
+    页面底色由 atmosphere.css **只设在 html 上**（--page-bg）。
+    html 的背景是"画布色"，永远铺在所有层的最下面；而任何**元素**
+    背景（包括 body 的）都排在 z-index: -1 的装饰层之上 ——
+    加一个就会把氛围层和首屏海报整层盖死。
+    详细成因写在 src/styles/atmosphere.css 的 html 那段注释里。
   */
 
       <body class="font-app text-base-content selection:bg-primary/20 selection:text-base-content flex min-h-svh flex-col">
