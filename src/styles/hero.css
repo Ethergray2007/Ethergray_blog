@@ -268,6 +268,17 @@
   flex-direction: column;
   align-items: center;
   width: 95%;
+
+  /*
+   * 整块文字的阴影，照参考站的 .banner-stage__copy
+   * （`0 2px 12px #0000007a`）——它挂在**容器**上而不是逐个元素：
+   * text-shadow 会继承，标题和副标题一起被兜住，
+   * 不用为每个元素重复写一遍。
+   *
+   * 它不是为了"好看"，是为了在**画面里有亮部的那几帧**上
+   * 仍然保证对比度（这张海报是白发角色，亮部不少）。
+   */
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.48);
 }
 
 @media (min-width: 40rem) {
@@ -286,79 +297,88 @@
   }
 }
 
-/* 品牌标识（渐变 logo），压在标题上方 */
-.hero-brand {
-  margin-bottom: 1rem;
-}
-
 /**
  * 大标题。
  *
- * 字号用 clamp 而不是固定值：
- *   clamp(2rem, 7vw, 4.5rem)
- *     下限 2rem      极小屏（320px）也不会溢出
- *     理想 7vw       跟着屏幕线性放大，这是"海报感"的来源
- *     上限 4.5rem    再宽也不无限涨，否则行高失控、一屏放不下
+ * 字号用 clamp，两端参照参考站、下限按本站站名长度回调：
+ *   参考站是 ≥1024px 5rem（80px）、以下 2.75rem（44px）两档写死；
+ *   这里是 clamp(2.5rem, 6vw, 5rem) —— 上限一样，下限从 44px 降到 40px，
+ *   因为「Ethergray Blog」比「Fqzlrのblog」长，44px 在 390px 屏上会折行。
+ *   中间连续放大，少一次断点处的跳变。
+ *
+ * 字重 700、行高 1.1、字距 0 —— 都照参考站的 h1。
+ * 上一版是 900（最黑）+ -0.02em 字距：在 80px 这个尺寸上
+ * 笔画会糊成一片，反而显得笨重。
  *
  * ⚠️ 字体是**写死的白色**，不跟随主题。
  * 首屏背景永远是深色视频，文字必须永远是浅色。
  * 跟着主题走的话，浅色模式下会变成"深色字压在深色视频上"—— 看不见。
  * （这种区域叫「局部反色区」：固定深色块，内部全部用反色。）
- *
- * 文字阴影照参考站（`0 4px 24px rgba(0,0,0,.65)`）：
- * 偏移 4px、模糊 24px、透明度 0.65。它不是为了"好看"，
- * 是为了在**画面里有亮部的那几帧**上仍然保证对比度。
  */
 .hero-title {
   margin: 0;
-  font-size: clamp(2rem, 7vw, 4.5rem);
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0;
   color: #ffffff;
-  text-shadow: 0 4px 24px rgb(0 0 0 / 0.65);
   text-wrap: balance;
 }
 
 /**
  * 副标题。
- * 白色降到 90% —— 纯白会和标题抢，90% 自然退到第二层。
+ *
+ * 字号同样取参考站两档：宽屏 1.5rem（24px）、窄屏 1.125rem（18px），
+ * 中间连续。行高 1.35 来自它的 2rem / 1.5rem。
+ *
+ * 颜色是**纯白**（参考站那一层就是 #fff）：它和标题之间的层次
+ * 靠"字号 80px vs 24px、字重 700 vs 400"拉开，不靠降透明度。
+ * 上一版降到 90%，压在半透明白的字上会同时变灰、变糊，
+ * 不如纯白干净。
  */
 .hero-subtitle {
   margin: 0.75rem 0 0;
   max-width: 38rem;
-  font-size: clamp(0.9375rem, 2vw, 1.25rem);
-  line-height: 1.6;
-  color: rgb(255 255 255 / 0.9);
-  text-shadow: 0 2px 12px rgb(0 0 0 / 0.6);
+  font-size: clamp(1.125rem, 1.5vw + 0.5rem, 1.5rem);
+  line-height: 1.35;
+  color: #ffffff;
   text-wrap: balance;
 }
 
 /* ============================================================
- * 图标行
+ * 链接行
  * ============================================================ */
 
 .hero-links {
   display: flex;
+  flex-wrap: wrap; /* 窄屏放不下就换行，不要横向溢出 */
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  margin-top: 1.75rem;
+  margin-top: 1.25rem;
 }
 
 /**
- * 玻璃圆钮。
+ * 玻璃胶囊（图标 + 文字）。
  *
- * 数值**直接照搬**参考站的 .banner-link：
- *   width/height  2.75rem = 44px —— 正好是 WCAG 2.5.5 的最小点击目标
- *   border-radius 9999px        正圆
- *   background    rgba(255,255,255,.14)   半透明白
- *   border        1px rgba(255,255,255,.18)
- *   backdrop blur(8px)
+ * 数值**直接照搬**参考站的 .banner-stage__link：
+ *   height          2.5rem = 40px
+ *   padding-inline  1.125rem = 18px
+ *   border-radius   999px                    全圆角
+ *   border          1px rgba(255,255,255,.45)
+ *   background      rgba(255,255,255,.14)
+ *   backdrop        blur(8px)
+ *   font-size       .875rem（14px），字重 500
+ *   gap             0.375rem（图标与文字之间）
  *
  * 【为什么半透明白 + 模糊，而不是实心按钮】
  * 实心色块会在视频上"贴一块补丁"，把沉浸感打散；
  * 半透明 + 模糊是让画面**从按钮里透出来**，按钮属于画面的一部分。
+ *
+ * 【为什么是 40px 高，而不是上一版的 44px 圆钮】
+ * 44px 是 WCAG 2.5.5（AAA，增强级）的目标尺寸；2.5.8（AA，WCAG 2.2
+ * 新增）要求的是 24px —— 40px 仍然过。参考站用 40px 是因为它要"轻"：
+ * 44px 的圆钮挨着 14px 的字会显得笨。误触风险由 12px 的 gap 兜住。
  *
  * ⚠️ 颜色写死而不是走主题令牌 —— 和标题同理：
  * 这层永远压在深色视频上，不跟随主题切换。
@@ -367,37 +387,53 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  color: rgb(255 255 255 / 0.92);
+  gap: 0.375rem;
+  height: 2.5rem;
+  padding-inline: 1.125rem;
+  border-radius: 999px;
+  color: #ffffff;
   background: rgb(255 255 255 / 0.14);
-  border: 1px solid rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   transition:
-    background-color 0.25s ease,
-    color 0.25s ease,
-    transform 0.2s ease;
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+/* 图标 18px，比 14px 的文字略大一点，撑住胶囊的高度 */
+.hero-link > svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
 }
 
 /**
- * 悬停：变亮 + **上浮 2px + 放大 5%**。
+ * 悬停：底色变亮（14% → 28%）。
  *
- * 这个组合（参考站的做法）比单纯变色明确得多 ——
- * 它模拟"按钮被按起来"的物理反馈。
- * 只用颜色的话，在半透明玻璃上变化太微弱，看不出可点。
+ * 参考站的 :hover 只做这一件事（`background: #ffffff47`）——
+ * 胶囊本身已经是"可以按"的形状，不需要再靠位移或缩放解释自己。
  */
 .hero-link:hover {
-  background: rgb(255 255 255 / 0.26);
-  color: #ffffff;
-  transform: translateY(-2px) scale(1.05);
+  background: rgb(255 255 255 / 0.28);
+}
+
+/**
+ * 按下：缩到 96%。
+ * 缩放交给 :active 而不是 :hover —— 鼠标划过就跳一下会显得毛躁。
+ */
+.hero-link:active {
+  transform: scale(0.96);
 }
 
 /**
  * 焦点圈。
  * 深色视频上默认的焦点色几乎看不见，换成亮色；
- * 用 outline-offset 让它和按钮之间留一点空，不贴着边。
+ * 用 outline-offset 让它和胶囊之间留一点空，不贴着边。
  */
 .hero-link:focus-visible {
   outline: 2px solid #f9a8d4;
@@ -455,7 +491,7 @@
  * ============================================================ */
 
 /**
- * 不支持 backdrop-filter 时，玻璃圆钮的底要提亮一点 ——
+ * 不支持 backdrop-filter 时，玻璃胶囊的底要提亮一点 ——
  * 否则 14% 的白在亮帧上几乎看不出来，按钮就"消失"了。
  */
 @supports not (backdrop-filter: blur(1px)) {
@@ -469,7 +505,7 @@
  *
  * 三样都关：
  *   · 下滑提示的浮动动画（持续运动，最容易引起不适）
- *   · 悬停的上浮放大（位移类动效）
+ *   · 按下时的缩放（位移类动效）
  *   · 背景模糊的渐进（滚动时持续变化）
  * 关掉之后首屏仍然是完整的静态画面，只是不动。
  */
@@ -482,7 +518,7 @@
     transition: none;
   }
 
-  .hero-link:hover {
+  .hero-link:active {
     transform: none;
   }
 

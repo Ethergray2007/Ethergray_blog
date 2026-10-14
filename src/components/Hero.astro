@@ -2,7 +2,7 @@
 /**
  * 首页全屏首屏（immersive hero）
  * ============================================================
- * 自包含模块：只依赖 src/styles/hero.css、BrandMark、config、i18n。
+ * 自包含模块：只依赖 src/styles/hero.css、config、i18n。
  *
  * 想删掉这个首屏（回到"纯列表首页"）？
  *   1. 删掉这个文件
@@ -52,7 +52,6 @@
  */
 import config from "@/config";
 import { useTranslations } from "@/i18n";
-import BrandMark from "@/components/BrandMark.astro";
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
@@ -60,15 +59,23 @@ const t = useTranslations(locale);
 const { site } = config;
 
 /**
- * 首屏图标行。
+ * 首屏链接行。
  *
- * 【为什么是图标而不是文字按钮】
- * 海报式首屏上，一排胶囊文字按钮会显得很"功能化"，
- * 把沉浸感打散。图标 + 玻璃圆底既轻又能点，
- * 是参考站的做法（它的 .banner-link 就是 44×44 的玻璃圆钮）。
+ * 【为什么是「图标 + 文字」的胶囊，而不是纯图标圆钮】
+ * 上一版是三个 44×44 的玻璃圆钮。问题不在好不好看，
+ * 而在**图标要猜**：GitHub 的猫看得懂，RSS 的弧线不看文字
+ * 未必认得出，人形图标更含糊（"关于"？"登录"？）。
+ * 参考站 blog.fqzlr.top 用的是「图标 + 文字」的半透明胶囊
+ * （它的 .banner-stage__link），一眼就知道通向哪。
  *
- * ⚠️ 每个都必须有 aria-label —— 图标本身没有可读的文字，
- * 读屏软件只会念"链接"，用户不知道通向哪。
+ * 配方照它（见 hero.css 的 .hero-link）：
+ *   高 2.5rem、左右内边距 1.125rem、全圆角、
+ *   1px 白色 45% 描边 + 白色 14% 底 + blur(8px)，
+ *   字号 .875rem / 字重 500。
+ *
+ * ⚠️ 文字必须走 i18n（AGENTS.md 第 4 条），不要在这里写死中文。
+ * ⚠️ 每个图标都要 aria-hidden —— 链接的可读名字由旁边的
+ *    <span> 提供，图标再说一遍就成了重复的噪音。
  */
 const heroLinks = [
   {
@@ -111,15 +118,15 @@ const heroLinks = [
   <!-- 文字层：垂直水平居中 -->
   <div class="hero-overlay">
     <div class="hero-overlay__inner">
-      <div class="hero-brand">
-        <BrandMark />
-      </div>
-
       {
         /*
         标题用站点名而不是原来的「记录学习的地方」——
         海报式首屏上，站点名才是主体（参考站也是 Fqzlrのblog）。
-        原来那句挪到副标题，作为一句话介绍。
+
+        ⚠️ 标题上方**故意没有**品牌标识（logo + 站名那一行）。
+        原来有，读起来是"小号站名 + 大号站名"重复两遍；
+        参考站的文字层只有 标题 / 副标题 / 链接 三件。
+        品牌标识在页脚还有一处（Footer.astro），不会丢。
       */
       }
       <h1 class="hero-title">{site.title}</h1>
@@ -132,13 +139,12 @@ const heroLinks = [
             <a
               href={href}
               class="hero-link"
-              aria-label={label}
               title={label}
               target={external ? "_blank" : undefined}
               rel={external ? "noopener noreferrer" : undefined}
             >
               {icon === "github" && (
-                <svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="currentColor"
                     d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"
@@ -146,7 +152,7 @@ const heroLinks = [
                 </svg>
               )}
               {icon === "rss" && (
-                <svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="currentColor"
                     d="M6.18 17.82a2.18 2.18 0 1 1-4.36 0 2.18 2.18 0 0 1 4.36 0ZM1.82 8.4v3.05a9.7 9.7 0 0 1 9.69 9.69h3.05c0-7.04-5.7-12.74-12.74-12.74Zm0-6.4v3.05C12.44 5.05 20.9 13.5 20.9 24h3.05C23.95 11.82 14.13 2 1.82 2Z"
@@ -154,13 +160,14 @@ const heroLinks = [
                 </svg>
               )}
               {icon === "user" && (
-                <svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="currentColor"
                     d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5Z"
                   />
                 </svg>
               )}
+              <span>{label}</span>
             </a>
           ))
         }
