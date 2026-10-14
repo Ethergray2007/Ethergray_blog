@@ -12,6 +12,7 @@ export default {
     friends: "Friends",
     notes: "Notes",
     projects: "Projects",
+    more: "More",
   },
   post: {
     updatedAt: "Updated",
@@ -29,6 +30,11 @@ export default {
     copyCode: "Copy code",
     copied: "Copied",
     copyFailed: "Copy failed",
+    comments: "Comments",
+    commentsHint:
+      "Comments are powered by GitHub Discussions and need a GitHub account to post.",
+    commentsUnconfigured:
+      "Comments are not configured yet: fill in comments.repoId and comments.categoryId in astro-paper.config.ts.",
   },
   pagination: {
     prev: "Prev",
@@ -37,12 +43,8 @@ export default {
   },
   home: {
     badge: "Blog",
-    heroTitle: "Where I keep my notes",
     heroLead: "A personal blog about tech, and about learning itself.",
-    heroMore:
-      "Notes on algorithms, programming and computer graphics, plus the technical writing worth keeping around.",
     viewSource: "Source code",
-    viewProfile: "Profile",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
     motionTitle: "Motion",
@@ -55,8 +57,6 @@ export default {
   },
   footer: {
     copyrightLine: "© {{year}} {{author}}",
-    tagline: "Notes on learning, kept in public",
-    secondaryNav: "Secondary navigation",
   },
   pages: {
     tagTitle: "Tag",

@@ -44,6 +44,50 @@
 
 ---
 
+## 首页首屏视频 `public/hero-bg.webm` / `hero-bg.mp4`
+
+同一个源压出来的两份，**画面内容一样**，只是给不同浏览器挑：
+
+| 项 | 值 |
+| --- | --- |
+| 来源 | 同上（Wallpaper Engine `3480796089`） |
+| 原始文件 | `431960/3480796089/壁纸循环.mp4`（2992×2048@60fps，15 秒循环，17.6 MB） |
+| 为什么是两个格式 | webm（VP9）给 Chrome / Firefox / Edge；mp4（H.264）给不认 VP9 的 Safari |
+| 成品 | `hero-bg.webm` 1280×876@24fps ≈ 468 KB；`hero-bg.mp4` 同尺寸 ≈ 672 KB |
+| 为什么不放源文件 | 17.6 MB 进仓库不值得，而且授权状况未确认（同上） |
+
+重新生成的命令（在仓库根目录跑，ffmpeg 要在 PATH 里）：
+
+```bash
+SRC=".../steamapps/workshop/content/431960/3480796089/壁纸循环.mp4"
+
+ffmpeg -i "$SRC" -an -c:v libvpx-vp9 -crf 40 -b:v 0 -row-mt 1 -cpu-used 4 \
+       -r 24 -vf scale=1280:-2 public/hero-bg.webm
+
+ffmpeg -i "$SRC" -an -c:v libx264 -crf 30 -preset slow \
+       -r 24 -vf scale=1280:-2 -movflags +faststart public/hero-bg.mp4
+```
+
+**这几个参数是怎么定的**（2026-10-14 实测，要改先看这段）：
+
+```text
+宽 1280    首屏是 object-fit: cover，1920 屏上本来就是缩放着用，
+           1280 够；再往上加宽度只涨体积（1600 宽实测大 60%）
+24fps      源是 60fps 的慢速壁纸循环。照抄 60fps 压不动
+           （1280 宽 crf40 出来 898 KB，比旧的还小不了多少），
+           降到 24 肉眼没差别，体积却掉一大半
+crf 40/30  画面是柔和的插画渐变、没有高频细节，这两个值下肉眼
+           看不到块状瑕疵（何况上面还压着 50% 的深色遮罩）
+-an        **不能省**：源文件带 aac 音轨，而首屏是静音循环，
+           不删就白白多背一份音轨的数据
+```
+
+**体积账**：替换前 webm 1.13 MB + mp4 1.59 MB = 2.66 MB，
+现在 1.14 MB（少 57%）。首屏真正会下的是 webm 那一份，
+mp4 只有 Safari 这类不认 VP9 的浏览器才会取。
+
+---
+
 ## 筛选过程中排掉的素材
 
 顺便记一下**为什么没用**其他几张，免得以后重复翻一遍：

@@ -97,6 +97,29 @@ interface ShareLink {
   linkTitle?: string;
 }
 
+/**
+ * 评论区（Giscus）。
+ *
+ * 【为什么 repoId / categoryId 不能省】
+ * Giscus 的接口要的是 GitHub 的 **node id**（形如 R_kgDOUphqrw、DIC_kwDO...），
+ * 不是仓库名和分类名的"另一种写法"。只给仓库名它会直接在页面上报错，
+ * 所以这四个值要么都填、要么就不写 comments 这一段。
+ *
+ * 【这两个 id 从哪来】
+ * 打开 https://giscus.app，填上仓库名，配置页会把 repoId 和 categoryId
+ * 显示出来（下方那段生成的代码里就有）。
+ */
+interface GiscusConfig {
+  /** 仓库全名，形如 "用户名/仓库名"。仓库必须是公开的 */
+  repo: string;
+  /** 仓库的 node id，不是仓库名 */
+  repoId: string;
+  /** Discussions 里的分类名，例如 "Announcements" */
+  category: string;
+  /** 分类的 node id，不是分类名 */
+  categoryId: string;
+}
+
 interface AstroPaperConfig {
   site: SiteConfig;
   posts?: PostsConfig;
@@ -105,6 +128,11 @@ interface AstroPaperConfig {
   socials?: SocialLink[];
   /** Share links shown on post detail pages */
   shareLinks?: ShareLink[];
+  /**
+   * 评论区（Giscus）。
+   * 不写这一段 = 文章页里没有评论区（组件会整块不渲染）。
+   */
+  comments?: GiscusConfig;
 }
 
 type ResolvedSiteConfig = Required<
@@ -128,6 +156,8 @@ export interface ResolvedAstroPaperConfig {
   features: Required<FeaturesConfig>;
   socials: SocialLink[];
   shareLinks: ShareLink[];
+  /** 可选：没配置时文章页不渲染评论区 */
+  comments?: GiscusConfig;
 }
 
 /**

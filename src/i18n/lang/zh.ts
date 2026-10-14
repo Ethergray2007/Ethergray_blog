@@ -12,6 +12,7 @@ export default {
     friends: "友链",
     notes: "说说",
     projects: "项目",
+    more: "更多",
   },
 
   post: {
@@ -30,6 +31,11 @@ export default {
     copyCode: "复制代码",
     copied: "已复制",
     copyFailed: "复制失败",
+    comments: "评论",
+    commentsHint:
+      "评论由 GitHub Discussions 提供，需要 GitHub 账号登录后才能发言。",
+    commentsUnconfigured:
+      "评论区还没配置：在 astro-paper.config.ts 的 comments 段里填好 repoId 和 categoryId。",
   },
 
   pagination: {
@@ -40,12 +46,8 @@ export default {
 
   home: {
     badge: "博客",
-    heroTitle: "记录学习的地方",
     heroLead: "一个个人博客，写技术，也写学习过程本身。",
-    heroMore:
-      "这里记录算法、编程、图形学的学习过程，以及值得长期保留的技术内容。",
     viewSource: "博客源码",
-    viewProfile: "个人主页",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
     motionTitle: "动图",
@@ -59,8 +61,6 @@ export default {
 
   footer: {
     copyrightLine: "© {{year}} {{author}}",
-    tagline: "记录学习过程本身",
-    secondaryNav: "次要导航",
   },
 
   pages: {

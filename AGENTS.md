@@ -275,10 +275,10 @@ src/styles/theme.css        唯一事实来源。用 @plugin "daisyui/theme" 定
 src/styles/global.css       @plugin "daisyui" { themes: false }  ← 不能删
                             并把下面几个样式文件串起来
 src/styles/atmosphere.css   页面背景：网格底纹 + 光晕（自包含模块）
-src/styles/hero.css         首屏：固定深色舞台 + 7 层 mesh gradient
+src/styles/hero.css         首屏：全屏海报（背景图 + 视频 + 压暗遮罩）
 ```
 
-**四条必须遵守的规则：**
+**必须遵守的规则：**
 
 ```text
 □ themes: false 不能删
@@ -307,11 +307,27 @@ src/styles/hero.css         首屏：固定深色舞台 + 7 层 mesh gradient
   这个坑我踩了两次，一次是 body 上写 bg-base-100（页面下方出现白带），
   一次是页脚底混 base-100（页脚变成一条发亮的横带）。
 
+□ 页面底色只能设在 `html` 上，**不要设在 body 上**
+  html 的背景是"画布色"，永远铺在所有层的最下面；body 的背景则只是
+  一个普通块级元素的背景，绘制顺序排在**负 z-index 层之上** ——
+  添上它就会把 `z-index: -1` 的氛围层和首屏海报整层盖死。
+  症状极具迷惑性：视频在播（`currentTime` 在涨）、图片请求 200、
+  DOM 结构也对，屏幕上却是一片被遮罩压过的浅灰 —— 看起来像"视频没生效"。
+  一句话：负 z-index 的装饰层只有画布底色能垫在它下面。
+  （成因的完整推导写在 `src/styles/atmosphere.css` 的 html 那段。）
+
+□ 首页的页眉是 `position: fixed`，浮在首屏海报之上
+  用 `body:has(#hero)` 限定，只有首页生效：首屏从 y=0 占满一屏，
+  透明的页眉压在海报顶部。静止态必须把 `--text-muted` 换成白色
+  （海报是**固定深色区**，不跟主题切换，见 nav.css 第十一节）。
+  ⚠️ 不要顺手把那层的 `--color-base-content` 也改掉 ——
+  「更多」下拉面板是浅色卡片，菜单项用的正是这个变量。
+
 □ position: fixed 是按**视口**算的，不是按文档
   氛围层最初是 `fixed; inset: 0` + background-color 一把抓，
   文档高 1913px、视口 900px 时它只画到 900px 就没了，
   往下滚就露出 body 的白底 —— 页面上一条白带从 y=900 开始。
-  所以：底色交给 html/body，fixed 那层只放装饰（网格、光晕）。
+  所以：底色交给 html（画布色），fixed 那层只放装饰（网格、光晕）。
 ```
 
 **新加一个列表页视觉时先看这里**：列表页（文章/标签/归档…）顶部那层
@@ -323,8 +339,15 @@ src/styles/hero.css         首屏：固定深色舞台 + 7 层 mesh gradient
 默认是并集，底部那条生硬的切边会留着。
 
 **颜色与参考站的关系**：整套视觉参照 [elysia.nodejs.cn](https://elysia.nodejs.cn/)。
-强调色 `#f06292` 直接来自它的 `--vp-c-brand-1`，首屏那 7 层光晕也照搬了它的
-mesh gradient 配方（两个关键细节写在 `hero.css` 里：色标停在 50%、定位故意疏密不均）。
+强调色 `#f06292` 直接来自它的 `--vp-c-brand-1`；首屏海报的压暗遮罩、
+列表页顶部的 ray，都是按它那套"低透明度 + 多层叠加 + 色标停在 50%"的做法调的。
+
+⚠️ 参考站有过多层 mesh gradient 的首屏，这个项目也曾照搬（AGENTS.md 旧版
+把它记成"7 层光晕"）。**那套配方已经跟着上一版首屏一起删掉了** ——
+现在首屏是"一整屏海报（背景图 + 视频 + 一层压暗遮罩）"，
+`hero.css` 里只剩 5 处渐变；氛围层那三团极低透明度的角落光在
+`atmosphere.css`，别再按"7 层 mesh"去描述或恢复它。
+
 它是 VitePress + Tailwind 手写 CSS，**没有用任何 UI 组件库** ——
 所以"换成 Elysia 用的那套 UI"这件事不存在，观感是自己写出来的。
 
@@ -365,13 +388,68 @@ code: 'UND_ERR_CONNECT_TIMEOUT'
 于是字体没进缓存 → `fontData` 里没有该字重 → `getFontPathByWeight()` 返回
 `undefined` → `og.png.ts` 抛出 `Cannot find the font path.`，整个构建失败。
 
+**⚠️ 这节的结论在 2026-10-12 被修正过一次，原文写的是"重跑一次 build 通常就好"。**
+那句话只在**瞬时**超时时成立。实测碰到过一次**重跑仍然必失败**的情况，
+原因比"网络抖了一下"具体得多，两个条件叠加：
+
+```text
+① 字体元数据缓存过期
+   node_modules/.astro/fonts/google-*/**/*-data.json 里有个 expires 字段，
+   过期之后构建**必须**重新联网取元数据 —— 缓存在也没用。
+   （那次 expires 是 2026-10-08，当天 10-12，已经过期 4 天。）
+
+② Node 的 fetch 不读系统代理
+   这台机器直连 fonts.google.com 超时、必须走代理 127.0.0.1:7892，
+   而系统代理是 .NET / 浏览器读的设置，**Node 的 fetch（undici）根本不看**。
+```
+
+第 ② 条是这个坑里最会骗人的地方：**代理明明开着**，
+浏览器能开 fonts.google.com、PowerShell 的 `Invoke-WebRequest` 也返回 200，
+`npm run build` 却照样 `UND_ERR_CONNECT_TIMEOUT`。
+差别不在网络，在"谁去发这个请求"。
+
+所以本机构建的正确姿势是**显式把代理喂给 Node**：
+
+```powershell
+$env:NODE_USE_ENV_PROXY = "1"          # Node 24+ 才认这个开关
+$env:HTTPS_PROXY = "http://127.0.0.1:7892"
+$env:HTTP_PROXY  = "http://127.0.0.1:7892"
+npm run build
+```
+
+**⚠️ 这个开关不只管字体 —— 凡是 Node 里发的 HTTP 请求都受影响**，
+至少还有这两件（2026-10-14 实测 `astro check` 撞上过）：
+
+```text
+npm run build      下载字体（上面那条链）
+npx astro check    读 Neon 数据库里的文章 —— content loader 走 HTTP 驱动
+npm run dev        同上，起服务时就要读一次
+```
+
+症状一模一样地**不提网络**：字体报 `Cannot find the font path.`，
+数据库报 content loader 里 `loadRows()` 的栈（指向
+`src/db/loaders/posts.ts`，看着像 SQL 或者连接串写错了）。
+
+所以本地开发别一条条命令带，直接把三个变量设成**会话级**的：
+
+```powershell
+$env:NODE_USE_ENV_PROXY = "1"
+$env:HTTPS_PROXY = "http://127.0.0.1:7892"
+$env:HTTP_PROXY  = "http://127.0.0.1:7892"
+```
+
 **这条报错链里没有一句话提到网络**，所以很容易误判成配置写错、
 或者以为 satori 不认字体格式。正确的排查顺序是：
 
 ```text
-1. 确认能不能连上 fonts.googleapis.com（这台机器直连会超时，见下面代理那节）
-2. 看缓存目录 node_modules/.astro/fonts/ 里有没有文件
-3. 两边都不行就是下载失败 —— 重跑一次 build 通常就好（瞬时故障）
+1. 看 data.json 里的 expires 是不是过期了（过期就必须联网，缓存救不了）
+2. 直接问 Node 能不能连上，别问浏览器 —— 两者走的代理设置不是一套：
+     node -e "fetch('https://fonts.google.com/metadata/fonts',{method:'HEAD'})
+              .then(r=>console.log('OK',r.status))
+              .catch(e=>console.log('FAIL',e.cause?.code))"
+   报 UND_ERR_CONNECT_TIMEOUT 就是 ② → 带上上面三个环境变量重跑
+3. 看缓存目录 node_modules/.astro/fonts/ 里有没有文件
+4. 都不是、且 Node 直连能通，那才是瞬时故障 —— 重跑一次
 ```
 
 **为什么这个坑暂时没法彻底消除**：字体缓存放在 `node_modules/.astro/fonts/`，

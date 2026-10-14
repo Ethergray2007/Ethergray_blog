@@ -33,11 +33,16 @@ function reflect(): void {
   root.setAttribute("data-theme", themeValue);
   root.classList.toggle("dark", themeValue === DARK);
 
-  // 把当前状态同步给主题按钮，读屏软件靠 aria-pressed 判断开关状态。
-  // 按钮上的 aria-label 仍然使用页面里的国际化文案，这里不覆盖。
+  // 把当前状态同步给主题开关，读屏软件靠 aria-checked 判断开还是关。
+  //
+  // ⚠️ 这里必须是 aria-checked，不是 aria-pressed。
+  // 页眉里那个控件是 role="switch"（胶囊滑块），
+  // aria-pressed 是**按钮**的属性，用在 switch 上会被读屏软件忽略，
+  // 表现是"开关状态永远念不出来"。
+  // 按钮上的 aria-label 仍然用页面里的国际化文案，这里不覆盖。
   document
     .querySelector("#theme-btn")
-    ?.setAttribute("aria-pressed", String(themeValue === DARK));
+    ?.setAttribute("aria-checked", String(themeValue === DARK));
 
   const bg = window.getComputedStyle(document.body).backgroundColor;
 

@@ -14,6 +14,15 @@ export interface UIStrings {
     notes: string;
     /** /projects 页面（项目） */
     projects: string;
+    /**
+     * 页眉「更多」菜单的标题。
+     *
+     * 标签 / 归档 / 近况 / 关于这四个辅助页面从页脚搬到了这个菜单里，
+     * 所以页眉需要一个词把它们收起来。用「更多」而不是「关于」之类的
+     * 具体分类名：这四个页面之间没有共同的"用途"，硬起一个分类名
+     * 反而会让人猜不到里面有什么。
+     */
+    more: string;
   };
   post: {
     updatedAt: string;
@@ -50,6 +59,19 @@ export interface UIStrings {
     copyCode: string;
     copied: string;
     copyFailed: string;
+    /**
+     * 评论区（Giscus）的标题和一行说明。
+     *
+     * 这两条由文章页在服务端渲染。giscus 自己那个 iframe 里的界面文字
+     * 改不了（是它提供的），所以这里只管我们外面这一层。
+     */
+    comments: string;
+    commentsHint: string;
+    /**
+     * 配置没填全（缺 repoId 或 categoryId）时，代替评论区出现的一行提示。
+     * 只在开发环境显示 —— 线上宁可什么都不显示，也不要挂一块"没配对"的告示。
+     */
+    commentsUnconfigured: string;
   };
   pagination: {
     prev: string;
@@ -65,16 +87,10 @@ export interface UIStrings {
   home: {
     /** 首页徽标文案，例如 “Blog” */
     badge: string;
-    /** 首页大标题 */
-    heroTitle: string;
     /** 首页主介绍段落 */
     heroLead: string;
-    /** 首页补充介绍段落 */
-    heroMore: string;
     /** 首页按钮：查看仓库说明 */
     viewSource: string;
-    /** 首页按钮：进入个人主页 */
-    viewProfile: string;
     featured: string;
     /** 精选区块副标题 */
     featuredDesc: string;
@@ -109,24 +125,6 @@ export interface UIStrings {
      * 放在语言文件里拼好，避免在模板里多个表达式相邻导致空格被 HTML 吞掉。
      */
     copyrightLine: string;
-    /**
-     * 页脚那句 slogan / 站点定位。
-     *
-     * 【为什么原来这里叫 allRightsReserved】
-     * 原本是「保留所有权利。」，和上一行的「版权所有 ©」连起来是一句
-     * 法律声明。但那种写法在任何中文博客上都长一样，是"没设计过"的
-     * 典型标志；对个人博客来说也没有实际作用。
-     * 现在换成一句短的站点定位 —— 页脚有内容可读，也才像这个站自己的。
-     */
-    tagline: string;
-    /**
-     * 页脚那组次要导航的无障碍名称。
-     *
-     * 读屏软件靠它把这一组链接和页面别的内容区分开
-     * （会念成「次要导航，导航区域」）。
-     * 没有它的话，用户只能听到一串没有上下文的光秃秃链接。
-     */
-    secondaryNav: string;
   };
   pages: {
     tagTitle: string;

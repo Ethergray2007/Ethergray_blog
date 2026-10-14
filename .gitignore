@@ -56,3 +56,40 @@ practice/_*
 
 # archify（画架构图技能）的中间产物，不是项目内容
 .archify/
+
+# 临时调研 / 验证目录
+#
+# 和 practice/_* 是同一个约定：**临时写的东西不进仓库**。
+# 但这次是新起的目录名，所以要在两处都登记（少一处就漏）：
+#   .gitignore            从源头不跟踪
+#   eslint.config.js      否则 npx eslint . 会把里面的 console.log 当错误
+#
+# ⚠️ ESLint 的 ignores 是显式列表，它**不读 .gitignore** ——
+#    只加这里是不够的。这个坑踩过一次。
+code-review/
+.diag/
+
+# 根目录下的下划线项（临时快照 / 调研目录：_audit/、_walkthrough/、_probe_fqzlr/）
+#
+# 与其一个个登记目录名（列举法永远会漏，上面那条 code-review/ 就是它的产物），
+# 不如按 practice/_* 那个约定统一挡掉：**根目录下划线开头 = 临时东西**。
+# 这和 scripts/commit-check.ts 里的 /^_/ 是同一条政策，只是一边拦在源头、
+# 一边拦在提交前。
+#
+# ⚠️ 开头的 `/` 不能省。两个写法只差一个字符，后果完全不同：
+#   /_*   只匹配**仓库根目录**下的下划线项            ← 要的是这个
+#   _*/   按**任意层级**匹配，src/pages 下的 _components/ 也会被忽略
+# 而 _components/ 是**正式目录**（下划线在那里表示"不是路由"）。
+# 同一个符号两种含义，只能靠锚定区分。
+#
+# 实测代价：这三个目录既没被忽略、又被 eslint 扫到，
+# `npx eslint .` 报 787 个 no-console 错 —— 第 3 道检查一直是红的。
+/_*
+
+# AgentTeams 的团队状态（team.json + 各成员 inbox/*.jsonl）
+#
+# 它是 DSH 运行时的**状态文件**，不是项目内容 —— 里面记的是
+# 某个会话里谁认领了哪个任务，人和事都过期了，进仓库只会是噪音。
+# 而且 team.json 动辄 70 KB 以上，多来几轮评审就更大。
+.agent-teams/
+

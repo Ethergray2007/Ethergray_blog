@@ -1,17 +1,70 @@
 ---
+/**
+ * 页眉（吸顶导航）
+ * ============================================================
+ * 自包含模块：只依赖 BrandMark、i18n、config。
+ *
+ * 想删掉某个部件？
+ *   · 品牌标识   → 把 <BrandMark /> 换回一行纯文字
+ *   · 搜索入口   → config 里 features.search 改成 false
+ *   · 主题开关   → config 里 features.lightAndDarkMode 改成 false
+ *   · 整个吸顶玻璃 → 见 src/styles/nav.css 的文件头
+ *
+ * ------------------------------------------------------------
+ * 【改版前的问题，以及这次怎么改的】
+ *
+ *   1. 最左边是**光秃秃的文字**链接（"Ethergray Blog"）。
+ *      浏览器里就是一段字，没有任何图形锚点。参考站的做法是
+ *      「图形标识 + 文字的 lockup」，人对图形的识别是瞬间的，
+ *      对文字要先读一遍。现在用 BrandMark（渐变方块 + 首字母）。
+ *
+ *   2. 搜索只有**一个放大镜图标**，读者要猜它是什么。
+ *      参考站的 .DocSearch-Button 是「放大镜 + 占位文字 + kbd 键帽」，
+ *      自己说明了用途，还多一个键盘入口。现在照这个做，
+ *      并且真的把 `/` 键绑上了（只画键帽不让它生效是骗人的）。
+ *
+ *   3. 主题开关是个**图标按钮**，只能表达"现在是什么"，
+ *      表达不了"这是一个可以拨的开关"。现在换成胶囊滑块
+ *      （参考站的 .VPSwitch），语义也改成 role="switch" +
+ *      aria-checked —— 读屏软件会念"开关，已打开/已关闭"。
+ *
+ *   4. 内容链接和工具按钮**混成一片**，没有分隔。
+ *      现在把搜索、主题开关、汉堡收进一个 .nav-tools 玻璃小容器，
+ *      「这是一组工具」一眼就能读出来（见 nav.css 第六节）。
+ *
+ *   5. 桌面导航和移动端抽屉**各写了一遍**那四个链接，
+ *      加一个页面要改两个地方、漏一处没人发现。
+ *      现在共用一份 navItems（见下面），渲染两遍。
+ *
+ *   6. 导航条**内边距被 .site-shell 限制在 1280px 里**，
+ *      1920 视口下品牌在 x=320、工具组在 x=1568 —— 页眉成了
+ *      "屏幕中间的一座岛"。现在页眉横贯整屏（内边距在 nav.css 的
+ *      .nav-grid 里按断点给），内容一路推到视口两侧。
+ *
+ *   7. 首屏是全屏深色海报，页眉却在文档流里、压不到它上面：
+ *      海报从页眉下方才开始（"全屏"少一截，底部的滚动提示被推到
+ *      视口外），页眉静止态又全透明，于是透出浅色底 —— 一条浅色
+ *      横带压在海报顶上。现在首页的页眉是 fixed，浮在海报之上，
+ *      静止态换成浅色文字（见 nav.css 第十一节）。
+ * ============================================================
+ */
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconSearch from "@/assets/icons/IconSearch.svg";
+import IconChevronDown from "@/assets/icons/IconChevronDown.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconX from "@/assets/icons/IconX.svg";
+
+import BrandMark from "./BrandMark.astro";
 
 import { stripBase, stripLocale } from "@/utils/withBase";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
-const { site, features } = config;
+// 站名不在这里取了 —— 页眉里那个标题由 BrandMark 渲染（它自己读 config）。
+const { features } = config;
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
@@ -33,11 +86,57 @@ const isActive = (path: string) => {
 };
 
 /**
+ * 顶部导航的四个内容链接。
+ *
+ * 写成数组是因为下面要渲染**两遍**：桌面横排一遍、移动端抽屉一遍。
+ * 改版前这两处各写了一遍，四个链接就是八段几乎一样的标记。
+ *
+ * 顺序就是显示顺序。
+ */
+const navItems = [
+  { path: "/posts", label: t.nav.posts },
+  { path: "/friends", label: t.nav.friends },
+  { path: "/notes", label: t.nav.notes },
+  { path: "/projects", label: t.nav.projects },
+];
+
+/**
+ * 「更多」菜单里的辅助页面。
+ *
+ * 【为什么这几个从页脚搬了上来】
+ * 它们原来和订阅源（RSS/Atom/Sitemap）一起挤在页脚的一行里，共七个链接。
+ * 页脚是"收尾"，塞七个链接就变成了"第二个导航区"——扫视成本高；
+ * 而真正想找它们的人是在**找入口**，抬头看页眉才是第一反应。
+ *
+ * 搬进「更多」之后页脚只剩品牌标识和版权。桌面端渲染成下拉菜单、
+ * 移动端进抽屉，两边共用这一份数组 —— 和 navItems 同一个理由：
+ * 加一个入口只改一处。
+ *
+ * 归档页可以被 config 关掉，所以它是有条件的。
+ */
+const moreItems = [
+  { path: "/tags", label: t.nav.tags },
+  ...(features.showArchives !== false
+    ? [{ path: "/archives", label: t.nav.archives }]
+    : []),
+  { path: "/now", label: t.nav.now },
+  { path: "/about", label: t.nav.about },
+];
+
+/**
+ * 当前页是不是「更多」里的某一页（比如正在看 /tags）。
+ * 是的话，触发按钮也要亮起来 —— 否则页眉上没有任何地方指示当前位置。
+ */
+const isMoreActive = moreItems.some(item => isActive(item.path));
+
+/**
  * 服务端渲染时拿不到用户的主题偏好（它存在 localStorage 里），
  * 所以这里先给一个初始值；`src/scripts/theme.ts` 会在客户端把
- * `aria-pressed` 同步成真实状态，保证读屏软件读到的是对的。
+ * `aria-checked` 同步成真实状态，保证读屏软件读到的是对的。
  */
 const isDarkInitially = false;
+
+const searchHref = getRelativeLocaleUrl(locale, "search");
 ---
 
 <a
@@ -48,180 +147,170 @@ const isDarkInitially = false;
   {t.a11y.skipToContent}
 </a>
 
-{
-  /*
-  ============================================================
-  ⚠️ 这里的结构不能随手改，有两个位置是有原因的：
+<header id="site-header">
+  {
+    /*
+    ⚠️ 页眉的左右内边距写在 nav.css 的 `.nav-grid` 里，**不要**在这里挂
+    `site-shell`（那是正文用的 max-w-7xl + px-8）。
 
-  1. header 是 **sticky**（吸顶）。滚动时导航条始终可见 ——
-     这是参考站 elysia.nodejs.cn 的做法，也是长文页面最实用的改进。
+    挂 site-shell 的话，宽屏下整组内容被限成 1280px 居中：1920 视口时
+    品牌在 x=320、工具组在 x=1568，两边各空 320px —— 页眉成了"中间一座岛"，
+    而它本该是横贯整屏的一条。现在只有**内边距**随断点增长，
+    内容一路铺到视口两侧（站主要求"页眉占满"）。
 
-  2. 玻璃拟态的样式**不写在这里，写在 src/styles/nav.css**。
-     原因是需要 `backdrop-filter` + 半透明背景，
-     而背景色必须**跟随主题**（浅色模式是白色玻璃，深色模式是深色玻璃）。
-     用内联的 dark: 变体也能写，但玻璃效果牵连好几个属性
-     （背景、边框、模糊、滚动后的阴影），
-     散在 class 字符串里以后很难改 —— 收进一个文件更符合本项目
-     "一个功能 = 一组自包含文件"的约定。
+    这样"条铺满、字也铺开"同时成立；正文仍然是限宽的，两者互不影响。
 
-  data-scrolled 由 nav.css 里的小脚本维护：
-  页面在顶部时不显示下边框（首屏是深色的，加边框会多一条线），
-  滚动之后才出现，让玻璃条和内容之间有个交代。
-  ============================================================
+    ⚠️ 三栏用 grid 而不是 flex + justify-between：
+      左 auto / 中 minmax(0,1fr) / 右 auto
+    左右两栏按内容宽固定，只有中间那栏伸缩 ——
+    导航项增减时右边那组按钮纹丝不动。
+    用 flex 挤开的话，加一个导航项就会把工具组推着走。
   */
-}
-<header id="site-header" class="site-shell sticky top-0 z-40">
-  <div
-    class="navbar border-base-300 bg-base-100 min-h-16 border-b px-0 sm:min-h-20"
-  >
-    <!-- Logo -->
-    <div class="navbar-start min-w-0">
-      <a
-        href={getRelativeLocaleUrl(locale, "")}
-        class="btn btn-ghost min-h-0 max-w-full px-2 text-lg font-semibold sm:text-2xl"
+  }
+  <div class="nav-glass border-base-300 border-b">
+    <div class="nav-grid">
+      <!-- Logo -->
+      <div class="flex min-w-0 items-center">
+        {
+          /*
+          ⚠️ group 类挂在 <a> 上，配合 nav.css 里的
+          `.group:hover .brand-bar` 实现"悬停时竖条长高"。
+          缺了 group，那个动效不会触发。
+        */
+        }
+        <a
+          href={getRelativeLocaleUrl(locale, "")}
+          class="group flex items-center gap-2.5 rounded-lg py-1.5 ps-1 pe-2 transition-opacity hover:opacity-90"
+        >
+          <span class="brand-bar" aria-hidden="true"></span>
+
+          <BrandMark />
+        </a>
+      </div>
+
+      <!-- Desktop navigation（靠右，紧挨工具组） -->
+      <nav
+        class="hidden min-w-0 justify-end pe-6 md:flex"
+        aria-label="Primary navigation"
       >
-        <span class="truncate">{site.title}</span>
-      </a>
-    </div>
-
-    <div class="navbar-end gap-1">
-      <!-- Desktop navigation -->
-      <nav class="hidden sm:block" aria-label="Primary navigation">
-        <ul class="menu menu-horizontal items-center gap-1 px-1">
-          <!-- Posts -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "posts")}
-              class:list={[
-                "font-medium",
-                { "menu-active": isActive("/posts") },
-              ]}
-              aria-current={isActive("/posts") ? "page" : undefined}
-            >
-              {t.nav.posts}
-            </a>
-          </li>
-
-          <!-- Friends -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "friends")}
-              class:list={[
-                "font-medium",
-                { "menu-active": isActive("/friends") },
-              ]}
-              aria-current={isActive("/friends") ? "page" : undefined}
-            >
-              {t.nav.friends}
-            </a>
-          </li>
-
-          <!-- Notes -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "notes")}
-              class:list={[
-                "font-medium",
-                { "menu-active": isActive("/notes") },
-              ]}
-              aria-current={isActive("/notes") ? "page" : undefined}
-            >
-              {t.nav.notes}
-            </a>
-          </li>
-
-          <!-- Projects -->
-          <li>
-            <a
-              href={getRelativeLocaleUrl(locale, "projects")}
-              class:list={[
-                "font-medium",
-                { "menu-active": isActive("/projects") },
-              ]}
-              aria-current={isActive("/projects") ? "page" : undefined}
-            >
-              {t.nav.projects}
-            </a>
-          </li>
+        <ul class="flex items-center gap-1">
+          {
+            navItems.map(item => (
+              <li>
+                <a
+                  href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                  class="nav-link"
+                  aria-current={isActive(item.path) ? "page" : undefined}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
 
           {
             /*
-            ============================================================
-            这里原本还有「标签」「关于」「近况」三个文字链接，
-            以及一个「归档」图标按钮，现在都去掉了。
+              「更多」下拉。
 
-            判断依据：那 7 个链接不是同一类东西 ——
-              内容类型（站点主体）    文章 说说 项目 友链
-              辅助页面（只看一次）    关于 近况 标签 归档
-
-            后者移到页脚（见 Footer.astro）。理由：
-              · 顶部是导航，作用是"去哪"，不是"全部入口的清单"
-              · 页脚本来就有空间（原来只有版权 + 社交图标），
-                而且"关于""归档"这类链接放页脚是通行做法
-              · 顶部从 10 个可点元素降到 6 个
-
-            ⚠️ 那三个页面本身没有被删，只是入口换了位置。
-            直接访问 /about、/now、/tags、/archives 仍然正常。
-            ============================================================
-          */
+              ⚠️ 用 <details>/<summary> 而不是自己写 JS 开关：
+              键盘操作（Enter/Space 展开）、展开状态语义都由浏览器给，
+              我们少维护一段脚本。样式复用 daisyUI 的 dropdown + menu。
+            */
           }
+          <li>
+            <details class="dropdown dropdown-end dropdown-bottom nav-more">
+              <summary
+                class="nav-link"
+                data-current={isMoreActive ? "true" : undefined}
+              >
+                {t.nav.more}
+                <IconChevronDown class="nav-more__caret size-3.5 shrink-0" />
+              </summary>
 
-          <!-- Search -->
-          {
-            features.search !== false && (
-              <li>
-                <a
-                  href={getRelativeLocaleUrl(locale, "search")}
-                  class:list={{
-                    "menu-active": isActive("/search"),
-                  }}
-                  class="btn btn-ghost btn-square"
-                  title={t.nav.search}
-                  aria-label={t.nav.search}
-                >
-                  <IconSearch class="size-5" />
-                </a>
-              </li>
-            )
-          }
+              <ul
+                class="menu dropdown-content bg-base-100 border-base-300 rounded-box mt-2 w-40 border p-1.5 shadow-lg"
+              >
+                {
+                  moreItems.map(item => (
+                    <li>
+                      <a
+                        href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                        aria-current={isActive(item.path) ? "page" : undefined}
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </details>
+          </li>
         </ul>
       </nav>
 
-      <!-- Theme -->
-      {
-        features.lightAndDarkMode && (
-          <button
-            id="theme-btn"
-            type="button"
-            class="btn btn-ghost btn-square"
-            title={t.a11y.toggleTheme}
-            aria-label={t.a11y.toggleTheme}
-            aria-pressed={isDarkInitially}
-          >
-            <span class="relative grid size-5 place-items-center">
-              <IconMoon class="absolute size-5 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <IconSunHigh class="absolute size-5 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-            </span>
-          </button>
-        )
-      }
+      <!-- 右侧：搜索 + 主题 + 汉堡，统一收进一个玻璃小容器 -->
+      <div class="flex items-center justify-end">
+        <div class="nav-tools">
+          <!-- Search -->
+          {
+            features.search !== false && (
+              <a
+                href={searchHref}
+                class="nav-search"
+                aria-keyshortcuts="/"
+                title={t.a11y.searchPlaceholder}
+              >
+                <IconSearch class="size-4 shrink-0" />
 
-      <!-- Mobile menu button -->
-      <button
-        type="button"
-        class="btn btn-ghost btn-square sm:hidden"
-        aria-label={t.a11y.openMenu}
-        aria-controls="mobile-menu"
-        data-mobile-menu-open
-      >
-        <IconMenuDeep class="size-6" />
-      </button>
+                <span class="nav-search__label">{t.nav.search}</span>
+
+                {/*
+                  kbd 里那个「/」是**快捷键提示**，不是装饰。
+                  对应的 keydown 处理在下面那段脚本里 ——
+                  只画一个键帽却不让它生效，是骗人的。
+                  窄屏下它会被 CSS 隐藏（见 nav.css 的 64rem 断点）。
+                */}
+                <kbd>/</kbd>
+              </a>
+            )
+          }
+
+          <!-- Theme -->
+          {
+            features.lightAndDarkMode && (
+              <button
+                id="theme-btn"
+                type="button"
+                role="switch"
+                class="theme-switch mx-1"
+                title={t.a11y.toggleTheme}
+                aria-label={t.a11y.toggleTheme}
+                aria-checked={isDarkInitially}
+              >
+                <IconSunHigh class="theme-switch__icon theme-switch__icon--sun" />
+                <IconMoon class="theme-switch__icon theme-switch__icon--moon" />
+              </button>
+            )
+          }
+
+          <!-- Mobile menu button -->
+          <button
+            type="button"
+            class="nav-icon-btn nav-mobile-only"
+            aria-label={t.a11y.openMenu}
+            aria-controls="mobile-menu"
+            data-mobile-menu-open
+          >
+            <IconMenuDeep class="size-5" />
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
 
 <!-- Mobile navigation -->
-<dialog id="mobile-menu" class="modal sm:hidden">
+<dialog id="mobile-menu" class="modal md:hidden">
   <div
     class="modal-box absolute inset-y-0 inset-e-0 m-0 flex w-80 max-w-[85vw] flex-col rounded-none p-0"
   >
@@ -229,17 +318,15 @@ const isDarkInitially = false;
     <div
       class="border-base-300 flex min-h-16 shrink-0 items-center justify-between border-b px-4"
     >
-      <span class="truncate text-lg font-semibold">
-        {site.title}
-      </span>
+      <BrandMark size="sm" />
 
       <form method="dialog">
         <button
           type="submit"
-          class="btn btn-ghost btn-square"
+          class="nav-icon-btn"
           aria-label={t.a11y.closeMenu}
         >
-          <IconX class="size-6" />
+          <IconX class="size-5" />
         </button>
       </form>
     </div>
@@ -247,63 +334,35 @@ const isDarkInitially = false;
     <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto p-4" aria-label="Mobile navigation">
       <ul class="menu w-full gap-1">
-        <!-- Posts -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "posts")}
-            class:list={{
-              "menu-active": isActive("/posts"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.posts}
-          </a>
-        </li>
+        {
+          navItems.map(item => (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                aria-current={isActive(item.path) ? "page" : undefined}
+                data-mobile-menu-link
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
 
-        <!-- Friends -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "friends")}
-            class:list={{
-              "menu-active": isActive("/friends"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.friends}
-          </a>
-        </li>
-
-        <!-- Notes -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "notes")}
-            class:list={{
-              "menu-active": isActive("/notes"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.notes}
-          </a>
-        </li>
-
-        <!-- Projects -->
-        <li>
-          <a
-            href={getRelativeLocaleUrl(locale, "projects")}
-            class:list={{
-              "menu-active": isActive("/projects"),
-            }}
-            data-mobile-menu-link
-          >
-            {t.nav.projects}
-          </a>
-        </li>
+        <!-- 「更多」里的辅助页面（桌面端在下拉菜单里） -->
+        <li class="menu-title">{t.nav.more}</li>
 
         {
-          /*
-          这里原本还有「标签」「关于」「近况」「归档」四项。
-          它们移到了页脚 —— 理由见桌面端导航那段注释。
-        */
+          moreItems.map(item => (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                aria-current={isActive(item.path) ? "page" : undefined}
+                data-mobile-menu-link
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
         }
 
         <!-- Search -->
@@ -311,10 +370,8 @@ const isDarkInitially = false;
           features.search !== false && (
             <li>
               <a
-                href={getRelativeLocaleUrl(locale, "search")}
-                class:list={{
-                  "menu-active": isActive("/search"),
-                }}
+                href={searchHref}
+                aria-current={isActive("/search") ? "page" : undefined}
                 data-mobile-menu-link
               >
                 <IconSearch class="size-5" />
@@ -382,6 +439,62 @@ const isDarkInitially = false;
 
   document.addEventListener("astro:page-load", initMobileMenu);
   initMobileMenu();
+
+  /**
+   * 搜索快捷键：按 `/` 跳到搜索页。
+   *
+   * 【为什么真的要让这个键生效】
+   * 页眉里画了一个写着「/」的键帽（kbd）。按下去没反应的话，
+   * 那个提示就是在骗人 —— 要么别画，要么让它工作。
+   *
+   * 【几条必须排除的情况，少一条都会让人抓狂】
+   *   · 正在输入框里打字（后台的编辑器、搜索页自己的输入框）
+   *   · 按了修饰键（Ctrl+/ 是别的功能，不该被抢）
+   *   · 移动端抽屉正开着
+   *
+   * 判断输入框用 tagName + isContentEditable，**两个都要** ——
+   * 富文本编辑器是 contenteditable，不是 input/textarea。
+   */
+  function initSearchShortcut() {
+    if (document.documentElement.dataset.searchKeyBound === "true") {
+      return;
+    }
+
+    if (!document.querySelector(".nav-search")) return;
+
+    document.documentElement.dataset.searchKeyBound = "true";
+
+    document.addEventListener("keydown", event => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+
+      if (
+        target &&
+        (target.isContentEditable ||
+          /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+      ) {
+        return;
+      }
+
+      // 移动端抽屉开着的时候不抢键
+      if (document.querySelector("#mobile-menu[open]")) {
+        return;
+      }
+
+      const link = document.querySelector<HTMLAnchorElement>(".nav-search");
+
+      if (!link) return;
+
+      event.preventDefault();
+      window.location.href = link.href;
+    });
+  }
+
+  document.addEventListener("astro:page-load", initSearchShortcut);
+  initSearchShortcut();
 
   /**
    * 吸顶导航的滚动状态（样式见 src/styles/nav.css）。

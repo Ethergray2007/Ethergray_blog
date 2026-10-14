@@ -1,0 +1,122 @@
+/**
+ * 回到顶部按钮
+ * ============================================================
+ * 自包含模块：样式只服务于 src/components/BackToTop.astro。
+ *
+ * 想删掉这个功能？
+ *   1. 删掉 src/components/BackToTop.astro
+ *   2. 删掉 Layout.astro 里那一行 <BackToTop />
+ *   3. 删掉这个文件，以及 global.css 里的 @import "./back-to-top.css"
+ *
+ * ------------------------------------------------------------
+ * 【几个数值来自 Firefly（CuteLeaf/Firefly）】
+ *
+ *   尺寸      40×40（它的 m3-fab--small）
+ *   位置      right 8px / bottom 32px（它的 --fab-inline-offset / --fab-bottom）
+ *   阈值      滚动 200px 后出现（逻辑在 BackToTop.astro 里）
+ *   动效      translateY + opacity，0.3s
+ *
+ * 【为什么 bottom 比 right 大这么多（32px vs 8px）】
+ * 右下角在手机上会被**系统手势条**（iPhone 的 home indicator、
+ * Android 的手势导航）压住。底部留够 32px 才不会和系统手势打架。
+ * 右边 8px 是因为那边没有系统 UI。
+ *
+ * ⚠️ 用 `position: fixed` 的前提是**祖先元素上没有 filter /
+ * backdrop-filter / transform / will-change**。
+ * 那几种属性会让祖先成为 fixed 的包含块，按钮就不再相对视口定位，
+ * 而是跟着那个祖先滚 —— 表现是"按钮跑到页面中间"。
+ * Firefly 源码里对这一点有明确注释，所以这个按钮挂在 body 下，
+ * 不塞进任何带滤镜的容器。
+ * ============================================================
+ */
+
+.back-to-top {
+  position: fixed;
+  right: 0.5rem;
+  bottom: 2rem;
+  z-index: 45;
+
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+
+  /*
+   * 底色用 base-100（卡片色）而不是页面底色 ——
+   * 它要"浮"在内容上面，得比背景亮一档才看得出是一层。
+   * 边框 + 阴影是它和内容之间的分界。
+   */
+  background-color: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  color: var(--text-muted);
+
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 4px 12px rgb(0 0 0 / 0.08);
+
+  /*
+   * 默认隐藏：往下移 8px + 透明，同时关掉点击。
+   * 用 visibility 而不是 display: none 是为了让过渡能跑 ——
+   * display 不可动画。
+   */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.5rem);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    visibility 0.3s,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/**
+ * 出现状态。由 BackToTop.astro 的脚本按 window.scrollY > 200 切换。
+ */
+.back-to-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  color: var(--color-primary);
+  border-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+}
+
+/**
+ * 焦点圈。
+ *
+ * 键盘用户 Tab 到这个按钮时必须看得见焦点 ——
+ * 它默认是隐藏的，如果焦点圈也没了，键盘用户会"迷失"在一个
+ * 看不见的控件上。
+ */
+.back-to-top:focus-visible {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: 2px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/**
+ * 深色模式：阴影要更重。
+ * 深底上的浅阴影几乎看不见，浮起的感觉会消失。
+ */
+[data-theme="dark"] .back-to-top {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 4px 12px rgb(0 0 0 / 0.4);
+}
+
+/**
+ * 减少动态效果：只关过渡，按钮该出现还是出现。
+ * （点击后的"平滑滚动"由浏览器按同一个系统偏好自动处理，
+ *   所以脚本里用的是原生 behavior: "smooth"，没有自己写补间。）
+ */
+@media (prefers-reduced-motion: reduce) {
+  .back-to-top {
+    transition: none;
+  }
+}

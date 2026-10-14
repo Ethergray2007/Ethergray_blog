@@ -1,0 +1,234 @@
+---
+/**
+ * 评论区（Giscus）
+ * ============================================================
+ * 自包含模块：只依赖 astro-paper.config.ts 里的 comments 配置和 src/i18n 的文案。
+ *
+ * 【它是怎么工作的】
+ *   giscus 把每篇文章当成一个 GitHub Discussion：读者用 GitHub 账号登录后
+ *   发言，内容存在仓库的 Discussions 里。本站不存任何评论数据，也没有后端。
+ *   代价有两个：读者必须有 GitHub 账号（国内读者的登录体验一般），
+ *   以及评论数据不在自己手里。
+ *
+ * 【为什么 giscus 的外链脚本是"浏览器里插进去的"，不是直接写在页面里】
+ *   官方文档让你把那个外链 script 标签直接写进 HTML。本站不行 ——
+ *   本站开了 View Transitions（站内跳转不整页刷新），而 Astro 在站内跳转时
+ *   不会重新执行新页面里的 script 标签。从一篇文章跳到另一篇，容器是全新的
+ *   空 div，评论却不会加载，表现是"第一篇有评论，点第二篇就没了"。
+ *   所以这里走"服务端把配置渲染成 data-* 属性、浏览器里的脚本再插 script"的
+ *   路子（和 CopyCodeButton.astro 是同一套办法），并监听 astro:page-load，
+ *   每次跳转后重新插一次。
+ *
+ * 【四个配置值的来源】
+ *   repo / repoId        —— 评论存到哪个仓库（repoId 是 GitHub 的 node id）
+ *   category / categoryId —— 存到 Discussions 的哪个分类（同上，要 id 不是名字）
+ *   打开 https://giscus.app 填上仓库名，配置页会把这两串 id 显示出来。
+ *   前置条件：仓库装过 giscus App，并且打开过 Discussions。
+ *
+ * 【主题联动】
+ *   本站在 html 的 data-theme 上写 light / dark，giscus 也有同名的两个主题。
+ *   用户切换主题时给它的 iframe 发一条 postMessage，评论区跟着换。
+ *
+ * ⚠️ 在这个文件里写注释时，不要出现反引号和带尖括号的标签名：
+ *   编译器会把它们当成模板字符串 / 真正的标签开头，整个组件报 PARSE_ERROR。
+ *   （CopyCodeButton.astro 的文件头记着这个坑的两次踩法。）
+ *
+ * 想删掉这个功能？
+ *   1. 删掉这个文件
+ *   2. 删掉文章页里的 import 和 GiscusComments 标签那一行
+ *   3. 删掉 astro-paper.config.ts 里的 comments 段
+ *   4. 删掉 src/types/config.ts 里的 GiscusConfig 接口和两处 comments 字段
+ *   5. 删掉 src/config.ts 里的 comments 那一行
+ *   6. 删掉 src/i18n 三个文件里的 comments / commentsHint / commentsUnconfigured
+ * ============================================================
+ */
+import config from "@/config";
+import { useTranslations } from "@/i18n";
+
+const comments = config.comments;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+/**
+ * 四个值缺一个就不渲染。
+ *
+ * 为什么不"缺了就报错"：这个模块是可选功能，配置没填全时安静地不显示，
+ * 站点照常可用；而 giscus 拿到半截参数会在页面上甩出一行红色报错，
+ * 对读者来说那是"网站坏了"。
+ */
+const configured = Boolean(
+  comments?.repo && comments.repoId && comments.category && comments.categoryId
+);
+
+/**
+ * giscus 的界面语言用它的取值，不是标准的 zh / en ——
+ * 传 "zh" 它不认，必须写 "zh-CN"。其余语言暂时都退回英文。
+ */
+const giscusLang = locale.startsWith("zh") ? "zh-CN" : "en";
+
+/** 只有本机开发时才显示"配置没填全"的提示，线上不显示 */
+const isDev = import.meta.env.DEV;
+---
+
+{
+  comments && (
+    <section class="mt-6 sm:mt-8" aria-labelledby="comments-heading">
+      <div class="card card-border bg-base-100 shadow-sm">
+        <div class="card-body gap-4 p-5 sm:p-6">
+          <h2 id="comments-heading" class="text-base-content text-lg font-bold">
+            {t.post.comments}
+          </h2>
+
+          <p class="text-base-content-muted text-sm">{t.post.commentsHint}</p>
+
+          {configured ? (
+            /*
+             * 这个空 div 上的 data-* 就是 giscus 要的全部参数，
+             * 下面的脚本会原样搬到它插入的 script 标签上。
+             *
+             * mapping="pathname"：一篇文章对应一个讨论，键是网址路径。
+             *   本站文章网址是固定的 /posts/文章名/，用路径最稳；
+             *   换成标题匹配的话，改标题就会把评论"弄丢"（变成新讨论）。
+             * strict="0"：路径比对放宽一点，避免结尾斜杠不同就另开一个讨论。
+             */
+            <div
+              id="giscus-container"
+              class="mt-1"
+              data-repo={comments.repo}
+              data-repo-id={comments.repoId}
+              data-category={comments.category}
+              data-category-id={comments.categoryId}
+              data-mapping="pathname"
+              data-strict="0"
+              data-reactions-enabled="1"
+              data-emit-metadata="0"
+              data-input-position="bottom"
+              data-lang={giscusLang}
+              data-loading="lazy"
+            >
+              {/* giscus 的 iframe 会被脚本插到这里 */}
+            </div>
+          ) : (
+            isDev && (
+              <p class="text-base-content-faint text-sm">
+                {t.post.commentsUnconfigured}
+              </p>
+            )
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script>
+  /** giscus 官方脚本地址（将来它换域名，只有这一行要改） */
+  const GISCUS_SCRIPT_SRC = "https://giscus.app/client.js";
+  const GISCUS_ORIGIN = "https://giscus.app";
+
+  /**
+   * 当前主题，翻译成 giscus 认的主题名。
+   *
+   * 本站主题写在 html 的 data-theme 上（light / dark，见 src/scripts/theme.ts），
+   * 名字刚好和 giscus 的两个内置主题一样。没设置时按亮色处理。
+   */
+  function currentTheme(): string {
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  }
+
+  /**
+   * 把主题发给已经加载好的 giscus。
+   *
+   * 为什么不干脆重新插一次 script：那会让评论区闪一下、还可能丢掉
+   * 正在写的草稿。postMessage 是 giscus 官方的"改配置"接口 ——
+   * 消息发给它的 iframe，它自己换肤。
+   */
+  function pushTheme(): void {
+    const iframe = document.querySelector<HTMLIFrameElement>(
+      "iframe.giscus-frame"
+    );
+
+    if (!iframe?.contentWindow) {
+      return;
+    }
+
+    const theme = currentTheme();
+
+    // 记在 iframe 上，避免 MutationObserver 反复触发时空发消息
+    if (iframe.dataset.themeSynced === theme) {
+      return;
+    }
+
+    iframe.dataset.themeSynced = theme;
+    iframe.contentWindow.postMessage(
+      { giscus: { setConfig: { theme } } },
+      GISCUS_ORIGIN
+    );
+  }
+
+  /** 往容器里插 giscus 的脚本，让它把评论区渲染出来 */
+  function mountGiscus(): void {
+    const container = document.getElementById("giscus-container");
+
+    if (!container) {
+      return;
+    }
+
+    // 首次加载和 astro:page-load 都会调到这里，别插两次
+    if (container.querySelector("script")) {
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.src = GISCUS_SCRIPT_SRC;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+
+    /*
+     * 容器上的 data-* 就是 giscus 要的全部参数，原样搬过去
+     * （data-repo-id 读出来是 dataset.repoId，写回去还是 data-repo-id）。
+     * 这样参数只有一处：文章页渲染的那个 div。
+     */
+    for (const [key, value] of Object.entries(container.dataset)) {
+      if (value === undefined) {
+        continue;
+      }
+
+      script.dataset[key] = value;
+    }
+
+    // 首次加载的主题走属性；之后用户切换主题走上面的 pushTheme()
+    script.dataset.theme = currentTheme();
+
+    container.append(script);
+  }
+
+  /*
+   * giscus 加载完会往父页面发一条消息，这是它"准备好了"的信号 ——
+   * 收到之后设置主题才有效（iframe 还没加载时发消息是石沉大海）。
+   */
+  window.addEventListener("message", event => {
+    if (event.origin !== GISCUS_ORIGIN) {
+      return;
+    }
+
+    pushTheme();
+  });
+
+  /*
+   * 页眉那个主题开关只改 html 的 data-theme，不派发任何事件，
+   * 所以这里用 MutationObserver 盯住这个属性 —— 用户切一次主题，
+   * 评论区跟着换一次。
+   */
+  new MutationObserver(pushTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
+  mountGiscus();
+
+  // 站内跳转（View Transitions）之后，容器是新的空 div，要再插一次
+  document.addEventListener("astro:page-load", mountGiscus);
+</script>

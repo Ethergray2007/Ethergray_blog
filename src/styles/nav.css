@@ -1,5 +1,5 @@
 /**
- * 玻璃拟态吸顶导航
+ * 页眉（吸顶导航）
  * ============================================================
  * 自包含模块。想删掉玻璃效果？
  *   1. 删掉这个文件
@@ -9,149 +9,808 @@
  * 只删这个文件、保留那几个 class 的话，导航仍然吸顶，
  * 但会退回成不透明底色（可用的降级状态，不会坏）。
  *
+ * ============================================================
+ * 【这一版是照 Firefly（CuteLeaf/Firefly）的源码数值重写的】
+ *
+ * 参考站 blog.fqzlr.top 的页眉来自 Firefly。它的做法和"一条常驻
+ * 玻璃横条"有本质区别 —— 是**滚动分两态**：
+ *
+ *   静止（页面在顶部）  完全透明：无背景、无模糊、无阴影
+ *   滚动（> 50px）      玻璃化：blur(20px) + 半透明底 + 两条 1px 精修线
+ *
+ * 为什么这个差别很大：静态常驻玻璃条在任何背景上都"糊着一层"，
+ * 而"从无到有"的过渡会让导航在滚动时**浮起来**——
+ * 这是它看起来"高级"的真正来源，不是模糊本身。
+ *
+ * 几个直接照搬的数值（都来自它的 navbar.css / Navbar.astro）：
+ *
+ *   scrollTop > 50                  滚动阈值
+ *   blur(20px)                      模糊量
+ *   color-mix(in oklch, var(--card-bg) 45%, transparent)   底色
+ *   inset 0 1px 0 <highlight>       顶部 1px 内高光
+ *   0 1px 0 <hairline>              底边 1px 发丝线
+ *   border-radius: 0 0 .75rem .75rem   只圆下面两个角
+ *   h-16 = 64px                     高度
+ *   grid-cols-[auto_minmax(0,1fr)_auto]   三栏
+ *
  * ------------------------------------------------------------
- * 【为什么不写在 Header.astro 的 class 里】
+ * 【那两条 1px 线是整件事的关键，别删】
  *
- * 玻璃效果牵连四个属性，而且每一个都要分主题给不同值：
+ *   inset 0 1px 0 rgba(255,255,255,.6)   顶部内侧一条亮线
+ *   0 1px 0 rgba(0,0,0,.06)              底边外侧一条暗线
  *
- *   background-color   浅色=白玻璃 / 深色=深玻璃
- *   backdrop-filter    模糊 + 提高饱和度
- *   border-color       滚动后才显示
- *   box-shadow         滚动后才显示
- *
- * 全塞进 class 字符串会变成一长串 `bg-white/85 dark:bg-[#0e1119]/85 …`，
- * 难读也难改。收成一个文件之后，调玻璃浓度只需要改一处。
- *
- * ------------------------------------------------------------
- * 【参考站是怎么做的】
- *
- * elysia.nodejs.cn 的顶栏用 VitePress 的这个变量：
- *     --vp-nav-bg-color: color-mix(in srgb, var(--vp-c-bg) 95%, transparent)
- * 也就是"背景色掺 5% 透明"，再加 backdrop-blur。
- * 我们照这个思路做，但浓度调得更低一点（见下面数值的说明）。
+ * 它们模拟的是**真实玻璃的受光边缘**：上缘迎光偏亮、下缘背光偏暗。
+ * 少了这两条，半透明+模糊出来的只是一个"色块"，不是一片玻璃。
+ * 这是这套配方里性价比最高的两行。
  * ============================================================
  */
 
-/**
- * 玻璃本体。
- *
- * 【两个数值是调过的，不是随手写的】
- *
- * 1. 背景不透明度 82%（浅色 0.82 / 深色 0.78）
- *    参考站用 95%，那是**只加 5% 透明**——几乎就是不透明的，
- *    模糊基本看不出来。我们压到 82% 左右，玻璃感才真正出现。
- *
- *    ⚠️ 但这个值不能太低：导航条压在**正文文字**上滚动，
- *    透明度低于 70% 时，底下的字会隐约透上来，
- *    读导航文字会被干扰（这叫"视觉噪声"）。
- *    82% 是"看得出是玻璃"和"不干扰读字"之间的位置。
- *
- * 2. backdrop-filter 加了 saturate(180%)
- *    只写 blur 的话，玻璃后面的内容会显得发灰；
- *    补一点饱和度，透出来的颜色才是"鲜"的 ——
- *    这是 Apple 那套毛玻璃的标准配方，不是我们发明的。
- */
-#site-header {
-  /* 滚动到顶部时不显示边框（首屏是深色的，多一条线反而脏） */
-  border-bottom: 1px solid transparent;
+/* ============================================================
+ * 一、容器：吸顶 + 三栏
+ * ============================================================ */
 
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+#site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+
+  /*
+   * 只圆下面两个角。
+   *
+   * 参考站（Fuwari 系）的做法。圆角让导航条看起来像"浮在页面上的一片"，
+   * 而不是"页面顶上被切掉的一块"。上面两个角不圆，因为它贴着视口顶端。
+   */
+  border-radius: 0 0 0.75rem 0.75rem;
+
+  /*
+   * ⚠️ 这里**不能**加 overflow: hidden。
+   * 吸顶元素一旦裁剪，它下面的内容滚动时会被"咬掉"一块，
+   * 而且 sticky 的定位基准也会受影响。
+   */
 }
 
-#site-header .navbar {
-  /* 覆盖 Header.astro 里的 bg-base-100（不透明，会把玻璃效果挡死） */
+/**
+ * 顶部那条品牌渐变亮线。
+ *
+ * ⚠️ 它挂在**玻璃层之外**（下面的 .nav-glass 上），
+ * 而且只在滚动后出现 —— 静止态导航完全透明，
+ * 那时候还画一条线的话，"透明"就不成立了。
+ * 具体见下面的 [data-scrolled] 规则。
+ */
+#site-header .nav-glass::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary) 40%,
+    transparent
+  );
+}
+
+/* ============================================================
+ * 二、玻璃层：滚动分两态
+ * ============================================================ */
+
+/**
+ * 静止态：**完全透明**。
+ *
+ * 首页首屏是深色的，导航条压在上面时本来就好看，
+ * 加一层常驻玻璃反而把它糊住。参考站在首屏上是
+ * data-transparent-mode="semifull"，也就是全透明。
+ */
+#site-header .nav-glass {
+  position: relative;
   background-color: transparent;
+  border-bottom: 1px solid transparent;
+  box-shadow: none;
 
-  /* 内层不再画自己的边框，交给外层的 #site-header 统一管 */
-  border-bottom-color: transparent;
+  /*
+   * 过渡只写我们需要动的属性，不用 `all` ——
+   * `all` 会把 border-radius、transform 之类也带上，
+   * 鼠标划过时可能出现意料之外的动画。
+   */
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
 
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
+/**
+ * 滚动态：玻璃化。
+ *
+ * 三个属性一起变才成立：
+ *   背景   半透明卡片色（不是纯白 —— 纯白在深色内容上会发灰）
+ *   模糊   20px，参考站的值。低于 10px 看不出"毛"，高于 24px 开始费性能
+ *   两条线 见文件头那段说明
+ */
+#site-header[data-scrolled="true"] .nav-glass {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+[data-theme="light"] #site-header[data-scrolled="true"] .nav-glass {
+  background-color: color-mix(in oklab, #ffffff 72%, transparent);
+
+  /*
+   * 内高光 + 发丝线 + 一层很淡的外阴影。
+   * 阴影很淡是故意的：已经有两条线在分层了，阴影只是补一点"浮起"。
+   * 重了会变成一张卡片悬在页面上方，那是另一种设计语言。
+   */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    0 1px 0 rgb(20 20 29 / 0.06),
+    0 4px 16px rgb(20 20 29 / 0.05);
+}
+
+[data-theme="dark"] #site-header[data-scrolled="true"] .nav-glass {
+  background-color: color-mix(in oklab, #0e1119 68%, transparent);
+
+  /*
+   * 深色模式的高光要弱得多（0.06 而不是 0.7）——
+   * 深底上一条亮线的对比度天然就高，用浅色模式那个值会亮得像道灯管。
+   */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 1px 0 rgb(0 0 0 / 0.4),
+    0 4px 16px rgb(0 0 0 / 0.28);
+}
+
+/* 滚动后品牌亮线才出现 */
+#site-header[data-scrolled="true"] .nav-glass::before {
+  opacity: 1;
+}
+
+/**
+ * 移动端去掉圆角。
+ *
+ * 参考站（Shirone）在 `max-width: 767px` 明确把导航栏的圆角归零 ——
+ * 手机上导航条几乎占满整宽，此时圆角会显得"小气"，
+ * 而且下面两个圆角会让首屏顶部出现两块空的缺口。
+ */
+@media (max-width: 767px) {
+  #site-header {
+    border-radius: 0;
+  }
+}
+
+/* ============================================================
+ * 三、三栏网格
+ * ============================================================ */
+
+/**
+ * 用 grid 而不是 flex + justify-between。
+ *
+ *   grid-cols-[auto_minmax(0,1fr)_auto]
+ *     左  auto           品牌，按内容宽
+ *     中  minmax(0,1fr)  导航，吃掉剩下的空间，导航项在里面居中
+ *     右  auto           工具组，按内容宽
+ *
+ * 【为什么不用 flex justify-between】
+ * 那样左中右是"挤开"的关系：导航项增减、品牌名变长变短时，
+ * 右边那组按钮会被推着左右跑。grid 三栏里左右两栏是**固定内容宽**，
+ * 只有中间那栏伸缩 —— 加一个导航项，工具组纹丝不动。
+ *
+ * `minmax(0, 1fr)` 里的 0 不能省：grid 项的默认 min-width 是 auto，
+ * 长内容会把中间那栏撑破，导航就不居中了。
+ *
+ * 【左右内边距为什么写在这里，而不是复用 .site-shell】
+ * .site-shell 是正文用的（max-w-7xl = 1280px 居中）。页眉挂上它之后，
+ * 1920 视口下品牌在 x=320、工具组在 x=1568，两边各空 320px ——
+ * 页眉变成"中间一座岛"。而页眉该是横贯整屏的一条：
+ * 玻璃条、底边、顶部亮线都要铺满，内容也要跟着铺开。
+ * 所以这里只给**内边距**，并且随断点增长，让内容一路推到视口两侧。
+ *
+ * 步进是 16 → 24 → 40px：小屏留出贴边呼吸空间，
+ * 宽屏内边距太小会让品牌像贴在屏幕边上。
+ */
+.nav-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  height: 4rem; /* 64px */
+  padding-inline: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .nav-grid {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .nav-grid {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* ============================================================
+ * 四、品牌标识
+ * ============================================================ */
+
+/**
+ * logo 方块：主色→次色的斜向渐变。
+ *
+ * 用 135deg 而不是 90deg：斜向比水平更有方向感，
+ * 而且在小正方形里水平渐变会显得呆。
+ * 用法见 src/components/BrandMark.astro。
+ */
+.brand-mark {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
+  );
+}
+
+/**
+ * logo 后面那根会"长高"的强调竖条。
+ *
+ * 参考站的做法，动效很轻但很抓眼：
+ *   静止 h-5（20px）→ 悬停 h-7（28px）
+ *
+ * ⚠️ 高度变化会触发布局重排，所以这里改用 transform: scaleY()——
+ * 它是合成层操作，不重排。视觉上等价（都从中心向两端长），
+ * 但滚动列表里划过一堆链接时不会掉帧。
+ */
+.brand-bar {
+  display: block;
+  width: 0.25rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background-color: var(--color-primary);
+  transform-origin: center;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .brand-bar {
+  transform: scaleY(1.35);
+}
+
+/* ============================================================
+ * 五、导航菜单
+ * ============================================================ */
+
+/**
+ * 导航项。
+ *
+ * 数值来自参考站，但内边距按我们的实际情况收窄了：
+ * Firefly 的 `.VPNavBarMenuLink` 是 `padding: 0 12px`，
+ * 但它的导航只有 2 个菜单组，我们有 4 个纯链接 + 工具组。
+ * 照抄 12px 会在 768~1024px 区间把导航挤换行（2 倍缩放截图里看到过）。
+ * 所以窄屏 10px、宽屏才给到 12px。
+ */
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 2.5rem; /* 40px 命中区，参考站的 h-10 */
+  padding-inline: 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 /*
- * 玻璃的三层背景。
+ * 悬停：主色文字 + 一层极淡的底。
  *
- * 【为什么要三层而不是一个 background-color】
- * 单一色值在两种主题下都不好看：纯白玻璃在浅色模式下像没做效果，
- * 纯深色玻璃在深色模式下和背景分不开。
- * 用"同色相的半透明"打底 + 一层极淡的对角渐变提亮，
- * 玻璃才有"厚度"——右下略深、左上略亮，和真实玻璃受光一致。
- *
- * linear-gradient 那一层是**极低透明度**的白色/黑色，
- * 只负责让平面色值有方向感，不该被看出来。
+ * 参考站的悬停态是一个**自带毛玻璃的小药丸**。我们没有给每个导航项
+ * 单独加 backdrop-filter —— 那是 4 个额外的合成层，
+ * 而效果差异在这么小的面积上看不出来。改用一层极淡的纯色底，
+ * 视觉上等价，成本低得多。
  */
-[data-theme="light"] #site-header .navbar {
-  background-image: linear-gradient(
-    180deg,
-    rgb(255 255 255 / 0.92) 0%,
-    rgb(247 247 251 / 0.82) 100%
-  );
-}
-
-[data-theme="dark"] #site-header .navbar {
-  background-image: linear-gradient(
-    180deg,
-    rgb(14 17 25 / 0.86) 0%,
-    rgb(11 14 21 / 0.78) 100%
+.nav-link:hover {
+  color: var(--color-primary);
+  background-color: color-mix(
+    in oklab,
+    var(--color-base-content) 6%,
+    transparent
   );
 }
 
 /**
- * 滚动之后：出现下边框 + 一点阴影。
+ * 当前页：主色文字 + 一层品牌色调的底 + 柔光 + 底部短下划线。
  *
- * 【为什么"滚动后才出现"而不是一直有】
- * 页面在顶部时，首页导航条压的是深色首屏。
- * 那时如果有一条浅色分隔线，会在首屏上凭空多画一道横线，
- * 破坏首屏的完整感。
- * 滚动之后底下是浅色内容区，这条线才起到"分层"的作用。
+ * 【为什么要加"底"而不只是变色 + 下划线】
+ * 只有文字变色时，"当前在哪一页"这个信息很弱 ——
+ * 视线扫过导航条时，一个失焦的彩色字和普通灰字差别不大。
+ * 加一层底之后，它变成一个**有形状的选中块**，一眼就能看到。
  *
- * 【为什么阴影这么淡（0.04 / 0.3）】
- * 吸顶导航已经有模糊和边框在分隔它了，阴影只是补一点"浮起来"的感觉。
- * 阴影重了会变成一张卡片悬在页面上方，那是另一种设计语言。
+ * 【底的颜色为什么用 primary 自己兑出来，而不是引入 M3 的
+ *  secondaryContainer 令牌】
+ * 我们确实算过一版完整的 Material 3 色调板（CAM16 + 与 Google
+ * material-color-utilities 逐色对照）。但要用它就得放弃现在的品牌色：
+ * 站点主色 #d6336c 的 HCT 彩度是 79.3，而 M3 的 primary 彩度上限是 36，
+ * 照规范算出来是 #8d4a5b —— 一个豆沙色。
+ * 为了守一个配色规范而把品牌色变灰，不划算。
+ *
+ * 用 primary 自己降透明度做底，得到的是同一色相的浅粉，
+ * 和品牌色天然一致，而且**不需要在 theme.css 里新增任何令牌**。
+ * 参考站 Shirone 也是这个思路（它的选中态底来自自己的 primary 系）。
+ *
+ * 【透明度 14% 是量出来的】
+ * 底和页面底色的亮度差要够大才看得见。8% 时几乎和背景融为一体，
+ * 22% 时在浅色模式下已经偏重、像一块实心标签。
+ * 14% 在"看得出是个块"和"不抢文字"之间。
  */
-#site-header[data-scrolled="true"] {
-  border-bottom-color: var(--color-base-300);
+.nav-link[aria-current="page"] {
+  color: var(--color-primary);
+  background-color: color-mix(in oklab, var(--color-primary) 14%, transparent);
+
+  /*
+   * 一层很柔的外发光。
+   *
+   * 用 box-shadow 而不是 filter: drop-shadow ——
+   * 后者会创建包含块，把内部 fixed 定位的元素带偏。
+   *
+   * 18% + 10px 模糊：目标是"隐约有一圈光"，
+   * 不是一条清晰的描边。透明度再高就变成硬阴影了。
+   */
+  box-shadow: 0 0 10px
+    color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 
-[data-theme="light"] #site-header[data-scrolled="true"] {
-  box-shadow: 0 1px 12px rgb(20 20 29 / 0.04);
+/**
+ * 当前页底部那条 3px 圆头短下划线。
+ *
+ * 【加了一层底之后，为什么还要留这条线】
+ * 两个作用：
+ *
+ *   1. **不依赖颜色的提示**。底色和文字色都是"颜色信息"，
+ *      色弱用户和低对比度屏幕上可能都读不出来；
+ *      一条线的形状差异是最后一道保险。
+ *   2. **标出底色的边界**。那层 14% 的底很淡，
+ *      在强光下的手机屏幕上可能糊成一片，这条线让"选中块"
+ *      的下边缘有明确的收尾。
+ *
+ * 下划线只占导航项中间一段（1rem），不是整条 ——
+ * 整条会像"标签页"，一小段才像"指示器"。这是参考站的做法。
+ */
+.nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0.25rem;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  width: 1rem;
+  height: 3px;
+  border-radius: 999px;
+  background-color: var(--color-primary);
 }
 
-[data-theme="dark"] #site-header[data-scrolled="true"] {
-  box-shadow: 0 1px 12px rgb(0 0 0 / 0.3);
+@media (min-width: 64rem) {
+  .nav-link {
+    padding-inline: 0.75rem; /* 12px，参考站原生值 */
+  }
 }
+
+/* ============================================================
+ * 五之二、「更多」下拉（辅助页面的入口）
+ * ============================================================ */
+
+/**
+ * 触发按钮：外形复用 .nav-link，只抹掉 <summary> 的原生三角。
+ *
+ * ⚠️ `list-style: none` 和 `::-webkit-details-marker` 要一起写：
+ * 前者管 Firefox，后者管 Chrome/Safari 的旧行为。只写一个的话，
+ * 另一个浏览器上会多出一个三角。
+ * （daisyUI 的 `.dropdown:is(details)` 里也写了后者，但它挂在
+ *   .dropdown 上 —— 我们不敢只靠它，换个结构就丢了。）
+ */
+.nav-more > summary {
+  cursor: pointer;
+  list-style: none;
+  gap: 0.25rem;
+}
+
+.nav-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+/**
+ * 箭头：展开时转 180°。
+ *
+ * 用 transition 而不是 animation —— 它表达的是**当前状态**
+ * （开着还是关着），不是"入场动效"，不需要每次重播一遍。
+ */
+.nav-more__caret {
+  transition: rotate 0.2s ease;
+}
+
+/**
+ * 展开态 / "当前页就在这个菜单里"两种情况下，触发按钮都亮起来。
+ *
+ * 后者不能省：正在看 /tags 时，页眉上如果没有一处指示当前位置，
+ * 导航就"丢"了 —— 读者会以为自己在别的地方。
+ */
+.nav-more[open] > summary,
+.nav-more[data-current="true"] > summary {
+  color: var(--color-primary);
+}
+
+.nav-more[open] .nav-more__caret {
+  rotate: 180deg;
+}
+
+/**
+ * 面板：加一层毛玻璃。
+ *
+ * 底色在组件里用 base-100（卡片色），不能换成页面底色 ——
+ * 它是一块**浮层**，得比页面亮一档才浮得起来（见 AGENTS.md 设计系统那节）。
+ * 毛玻璃是为了让它压在深色首屏上时也立得住。
+ */
+.nav-more .dropdown-content {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* ============================================================
+ * 六、右侧工具组
+ * ============================================================ */
+
+/**
+ * 工具组外面那层玻璃小容器。
+ *
+ * 参考站的 .VPNavBarAppearance / .VPNavBarSocialLinks 是一块
+ * `height: 44px; background: #fffc` 的磨砂小块。
+ *
+ * 【为什么值得单独包一层】
+ * 搜索框、主题开关、汉堡按钮是三类不同的东西，
+ * 裸排在一起读不出"这是一组工具"。给它们一个共同的底，
+ * 三者就成了一个整体，和左边的导航在视觉上分开。
+ */
+.nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid
+    color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  background-color: color-mix(
+    in oklab,
+    var(--color-base-content) 4%,
+    transparent
+  );
+}
+
+/**
+ * 搜索按钮里那个键帽。
+ * 窄屏隐藏（没地方放），宽屏才显示 —— 断点见下面的媒体查询。
+ */
+.nav-search__label,
+.nav-search kbd {
+  display: none;
+}
+
+/* ============================================================
+ * 七、主题开关（胶囊滑块）
+ * ============================================================ */
+
+/**
+ * ⚠️ 改版前这是一个**图标按钮**（月亮和太阳互相旋转替换）。
+ * 现在换成胶囊滑块，尺寸照参考站的 .VPSwitch：
+ *   width: 40px; height: 22px; border-radius: 11px
+ *   滑块 18×18、圆形、top/left 各 1px
+ *
+ * 【为什么滑块比图标按钮好】
+ * 图标按钮只能表达"现在是什么"，表达不了"这是一个可以拨的开关"，
+ * 读者得先点一下才知道会发生什么。
+ * 滑块本身就是一个**开与关**的形状 —— 状态和可操作性一眼都在。
+ *
+ * ⚠️ 语义也跟着改了：role="switch" + aria-checked。
+ * 用 role="switch" 时**不能**再用 aria-pressed（那是按钮的属性），
+ * 读屏软件会念成"开关，已打开/已关闭"，比原来更准确。
+ * 同步逻辑在 src/scripts/theme.ts 的 reflect() 里。
+ */
+.theme-switch {
+  position: relative;
+  width: 2.5rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--color-base-300);
+  background-color: color-mix(
+    in oklab,
+    var(--color-base-content) 14%,
+    transparent
+  );
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.theme-switch:hover {
+  border-color: var(--color-primary);
+}
+
+/* 滑块。用 inset-inline-start 而不是 left —— 支持从右往左的语言 */
+.theme-switch::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  inset-inline-start: 1px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  background-color: var(--color-base-100);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.16),
+    0 1px 1px rgb(0 0 0 / 0.1);
+  transition: transform 0.25s ease;
+}
+
+.theme-switch[aria-checked="true"] {
+  border-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+  background-color: color-mix(in oklab, var(--color-primary) 22%, transparent);
+}
+
+.theme-switch[aria-checked="true"]::after {
+  transform: translateX(1.125rem);
+}
+
+[dir="rtl"] .theme-switch[aria-checked="true"]::after {
+  transform: translateX(-1.125rem);
+}
+
+/**
+ * 开关里的两个小图标（太阳 / 月亮）。
+ *
+ * ⚠️ 垂直居中用 `transform: translateY(-50%)`，不要用 `translate:` 属性。
+ * 两者名字很像但不是一个东西：`translate` 是**独立的 CSS 属性**，
+ * 和 `transform` 会叠加而不是覆盖，而且浏览器支持还不齐 ——
+ * 第一版就是用了它，结果图标全部偏移，开关糊成一团。
+ *
+ * 太阳给暖色（琥珀）、月亮给冷灰：两个形状立刻分得开，
+ * 而且"暖＝亮、冷＝暗"这层意思不用学就懂。
+ */
+.theme-switch__icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.75rem;
+  height: 0.75rem;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.theme-switch__icon--sun {
+  inset-inline-start: 0.25rem;
+  color: #f59e0b;
+  opacity: 1;
+}
+
+.theme-switch__icon--moon {
+  inset-inline-end: 0.25rem;
+  color: var(--text-muted);
+  opacity: 0.25;
+}
+
+[data-theme="dark"] .theme-switch__icon--sun {
+  opacity: 0.25;
+}
+
+[data-theme="dark"] .theme-switch__icon--moon {
+  opacity: 1;
+}
+
+/* ============================================================
+ * 八、按钮命中区
+ * ============================================================ */
+
+/**
+ * 图标按钮（汉堡、以及以后的任何图标按钮）。
+ *
+ * ⚠️ 44×44 不是随手定的，是 **WCAG 2.5.5 的最小点击目标尺寸**。
+ * 参考站那排按钮（搜索/主题/调色盘/汉堡）全是 44×44、圆角 8px。
+ * 做小了在触屏上很难点准，这是个无障碍问题不是审美问题。
+ */
+.nav-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem; /* 44px */
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  color: var(--text-muted);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.nav-icon-btn:hover {
+  color: var(--color-primary);
+  background-color: color-mix(
+    in oklab,
+    var(--color-base-content) 7%,
+    transparent
+  );
+}
+
+/* ============================================================
+ * 九、搜索按钮
+ * ============================================================ */
+
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 和图标按钮等高，视觉基线才对得齐 */
+  padding-inline: 0.625rem;
+  border-radius: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.nav-search:hover {
+  color: var(--text-strong);
+  background-color: color-mix(
+    in oklab,
+    var(--color-base-content) 7%,
+    transparent
+  );
+}
+
+/**
+ * 宽屏才显示「搜索」文字和 `/` 键帽。
+ *
+ * 断点用 64rem（1024px），和导航的显示断点一致。
+ * 窄一点的话页眉里塞不下「品牌名 + 4 个导航项 + 搜索文字 + 快捷键 + 开关」，
+ * 结果就是导航换行、搜索文字被压到竖排 —— 这两种情况都实测出现过。
+ */
+@media (min-width: 64rem) {
+  .nav-search__label {
+    display: inline;
+    white-space: nowrap;
+  }
+
+  .nav-search kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-base-300);
+    background-color: var(--color-base-200);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    color: var(--text-faint);
+  }
+}
+
+/* ============================================================
+ * 十、移动端
+ * ============================================================ */
+
+/**
+ * 移动端才显示的按钮（汉堡菜单）。
+ *
+ * ⚠️ 断点必须和 Header.astro 里保持一致（md: = 48rem = 768px）：
+ *   · 桌面导航   class="hidden md:grid"
+ *   · 移动抽屉   class="modal md:hidden"
+ *   · 这个按钮   48rem 以上隐藏
+ * 三处只要有一个对不上，就会出现"导航和汉堡同时出现"或
+ * "两个都不出现"的空档 —— 那个宽度区间上页眉直接没有入口。
+ */
+@media (min-width: 48rem) {
+  .nav-mobile-only {
+    display: none;
+  }
+}
+
+/* ============================================================
+ * 十一、首页：页眉浮在首屏海报上
+ * ============================================================ */
+
+/**
+ * 【要解决什么】
+ *
+ * 首屏（Hero）是一整屏深色海报。改版前页眉留在文档流里，于是：
+ *   · 海报从页眉**下方**才开始（实测 y=65），"全屏海报"少了一截，
+ *     海报底部的滚动提示被推到视口外，读者根本看不到
+ *   · 页眉静止态是全透明的，可透出来的是页面的浅色底 ——
+ *     结果是"一条浅色横带压在海报顶上"，那道接缝很难看
+ *
+ * 让页眉脱离文档流（fixed）之后，首屏从 y=0 开始占满一屏，
+ * 透明的页眉正好压在海报顶部 —— 这才是上面「静止态」那段注释
+ * 一直描述、但从未真正出现过的样子。
+ *
+ * 【为什么用 :has()】
+ * 只有首页有 #hero，其它页面是浅色的，把页眉浮起来没有意义。
+ * 不支持 :has() 的浏览器会整段忽略 —— 退化回"页眉留在文档流里"，
+ * 也就是改动前的样子，不会坏。
+ */
+body:has(#hero) #site-header {
+  position: fixed;
+  inset-inline: 0;
+}
+
+/**
+ * 【静止态的文字要按深色底算】
+ *
+ * 海报是**固定深色区**（不跟随主题切换，见 hero.css 的说明），
+ * 所以这里不能再用跟随主题的浅色文字。
+ *
+ * 只覆盖 --text-muted 一个变量就够：导航项、搜索文字、图标按钮、
+ * 主题开关里的月亮都是拿它取色的。
+ *
+ * ⚠️ 不要顺手把 --color-base-content 也改掉 ——「更多」下拉面板是
+ * 浅色卡片，它的菜单项用的正是这个变量，改了就变成白底白字。
+ */
+body:has(#hero) #site-header[data-scrolled="false"] {
+  --text-muted: rgb(255 255 255 / 0.78);
+}
+
+/* 站名：默认跟随主题（浅底上是深色字），压在海报上要反过来 */
+body:has(#hero) #site-header[data-scrolled="false"] .brand-title {
+  color: rgb(255 255 255 / 0.95);
+}
+
+/*
+ * 工具组小容器、主题开关的底色和描边，都是用 base-content 混出来的
+ * "浅色底上的深色淡影"。压在深色海报上等于没有，这里换成白色淡影。
+ */
+body:has(#hero) #site-header[data-scrolled="false"] .nav-tools {
+  border-color: rgb(255 255 255 / 0.14);
+  background-color: rgb(255 255 255 / 0.07);
+}
+
+body:has(#hero) #site-header[data-scrolled="false"] .theme-switch {
+  border-color: rgb(255 255 255 / 0.22);
+  background-color: rgb(255 255 255 / 0.12);
+}
+
+/* ============================================================
+ * 十二、降级与偏好
+ * ============================================================ */
 
 /**
  * 不支持 backdrop-filter 时的降级。
  *
- * Safari 9~17 需要 -webkit- 前缀（上面已经写了），
- * 但仍有极少数环境完全不支持。那种情况下模糊不会生效，
- * 只靠 82% 的背景色挡不住底下的文字 —— 所以要把它提到不透明。
- *
- * 判断方式用 @supports not，而不是去嗅探浏览器版本 ——
+ * 那种情况下模糊不生效，只靠半透明底色挡不住底下的文字 ——
+ * 所以要把它提到不透明。
+ * 用 @supports not 判断，而不是嗅探浏览器版本 ——
  * 后者会在新版本发布后出错。
  */
 @supports not (backdrop-filter: blur(1px)) {
-  [data-theme="light"] #site-header .navbar {
-    background-image: none;
+  [data-theme="light"] #site-header[data-scrolled="true"] .nav-glass {
     background-color: #ffffff;
   }
 
-  [data-theme="dark"] #site-header .navbar {
-    background-image: none;
+  [data-theme="dark"] #site-header[data-scrolled="true"] .nav-glass {
     background-color: #0e1119;
   }
 }
 
 /**
  * 减少动态效果。
- * 只有过渡动画，关掉即可（不影响玻璃本身）。
+ * 只关过渡动画，不影响玻璃和开关的位置表达。
  */
 @media (prefers-reduced-motion: reduce) {
-  #site-header {
+  #site-header .nav-glass,
+  #site-header .nav-glass::before,
+  .brand-bar,
+  .nav-link,
+  .nav-icon-btn,
+  .nav-search,
+  .nav-more__caret,
+  .theme-switch,
+  .theme-switch::after,
+  .theme-switch__icon {
     transition: none;
   }
 }

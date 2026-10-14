@@ -1,0 +1,383 @@
+---
+/**
+ * 首页全屏首屏（immersive hero）
+ * ============================================================
+ * 自包含模块：只依赖 src/styles/hero.css、config、i18n。
+ *
+ * 想删掉这个首屏（回到"纯列表首页"）？
+ *   1. 删掉这个文件
+ *   2. 删掉 index.astro 里的 import 和 <Hero /> 那一行
+ *   3. 删掉 src/styles/hero.css 和 global.css 里的 @import
+ *   4. 删掉 public/hero-bg.* 三个文件
+ *
+ * ------------------------------------------------------------
+ * 【它是什么】
+ *
+ * 满屏（100svh）的一块视觉区，视频铺满、文字居中，
+ * **下滑才进入真正的博客内容**。参考站 blog.fqzlr.top
+ * 的首页就是这个结构（它叫 fullscreen wallpaper 模式）。
+ *
+ * 【和上一版的区别】
+ * 上一版是"左图右文"：照片贴左边、标题和按钮在右边，
+ * 首屏只占 100svh 的一部分。两版是**两种不同的构图**：
+ *   左图右文   首屏像一张横幅，信息密度高，适合有话要说的首页
+ *   全屏居中   首屏像一张海报，只有"我是谁"，适合想要沉浸感的首页
+ * 这一版换成后者，是参考站的做法。
+ *
+ * ------------------------------------------------------------
+ * 【⭐ 三个滚动交互，都照参考站的源码数值】
+ *
+ * 1. **视频固定不动，内容滚过去**
+ *    视频那层是 `position: fixed`，所以往下滚时画面纹丝不动、
+ *    内容从它上面滑过 —— 这是"沉浸感"的来源。
+ *    （用 absolute 的话画面会跟着滚走，立刻变成普通横幅。）
+ *
+ * 2. **标题随滚动上移并淡出**（参考站 TITLE_FADE_RATIO = 0.5）
+ *    滚到**半个视口高**时标题完全消失：
+ *      translateY(-scrollY)     跟着滚动手感走，不是固定在那
+ *      opacity = 1 - scrollY / (视口高 × 0.5)
+ *    这两个一起做才有"淡出"而不是"突然不见"。
+ *
+ * 3. **模糊渐进**（参考站 BLUR_RAMP_SCROLL = 300）
+ *    下滑 0→300px 之间，视频的模糊从 0 连续升到最大。
+ *    效果是内容浮上来时背景逐渐"退到后面"，层次感比单纯变暗好。
+ *
+ * ⚠️ 视频那层**不能**放进任何带 filter / transform / will-change
+ * 的祖先里 —— 那些属性会成为 fixed 的包含块，画面就不再固定了。
+ * 所以它的外层是空的、没有任何滤镜的 .hero-bg-layer。
+ *
+ * ⚠️ 页眉的 backdrop-filter **不会**破坏它（backdrop-filter 不创建
+ * 包含块，只有 filter 会）。这一点实测确认过。
+ * ============================================================
+ */
+import config from "@/config";
+import { useTranslations } from "@/i18n";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const { site } = config;
+
+/**
+ * 首屏链接行。
+ *
+ * 【为什么是「图标 + 文字」的胶囊，而不是纯图标圆钮】
+ * 上一版是三个 44×44 的玻璃圆钮。问题不在好不好看，
+ * 而在**图标要猜**：GitHub 的猫看得懂，RSS 的弧线不看文字
+ * 未必认得出，人形图标更含糊（"关于"？"登录"？）。
+ * 参考站 blog.fqzlr.top 用的是「图标 + 文字」的半透明胶囊
+ * （它的 .banner-stage__link），一眼就知道通向哪。
+ *
+ * 配方照它（见 hero.css 的 .hero-link）：
+ *   高 2.5rem、左右内边距 1.125rem、全圆角、
+ *   1px 白色 45% 描边 + 白色 14% 底 + blur(8px)，
+ *   字号 .875rem / 字重 500。
+ *
+ * ⚠️ 文字必须走 i18n（AGENTS.md 第 4 条），不要在这里写死中文。
+ * ⚠️ 每个图标都要 aria-hidden —— 链接的可读名字由旁边的
+ *    <span> 提供，图标再说一遍就成了重复的噪音。
+ */
+const heroLinks = [
+  {
+    href: "https://github.com/Ethergray2007/Ethergray_blog",
+    label: t.home.viewSource,
+    icon: "github",
+    external: true,
+  },
+  {
+    href: "/rss.xml",
+    label: "RSS",
+    icon: "rss",
+    external: true,
+  },
+  {
+    href: "/about/",
+    label: t.nav.about,
+    icon: "user",
+    external: false,
+  },
+];
+---
+
+<section id="hero" class="hero-fullscreen">
+  {
+    /*
+    固定的背景层：视频 + 压暗 + 网格。
+
+    ⚠️ `aria-hidden` 是必须的 —— 整个背景层是纯装饰，
+    读屏软件不需要念它。视频本身也设了 aria-hidden。
+  */
+  }
+  <div class="hero-bg-layer" aria-hidden="true">
+    <div class="hero__bg"></div>
+    <div class="hero__video-layer"></div>
+    <div class="hero__scrim"></div>
+    <div class="hero__grid"></div>
+  </div>
+
+  <!-- 文字层：垂直水平居中 -->
+  <div class="hero-overlay">
+    <div class="hero-overlay__inner">
+      {
+        /*
+        标题用站点名而不是原来的「记录学习的地方」——
+        海报式首屏上，站点名才是主体（参考站也是 Fqzlrのblog）。
+
+        ⚠️ 标题上方**故意没有**品牌标识（logo + 站名那一行）。
+        原来有，读起来是"小号站名 + 大号站名"重复两遍；
+        参考站的文字层只有 标题 / 副标题 / 链接 三件。
+        品牌标识在页脚还有一处（Footer.astro），不会丢。
+      */
+      }
+      <h1 class="hero-title">{site.title}</h1>
+
+      <p class="hero-subtitle">{t.home.heroLead}</p>
+
+      <div class="hero-links">
+        {
+          heroLinks.map(({ href, label, icon, external }) => (
+            <a
+              href={href}
+              class="hero-link"
+              title={label}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noopener noreferrer" : undefined}
+            >
+              {icon === "github" && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"
+                  />
+                </svg>
+              )}
+              {icon === "rss" && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M6.18 17.82a2.18 2.18 0 1 1-4.36 0 2.18 2.18 0 0 1 4.36 0ZM1.82 8.4v3.05a9.7 9.7 0 0 1 9.69 9.69h3.05c0-7.04-5.7-12.74-12.74-12.74Zm0-6.4v3.05C12.44 5.05 20.9 13.5 20.9 24h3.05C23.95 11.82 14.13 2 1.82 2Z"
+                  />
+                </svg>
+              )}
+              {icon === "user" && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5Z"
+                  />
+                </svg>
+              )}
+              <span>{label}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  {
+    /*
+    下滑提示箭头。
+    它解决一个真实的困惑："这页下面还有内容吗？"
+    全屏首屏容易让人以为到此为止了。
+    aria-hidden：它对读屏用户没有意义（内容就在下面，能正常读到）。
+  */
+  }
+  <div class="hero-scroll-hint" aria-hidden="true">
+    <svg viewBox="0 0 24 24" class="size-6">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="m6 9 6 6 6-6"></path>
+    </svg>
+  </div>
+</section>
+
+<script>
+  /**
+   * 标题视差淡出 + 背景模糊渐进。
+   *
+   * 三个数值都照参考站（Firefly）的源码：
+   *   TITLE_FADE_RATIO   0.5   滚到半个视口高时标题完全淡出
+   *   BLUR_RAMP_SCROLL   300   下滑 300px 内模糊从 0 升到最大
+   *   BLUR_QUANTIZE_STEP 2     模糊量化步长
+   *
+   * 【为什么要量化模糊值】
+   * backdrop-filter / filter 的每次变化都会让浏览器**重新栅格化**
+   * 整块背景 —— 那是个很贵的操作。如果每帧都写一个新值，
+   * 滚动会明显掉帧。量化到 2px 步长之后，同样的滚动距离里
+   * 重栅格化的次数少一半以上，肉眼看不出差别。
+   *
+   * 【为什么要记忆上一次的值】
+   * 滚动事件里大部分帧的 transform/opacity 其实没变
+   *（比如已经淡出到底、或者在顶部静止）。
+   * 每次都写一遍会让浏览器反复标记合成层为"脏"，
+   * 白白消耗。先比一次再写，几乎零成本。
+   *
+   * 【为什么用 requestAnimationFrame 节流】
+   * scroll 事件在滚动时触发频率高于屏幕刷新率。
+   * 直接在里面改样式 = 一帧内改好几次，后面的都白做。
+   * 用一个 ticking 标志把它压到"每帧最多一次"。
+   */
+  const TITLE_FADE_RATIO = 0.5;
+  const BLUR_RAMP_SCROLL = 300;
+  const BLUR_QUANTIZE_STEP = 2;
+
+  let ticking = false;
+  let lastTransform = "";
+  let lastOpacity = "";
+  let lastBlur = "";
+
+  function updateHeroScroll() {
+    const overlay = document.querySelector<HTMLElement>(".hero-overlay");
+    const bgLayer = document.querySelector<HTMLElement>(".hero-bg-layer");
+
+    if (!overlay) return;
+
+    const scrollY = window.scrollY;
+    const fadeDistance = window.innerHeight * TITLE_FADE_RATIO;
+    const ratio = Math.min(scrollY / fadeDistance, 1);
+
+    // 标题：跟着滚动手感上移 + 线性淡出
+    const transform = `translateY(${-scrollY}px)`;
+    const opacity = String(1 - ratio);
+
+    if (transform !== lastTransform || opacity !== lastOpacity) {
+      lastTransform = transform;
+      lastOpacity = opacity;
+      overlay.style.transform = transform;
+      overlay.style.opacity = opacity;
+    }
+
+    /*
+     * 背景模糊渐进。
+     * 只在这一层存在时（首页）才写 —— 其他页面没有 .hero-bg-layer。
+     */
+    if (bgLayer) {
+      const rawBlur = Math.min(scrollY / BLUR_RAMP_SCROLL, 1) * 6;
+      const quantized =
+        Math.round(rawBlur / BLUR_QUANTIZE_STEP) * BLUR_QUANTIZE_STEP;
+      const blur = `${quantized}px`;
+
+      if (blur !== lastBlur) {
+        lastBlur = blur;
+        bgLayer.style.setProperty("--hero-blur", blur);
+      }
+    }
+  }
+
+  function requestHeroUpdate() {
+    if (ticking) return;
+
+    ticking = true;
+
+    requestAnimationFrame(() => {
+      ticking = false;
+      updateHeroScroll();
+    });
+  }
+
+  function initHero() {
+    // 首页才有这个首屏；其他页面直接跳过
+    if (!document.querySelector("#hero.hero-fullscreen")) return;
+
+    /*
+     * ⚠️ 监听器只绑一次。
+     * ClientRouter 切页时首屏是新的 DOM，但 window 还是同一个 ——
+     * 不标记的话每回一次首页就多一个 scroll 监听。
+     */
+    if (!document.documentElement.dataset.heroScrollBound) {
+      document.documentElement.dataset.heroScrollBound = "true";
+      window.addEventListener("scroll", requestHeroUpdate, { passive: true });
+      window.addEventListener("resize", requestHeroUpdate, { passive: true });
+    }
+
+    // 复位记忆值：换了页面之后上一页的最后状态不该影响这一页
+    lastTransform = "";
+    lastOpacity = "";
+    lastBlur = "";
+
+    updateHeroScroll();
+  }
+
+  document.addEventListener("astro:page-load", initHero);
+  initHero();
+
+  /**
+   * 背景视频。
+   *
+   * 【为什么用脚本插，而不是直接在模板里写 <video>】
+   * 因为"插不插"本来是要按条件决定的（见下），所以位置留给了脚本。
+   *
+   * 【为什么不能只用 <video poster>】
+   * poster 只在**视频开始播之前**显示。视频一开播它就退到后面了，
+   * 而静态图必须一直在，所以它是独立的一层（.hero__bg）。
+   *
+   * ⚠️ 这里原来有一道 `prefers-reduced-motion: reduce` 闸门：
+   * 系统开着「减少动态效果」就不插视频、只留静态图。
+   * 2026-10-12 按站主要求**去掉了**，现在一律自动播。
+   *
+   * 去掉它的代价要记住：前庭功能障碍的人会因为大面积持续运动的
+   * 画面产生眩晕和恶心，满屏视频正是最容易触发的那一类，
+   * 而「减少动态效果」是他们表达这个需求的**唯一**途径 ——
+   * 闸门没了，他们就没有选择权了。
+   *
+   * 以后要两头兼顾的话，正确的做法**不是**恢复这道闸门
+   * （站主自己的 Windows 就关着动效，恢复了他第一个看不见视频），
+   * 而是在首屏给一个明确的「播放背景」按钮，让人自己点。
+   */
+  function initHeroVideo() {
+    const layer = document.querySelector<HTMLElement>(".hero__video-layer");
+
+    if (!layer) return;
+
+    // 已经插过了（ClientRouter 重复触发时不要叠加第二个视频）
+    if (layer.querySelector("video")) return;
+
+    const video = document.createElement("video");
+
+    video.className = "hero__video";
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.setAttribute("aria-hidden", "true");
+
+    /*
+     * webm（VP9）体积小约 30%，mp4（H.264）兼容性最好。
+     * 浏览器挑第一个能播的，所以 webm 放前面。
+     */
+    for (const [src, type] of [
+      ["/hero-bg.webm", "video/webm"],
+      ["/hero-bg.mp4", "video/mp4"],
+    ]) {
+      const source = document.createElement("source");
+
+      source.src = src;
+      source.type = type;
+
+      video.append(source);
+    }
+
+    /*
+     * ⚠️ 顺序不能换：先 append，再 play。
+     *
+     * play() 调用在一个**还没进文档**的媒体元素上，规范不保证它能播，
+     * 部分浏览器会直接拒绝（NotAllowedError）。而下面那个 catch 会把
+     * "被拒绝"当成"这个视频不能播"，静默把视频摘掉 —— 表现是首屏
+     * 永远只有静态图，控制台一句话都不说，排查时会一路往
+     * "视频文件是不是坏了"的方向找。
+     */
+    layer.append(video);
+
+    // 自动播放可能被拒（省电模式等），失败就把视频摘掉露出静态图
+    void video.play().catch(() => video.remove());
+  }
+
+  document.addEventListener("astro:page-load", initHeroVideo);
+  initHeroVideo();
+</script>
