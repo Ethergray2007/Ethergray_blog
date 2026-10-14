@@ -29,6 +29,11 @@
  * 这不是法律问题（Astro 的许可证不要求页面署名），但如果想恢复，
  * 一行就够 —— 旧版写法在 git 历史里（提交 3a933b8）。
  *
+ * 【版权行为什么是横排的】
+ * 上一版是"品牌一行、版权一行"居中堆叠。站主要求横向排列，
+ * 宽屏下现在是一行：品牌靠左、版权靠右，横向范围和上面那条虚线对齐。
+ * 窄屏（< 640px）仍然堆叠居中 —— 手机上左右分栏会让两样东西都贴到边。
+ *
  * 【顶部那条虚线分隔**保留**】
  * border-dashed 而不是实线，是 Fuwari / Firefly 系的辨识特征：
  * 实线看着像"表格边界"，虚线才像"这里结束了"。
@@ -72,14 +77,18 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   >
   </div>
 
-  <div class="flex flex-col items-center justify-center px-6 pb-6">
-    <div class="text-center text-sm">
-      <!-- 品牌标识（参考站这里是备案号的自由区，我们没有） -->
-      <div class="mb-3 flex items-center justify-center">
-        <BrandMark size="sm" />
-      </div>
+  <!--
+    宽屏一行排开（品牌在左、版权在右），窄屏才上下堆叠并居中。
 
-      <p class="text-base-content-muted">{copyrightLine}</p>
-    </div>
+    ⚠️ 横向范围和上面那条虚线**对齐**（同样是 mx-16 / sm:mx-32）——
+    两行左右不齐会显得是"两个东西拼在一起"，而不是一个页脚。
+  -->
+  <div
+    class="mx-16 flex flex-col items-center gap-3 pb-6 sm:mx-32 sm:flex-row sm:justify-between"
+  >
+    <!-- 品牌标识（参考站这里是备案号的自由区，我们没有） -->
+    <BrandMark size="sm" />
+
+    <p class="text-base-content-muted text-sm">{copyrightLine}</p>
   </div>
 </footer>
