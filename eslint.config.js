@@ -40,6 +40,19 @@ export default [
       "code-review/**",
       "**/code-review/**",
       ".diag/**",
+      /**
+       * 根目录下的下划线项（_audit/、_walkthrough/、_probe_fqzlr/），
+       * 和 .gitignore 里的 /_* 是**同一条规则的两处登记** —— 少一处就漏。
+       *
+       * 两条都要写，而且**不能**给它加"任意层级"的前缀：
+       * 那样会把 src/pages 下 _components/ 这种**正式目录**一起忽略掉
+       * （下划线在 src/pages 里表示"不是路由"，是正式代码）。
+       *
+       * 漏登记的代价实测过：这三个目录没被忽略时，npx eslint . 报
+       * 787 个 no-console 错，第 3 道检查直接变红。
+       */
+      "_*",
+      "_*/**",
     ],
   },
   ...eslintPluginAstro.configs.recommended,
