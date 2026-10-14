@@ -106,9 +106,20 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
   {t.a11y.skipToContent}
 </a>
 
-<header id="site-header" class="site-shell">
+<header id="site-header">
   {
     /*
+    ⚠️ `site-shell` 挂在内层的 .nav-grid 上，**不是**挂在 header 上。
+
+    挂在 header 上的话，玻璃条底色和那条底边会被限成 max-w-7xl、
+    左右还各留 32px —— 看起来是"页面中间悬着一条"，而页眉本该通栏。
+    现在的分工是：
+
+      header / .nav-glass     通栏：底色、底边、顶部亮线都铺满视口
+      .nav-grid + site-shell  内容限宽，和正文左右对齐
+
+    这样"条铺满、字对齐"两个要求同时成立。
+
     ⚠️ 三栏用 grid 而不是 flex + justify-between：
       左 auto / 中 minmax(0,1fr) / 右 auto
     左右两栏按内容宽固定，只有中间那栏伸缩 ——
@@ -116,8 +127,8 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
     用 flex 挤开的话，加一个导航项就会把工具组推着走。
   */
   }
-  <div class="nav-glass border-base-300 border-b px-0">
-    <div class="nav-grid">
+  <div class="nav-glass border-base-300 border-b">
+    <div class="nav-grid site-shell">
       <!-- Logo -->
       <div class="flex min-w-0 items-center">
         {
