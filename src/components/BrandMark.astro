@@ -69,7 +69,13 @@ const initial =
 
   {
     showTitle && (
-      <span class="text-base-content truncate font-semibold">{site.title}</span>
+      /*
+       * brand-title 这个类名是给页眉用的钩子：首页首屏是深色海报，
+       * 页眉浮在上面时站名要换成白字（见 nav.css 第十一节）。
+       */
+      <span class="brand-title text-base-content truncate font-semibold">
+        {site.title}
+      </span>
     )
   }
 </span>

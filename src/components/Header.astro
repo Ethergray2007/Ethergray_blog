@@ -29,11 +29,23 @@
  *      aria-checked —— 读屏软件会念"开关，已打开/已关闭"。
  *
  *   4. 内容链接和工具按钮**混成一片**，没有分隔。
- *      现在中间加一条 1px × 24px 竖线（参考站也是这么分的）。
+ *      现在把搜索、主题开关、汉堡收进一个 .nav-tools 玻璃小容器，
+ *      「这是一组工具」一眼就能读出来（见 nav.css 第六节）。
  *
  *   5. 桌面导航和移动端抽屉**各写了一遍**那四个链接，
  *      加一个页面要改两个地方、漏一处没人发现。
  *      现在共用一份 navItems（见下面），渲染两遍。
+ *
+ *   6. 导航条**内边距被 .site-shell 限制在 1280px 里**，
+ *      1920 视口下品牌在 x=320、工具组在 x=1568 —— 页眉成了
+ *      "屏幕中间的一座岛"。现在页眉横贯整屏（内边距在 nav.css 的
+ *      .nav-grid 里按断点给），内容一路推到视口两侧。
+ *
+ *   7. 首屏是全屏深色海报，页眉却在文档流里、压不到它上面：
+ *      海报从页眉下方才开始（"全屏"少一截，底部的滚动提示被推到
+ *      视口外），页眉静止态又全透明，于是透出浅色底 —— 一条浅色
+ *      横带压在海报顶上。现在首页的页眉是 fixed，浮在海报之上，
+ *      静止态换成浅色文字（见 nav.css 第十一节）。
  * ============================================================
  */
 import { getRelativeLocaleUrl } from "astro:i18n";
@@ -138,16 +150,15 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
 <header id="site-header">
   {
     /*
-    ⚠️ `site-shell` 挂在内层的 .nav-grid 上，**不是**挂在 header 上。
+    ⚠️ 页眉的左右内边距写在 nav.css 的 `.nav-grid` 里，**不要**在这里挂
+    `site-shell`（那是正文用的 max-w-7xl + px-8）。
 
-    挂在 header 上的话，玻璃条底色和那条底边会被限成 max-w-7xl、
-    左右还各留 32px —— 看起来是"页面中间悬着一条"，而页眉本该通栏。
-    现在的分工是：
+    挂 site-shell 的话，宽屏下整组内容被限成 1280px 居中：1920 视口时
+    品牌在 x=320、工具组在 x=1568，两边各空 320px —— 页眉成了"中间一座岛"，
+    而它本该是横贯整屏的一条。现在只有**内边距**随断点增长，
+    内容一路铺到视口两侧（站主要求"页眉占满"）。
 
-      header / .nav-glass     通栏：底色、底边、顶部亮线都铺满视口
-      .nav-grid + site-shell  内容限宽，和正文左右对齐
-
-    这样"条铺满、字对齐"两个要求同时成立。
+    这样"条铺满、字也铺开"同时成立；正文仍然是限宽的，两者互不影响。
 
     ⚠️ 三栏用 grid 而不是 flex + justify-between：
       左 auto / 中 minmax(0,1fr) / 右 auto
@@ -157,7 +168,7 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
   */
   }
   <div class="nav-glass border-base-300 border-b">
-    <div class="nav-grid site-shell">
+    <div class="nav-grid">
       <!-- Logo -->
       <div class="flex min-w-0 items-center">
         {
@@ -177,12 +188,12 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
         </a>
       </div>
 
-      <!-- Desktop navigation（居中） -->
+      <!-- Desktop navigation（靠右，紧挨工具组） -->
       <nav
-        class="hidden min-w-0 justify-center md:flex"
+        class="hidden min-w-0 justify-end pe-6 md:flex"
         aria-label="Primary navigation"
       >
-        <ul class="flex items-center gap-0.5">
+        <ul class="flex items-center gap-1">
           {
             navItems.map(item => (
               <li>
