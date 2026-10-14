@@ -52,13 +52,6 @@ export default {
   },
   footer: {
     copyrightLine: "© {{year}} {{author}}",
-    tagline: "Notes on learning, kept in public",
-    secondaryNav: "Secondary navigation",
-    runningLabel: "Running for",
-    runningDays: "d",
-    runningHours: "h",
-    runningMinutes: "m",
-    poweredBy: "Powered by",
   },
   pages: {
     tagTitle: "Tag",

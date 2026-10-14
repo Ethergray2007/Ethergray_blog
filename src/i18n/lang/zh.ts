@@ -56,13 +56,6 @@ export default {
 
   footer: {
     copyrightLine: "© {{year}} {{author}}",
-    tagline: "记录学习过程本身",
-    secondaryNav: "次要导航",
-    runningLabel: "本站已运行",
-    runningDays: "天",
-    runningHours: "小时",
-    runningMinutes: "分",
-    poweredBy: "由",
   },
 
   pages: {

@@ -112,38 +112,6 @@ export interface UIStrings {
      * 放在语言文件里拼好，避免在模板里多个表达式相邻导致空格被 HTML 吞掉。
      */
     copyrightLine: string;
-    /**
-     * 页脚那句 slogan / 站点定位。
-     *
-     * 【为什么原来这里叫 allRightsReserved】
-     * 原本是「保留所有权利。」，和上一行的「版权所有 ©」连起来是一句
-     * 法律声明。但那种写法在任何中文博客上都长一样，是"没设计过"的
-     * 典型标志；对个人博客来说也没有实际作用。
-     * 现在换成一句短的站点定位 —— 页脚有内容可读，也才像这个站自己的。
-     */
-    tagline: string;
-    /**
-     * 页脚那组次要导航的无障碍名称。
-     *
-     * 读屏软件靠它把这一组链接和页面别的内容区分开
-     * （会念成「次要导航，导航区域」）。
-     * 没有它的话，用户只能听到一串没有上下文的光秃秃链接。
-     */
-    secondaryNav: string;
-    /**
-     * 「本站已运行」计数器的标签。
-     *
-     * 时长数字由**客户端脚本**算出来（服务端算的话，静态页一构建
-     * 数字就固定了，放几天还是"运行 3 天"）。
-     * 所以这里只有标签，「天 / 时 / 分」这些单位走下面的
-     * runningDays / runningHours / runningMinutes。
-     */
-    runningLabel: string;
-    runningDays: string;
-    runningHours: string;
-    runningMinutes: string;
-    /** 页脚最底行「由 … 驱动」前面的词 */
-    poweredBy: string;
   };
   pages: {
     tagTitle: string;

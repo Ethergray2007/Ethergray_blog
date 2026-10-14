@@ -19,22 +19,6 @@ interface SiteConfig {
   dir?: "ltr" | "rtl" | "auto";
   /** Google Search Console verification meta tag value */
   googleVerification?: string;
-  /**
-   * 建站日期，用于页脚的「本站已运行 N 天」计数器。
-   *
-   * 格式 `YYYY-MM-DD`（也可以带时间，如 `2026-09-25T10:00:00+08:00`）。
-   *
-   * 【为什么用字符串而不是 Date】
-   * 这个配置要经过 `astro-paper.config.ts`（一个普通 TS 模块）
-   * 再传进组件。写成 Date 对象的话，它在构建时被解析一次、
-   * 序列化进 HTML 又要转一次，时区很容易错半天。
-   * 字符串 + 明确写时区偏移是最不容易出错的。
-   *
-   * ⚠️ 不填的话页脚就不显示这个计数器（不是显示 0 天）。
-   * 这和"某个板块为空时诚实地显示 0"不一样 ——
-   * 运行时长算错比不显示更糟。
-   */
-  siteStart?: string;
 }
 
 interface PostsConfig {
@@ -136,7 +120,7 @@ type ResolvedSiteConfig = Required<
     | "ogImage"
   >
 > &
-  Pick<SiteConfig, "profile" | "googleVerification" | "siteStart">;
+  Pick<SiteConfig, "profile" | "googleVerification">;
 
 export interface ResolvedAstroPaperConfig {
   site: ResolvedSiteConfig;

@@ -2,53 +2,43 @@
 /**
  * 页脚
  * ============================================================
- * 自包含模块：只依赖 BrandMark、Socials、i18n、config。
+ * 自包含模块：只依赖 BrandMark、i18n、config。
  *
  * 想删掉整个页脚？每个页面里删掉 <Footer /> 那一行即可。
- * 只想去掉运行时长计数器？把 astro-paper.config.ts 里的
- * `siteStart` 删掉就不会显示了（不是显示 0 天）。
  *
  * ------------------------------------------------------------
- * 【这一版照 Firefly（CuteLeaf/Firefly）的源码结构重写】
+ * 【这一版是一次"减法"：页脚只留品牌标识 + 版权】
  *
- * 参考站 blog.fqzlr.top 的页脚来自 Firefly。它的结构其实**很短**：
+ * 它之前有三行：品牌标识 / 版权+订阅源+辅助页（一共七个链接）/
+ * 运行时长+社交图标+框架署名。主要问题是第二行 ——
+ * 页脚是"收尾"，塞满链接就变成了"第二个导航区"；而真正想找入口的人
+ * 是在**找**入口，抬头看页眉才是他们的第一反应。
  *
- *   1. 一条**虚线**分隔（border-dashed，不是实线）
- *   2. 一块**单栏居中**的内容，里面三行：
- *        自定义 HTML（备案号之类的自由区 —— 我们没有，改成品牌标识）
- *        © 年份 站名. All Rights Reserved. / RSS / Atom / Sitemap
- *        Powered by Astro & <主题>
+ * 所以 2026-10-12 按站主要求砍成这样：
+ *   订阅源（RSS/Atom/Sitemap）  去掉。订阅入口在页眉右侧，页面 <head> 里
+ *                               也仍然有 <link rel="alternate">，机器和人都找得到
+ *   辅助页（标签/归档/近况/关于） 挪进页眉的「更多」菜单（见 Header.astro）
+ *   运行时长计数器              去掉（配置里的 siteStart 一起去掉了）
+ *   社交图标                    去掉。profile 页面里还有一份，页脚不必重复
+ *   框架署名                    去掉（理由见下面那条 ⚠️）
  *
- * 我上一版做成了"左边品牌列 + 右边两栏导航"，那是**走偏了**：
- * 调研的 53 个友链站里，Firefly / Fuwari / Shirone / AstroPaper
- * 四个主流主题**全部单栏居中**。多栏（2~4 栏 sitemap）只出现在
- * Butterfly / Stellar 那一代老主题，小屏上会堆成 6~8 行的
- * "垃圾抽屉"。所以这次改回单栏。
+ * ⚠️ 关于删掉「Powered by Astro」
+ * 旧注释里的理由是：Firefly 源码明确要求保留 "Powered by Astro & Firefly"，
+ * 我们虽然不是 Firefly 用户，但抄了它的设计配方，所以照格式署了 Astro。
+ * 站主要求页脚只留品牌和版权，署名随之删掉。
+ * 这不是法律问题（Astro 的许可证不要求页面署名），但如果想恢复，
+ * 一行就够 —— 旧版写法在 git 历史里（提交 3a933b8）。
  *
- * 【几个照搬的数值】
- *   mt-10 mb-5        分隔线上 40px、下 20px（离正文远、离页脚近）
- *   mx-32             左右各 128px。**不铺满整宽**是有意的 ——
- *                     两侧留白让它像"一条装饰"，铺满就变成"一条分割线"
- *   text-sm           14px
- *   分隔符 `/`        用 <span aria-hidden> 包住，读屏不该听见一串斜杠
- *   链接              font-weight: 500 + 主题色，hover 只降透明度
- *
- * 【为什么"运行时长"能放在静态站上】
- * 页面是构建时生成的。在服务端算时长的话，数字在构建那一刻就写死了。
- * 所以数字必须由客户端现算（见文件末尾那段），纯本地日期减法、不联网。
- *
- * 【关于署名】
- * Firefly 源码里有一条明确注释：请勿随意修改或删除
- * "Powered by Astro & Firefly" —— 这是对开源项目的尊重。
- * 我们不是 Firefly 的用户，但**用了它的设计配方**，
- * 所以照它的格式署名框架 Astro。这不是法律要求，是同行之间的礼节。
+ * 【顶部那条虚线分隔**保留**】
+ * border-dashed 而不是实线，是 Fuwari / Firefly 系的辨识特征：
+ * 实线看着像"表格边界"，虚线才像"这里结束了"。
+ * 左右内缩（mx-16 / sm:mx-32）也是故意的 —— 两侧留白让它像一条装饰，
+ * 铺满就变成一条分割线了。窄屏从 mx-16 起步，否则线会被挤没。
  * ============================================================
  */
 import type { HTMLAttributes } from "astro/types";
-import { getRelativeLocaleUrl } from "astro:i18n";
 
 import BrandMark from "./BrandMark.astro";
-import Socials from "./Socials.astro";
 import config from "@/config";
 import { tplStr, useTranslations } from "@/i18n";
 
@@ -58,36 +48,8 @@ type Props = {
 
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
-const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(Astro.currentLocale);
 const currentYear = new Date().getFullYear();
-
-/**
- * 中间那一行里的链接。
- *
- * 订阅源 + 站点地图 + 辅助页面，**全部串成一行**用 `/` 分隔。
- * 参考站和四个主流主题都是这么做的 —— 页脚是"收尾"，
- * 不是"第二个导航区"，链接串成一行扫视成本比分成几栏更低。
- */
-const feedLinks = [
-  { href: "/rss.xml", label: "RSS" },
-  { href: "/atom.xml", label: "Atom" },
-  { href: "/sitemap-index.xml", label: "Sitemap" },
-];
-
-const pageLinks = [
-  { href: getRelativeLocaleUrl(locale, "tags"), label: t.nav.tags },
-  ...(config.features?.showArchives !== false
-    ? [
-        {
-          href: getRelativeLocaleUrl(locale, "archives"),
-          label: t.nav.archives,
-        },
-      ]
-    : []),
-  { href: getRelativeLocaleUrl(locale, "now"), label: t.nav.now },
-  { href: getRelativeLocaleUrl(locale, "about"), label: t.nav.about },
-];
 
 // 版权行在语言文件里拼好，避免模板里多个表达式相邻把空格吃掉
 // （否则会渲染成 “© 2026Ethergray”）。
@@ -95,12 +57,6 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   year: String(currentYear),
   author: config.site.author,
 });
-
-/**
- * 建站日期。不填就不渲染那个计数器。
- * 这里只把字符串原样交给客户端 —— 不在服务端算时长。
- */
-const siteStart = config.site.siteStart;
 ---
 
 <footer
@@ -111,20 +67,6 @@ const siteStart = config.site.siteStart;
   ]}
   {...attrs}
 >
-  {
-    /*
-    ⚠️ 顶部那条虚线分隔，三个细节都照参考站：
-
-      · border-dashed —— **不是实线**。这是 Fuwari / Firefly 系的
-        辨识特征：实线看着像"表格边界"，虚线才像"这里结束了"
-      · mt-10 mb-5 —— 上 40px、下 20px，上大下小
-        （离正文远一点、离页脚内容近一点）
-      · 左右内缩 —— **不铺满整宽**。两侧留白让它像"一条装饰"，
-        铺满就变成"一条分割线"了
-
-    窄屏上 mx-32（128px×2）会把线挤没，所以从 mx-16 起步。
-  */
-  }
   <div
     class="border-base-300/70 mx-16 mt-10 mb-5 border-t border-dashed sm:mx-32"
   >
@@ -132,160 +74,12 @@ const siteStart = config.site.siteStart;
 
   <div class="flex flex-col items-center justify-center px-6 pb-6">
     <div class="text-center text-sm">
-      <!-- 第一行：品牌标识（参考站这里是备案号的自由区，我们没有） -->
+      <!-- 品牌标识（参考站这里是备案号的自由区，我们没有） -->
       <div class="mb-3 flex items-center justify-center">
         <BrandMark size="sm" />
       </div>
 
-      <!-- 第二行：版权 + 订阅源 + 辅助页面，全部串成一行 -->
-      <div
-        class="text-base-content-muted mx-0.5 my-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5"
-      >
-        <span>{copyrightLine}</span>
-
-        {
-          feedLinks.map(link => (
-            <>
-              <span class="text-base-content-faint/50" aria-hidden="true">
-                /
-              </span>
-              <a
-                href={link.href}
-                class="text-primary font-medium transition-opacity hover:opacity-80"
-              >
-                {link.label}
-              </a>
-            </>
-          ))
-        }
-
-        {
-          pageLinks.map(link => (
-            <>
-              <span class="text-base-content-faint/50" aria-hidden="true">
-                /
-              </span>
-              <a href={link.href} class="hover:text-primary transition-colors">
-                {link.label}
-              </a>
-            </>
-          ))
-        }
-      </div>
-
-      <!-- 第三行：运行时长 + 社交 + 框架署名 -->
-      <div
-        class="text-base-content-faint mx-0.5 my-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5"
-      >
-        {
-          siteStart && (
-            <>
-              <span>
-                {t.footer.runningLabel}{" "}
-                {/*
-                  data-* 给脚本传参：
-                    data-site-start   建站日期
-                    data-running-*    三个单位（中文「天/小时/分」，
-                                      英文「d/h/m」—— 单位也要走 i18n）
-
-                  服务端先渲染一个「—」当占位符，脚本立刻替换掉 ——
-                  空着的话那一行会先塌下去再撑开，页面会跳一下（CLS）。
-                */}
-                <span
-                  class="text-base-content-muted tabular-nums"
-                  data-site-start={siteStart}
-                  data-running-days={t.footer.runningDays}
-                  data-running-hours={t.footer.runningHours}
-                  data-running-minutes={t.footer.runningMinutes}
-                >
-                  —
-                </span>
-              </span>
-
-              <span class="text-base-content-faint/50" aria-hidden="true">
-                /
-              </span>
-            </>
-          )
-        }
-
-        <span class="inline-flex items-center">
-          <Socials />
-        </span>
-
-        <span class="text-base-content-faint/50" aria-hidden="true">/</span>
-
-        <span>
-          {t.footer.poweredBy}{" "}
-          <a
-            href="https://astro.build"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-primary font-medium transition-opacity hover:opacity-80"
-          >
-            Astro
-          </a>
-        </span>
-      </div>
+      <p class="text-base-content-muted">{copyrightLine}</p>
     </div>
   </div>
 </footer>
-
-<script>
-  /**
-   * 「本站已运行 N 天」计数器。
-   *
-   * 【为什么必须在客户端算】
-   * 页面是构建时生成的静态 HTML。服务端算的话，数字在构建那一刻
-   * 就写死了 —— 上线三天后页脚还是"运行 0 天"。
-   *
-   * 【它不联网】
-   * 纯本地日期减法，没有任何请求、没有第三方脚本。
-   * 这也是它和"访问量统计"的区别 —— 后者必须接外部服务，
-   * 所以这个站**故意不做**访问统计。
-   *
-   * 【它只算到「分」，不显示秒】
-   * 显示秒的话页脚上会有个一直在跳的数字，非常分散注意力。
-   */
-  function initRunningTime() {
-    const el = document.querySelector<HTMLElement>("[data-site-start]");
-
-    if (!el) return;
-
-    const startRaw = el.dataset.siteStart;
-
-    if (!startRaw) return;
-
-    const start = new Date(startRaw);
-
-    // 日期写错时不要显示 "NaN 天"，宁可不显示
-    if (Number.isNaN(start.getTime())) {
-      el.remove();
-      return;
-    }
-
-    const units = {
-      days: el.dataset.runningDays ?? "",
-      hours: el.dataset.runningHours ?? "",
-      minutes: el.dataset.runningMinutes ?? "",
-    };
-
-    const diff = Date.now() - start.getTime();
-
-    // 建站日期填成未来日期时 diff 是负的 —— 直接不显示
-    if (diff < 0) {
-      el.textContent = "";
-      return;
-    }
-
-    const totalMinutes = Math.floor(diff / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-
-    el.textContent = `${days} ${units.days} ${hours} ${units.hours} ${minutes} ${units.minutes}`;
-  }
-
-  document.addEventListener("astro:page-load", initRunningTime);
-  initRunningTime();
-</script>
