@@ -90,10 +90,15 @@ export default {
 
     projectsTitle: "项目",
     projectsDesc: "我在做和在学的东西。",
+
+    rssTitle: "RSS 订阅",
+    rssDesc: "用 RSS 阅读器订阅本站最新文章。",
   },
 
   friends: {
     empty: "还没有友链。",
+    count: "{{n}} 个友链",
+    openSite: "在新窗口打开",
   },
 
   notes: {

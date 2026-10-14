@@ -85,9 +85,14 @@ export default {
 
     projectsTitle: "Projects",
     projectsDesc: "Things I'm building and learning.",
+
+    rssTitle: "RSS Feed",
+    rssDesc: "Subscribe to new posts with any RSS reader.",
   },
   friends: {
     empty: "No links yet.",
+    count: "{{n}} links",
+    openSite: "opens in a new tab",
   },
   notes: {
     empty: "No notes yet.",

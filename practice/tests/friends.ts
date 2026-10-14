@@ -45,7 +45,7 @@ const { getFriends } = await import("../../src/utils/getFriends.ts");
 function entry(
   title: string,
   order: number | undefined,
-  extra: Partial<{ url: string; avatar: string }> = {}
+  extra: Partial<{ url: string; avatar: string; tags: string[] }> = {}
 ) {
   return {
     data: {
@@ -53,6 +53,7 @@ function entry(
       description: `${title} 的简介`,
       url: extra.url ?? "https://example.com",
       avatar: extra.avatar ?? "https://example.com/a.png",
+      tags: extra.tags,
       order,
     },
     body: "",
@@ -148,6 +149,24 @@ check("url 正确透传", one.url === "https://a.example.com");
 check("avatar 正确透传", one.avatar === "https://a.example.com/avatar.png");
 check("description 正确透传", one.description === "站点 的简介");
 check("order 也带出来了（排序后仍可读）", one.order === 1);
+
+/**
+ * 没写 tags 时必须给出空数组，而不是 undefined。
+ *
+ * 【为什么这条值得测】
+ * 页面那边写的是 `friend.tags.map(...)`，拿到 undefined 就是
+ * "Cannot read properties of undefined" —— 而且只在构建时炸，
+ * 报错指向渲染层，看不出是数据少了一个字段。
+ * schema 里给了 default([])，这里再锁一道，两层都有人管。
+ */
+check("没写 tags 时是空数组（不是 undefined）", Array.isArray(one.tags) && one.tags.length === 0);
+
+const tagged = getFriends([entry("带标签的站", 1, { tags: ["技术", "生活"] })])[0];
+check(
+  "tags 正确透传（含顺序）",
+  tagged.tags.join(",") === "技术,生活",
+  String(tagged.tags)
+);
 
 /* ==================================================================
  * 4. 边界情况

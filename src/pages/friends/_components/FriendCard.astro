@@ -1,0 +1,291 @@
+---
+/**
+ * 友链卡片
+ * ============================================================
+ * 自包含模块：只依赖 src/utils/getFriends.ts 的类型。
+ *
+ * 想删掉这个功能？
+ *   1. 删掉这个文件
+ *   2. 删掉 src/pages/friends.astro 里的 import 和 <FriendCard /> 那一行
+ *   （记得连同 src/pages/friends/_components/ 目录一起删）
+ * ============================================================
+ *
+ * 【视觉是照着 blog.fqzlr.top/friends 抄的】
+ * 一眼能认出的几个特征，按"抄的是什么"列一下，改样式时别只剩一个空壳：
+ *   · 头像在左、文字在右的一条横向卡片，圆角 + 1px 描边，**描边比底色重要**
+ *   · 悬停：描边变主色、底色淡淡染上主色、标题跟着变主色、头像放大一点
+ *   · 右上角一个 ⤢ 箭头，平时藏着（透明 + 往左上偏一点），悬停才滑进来
+ *
+ * 【为什么整张卡片是一个 <a>】
+ * 头像和标题都指向同一个地址。拆成两个链接的话，读屏软件会把
+ * 同一条友链念两遍 —— 一个 <a> 包住全部内容就没有这个问题，
+ * 而且鼠标点哪儿都能跳转，不用瞄准。
+ */
+import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
+import type { Friend } from "@/utils/getFriends";
+
+type Props = {
+  /** 一条友链（形状见 src/utils/getFriends.ts 的 Friend） */
+  friend: Friend;
+  /**
+   * 打开链接的读屏说明，例如「小慕のブログ，在新窗口打开」。
+   * 必须由调用方传进来：这个组件不认识 i18n（见 AGENTS.md「中文优先」）。
+   */
+  openLabel: string;
+};
+
+const { friend, openLabel } = Astro.props;
+
+/**
+ * 标签上的 # 前缀只是**习惯**（跟话题标签一样），字段本身存的是纯文字，
+ * 所以这里删掉用户可能自己写进去的 #，避免渲染成 ##。
+ */
+const tags = friend.tags
+  .map(tag => tag.replace(/^#+/, "").trim())
+  .filter(Boolean);
+---
+
+<a
+  href={friend.url}
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label={openLabel}
+  class="friend-card"
+>
+  <span class="friend-card__arrow" aria-hidden="true">
+    {
+      /*
+      复用分页那支普通右箭头，用 -rotate-45 转成「↗」（指向右上）。
+      特意不新建一个 IconArrowUpRight.svg：多一个 svg 就多一份要维护的资源，
+      而顺时针转 45° 和手画的 ↗ 在 16px 下看不出差别。
+    */
+    }
+    <IconArrowRight class="size-4 -rotate-45" />
+  </span>
+
+  <span class="friend-card__avatar">
+    {
+      /*
+      头像用 <img> 而不是 Astro 的 <Image>：这些图片在**别人的服务器**上，
+      Astro 只能处理本地图片。加 loading="lazy" 和 referrerpolicy 是基本礼貌 ——
+      不把我们页面的来源信息带过去。
+    */
+    }
+    <img
+      src={friend.avatar}
+      alt=""
+      width="56"
+      height="56"
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+    />
+  </span>
+
+  <span class="friend-card__info">
+    <span class="friend-card__title">{friend.title}</span>
+    <span class="friend-card__desc">{friend.description}</span>
+
+    {
+      tags.length > 0 && (
+        <span class="friend-card__tags">
+          {tags.map(tag => (
+            <span class="friend-card__tag">#{tag}</span>
+          ))}
+        </span>
+      )
+    }
+  </span>
+</a>
+
+<style>
+  /**
+   * 【为什么用 :global()】类名挂在 <a> 上之后，还要去管它的
+   * 子元素（.friend-card__title 之类）。Astro 的作用域会把普通选择器
+   * 加上 data-astro-cid-xxx，子元素也带上同一串 cid，所以直接写就行；
+   * 只有 :hover 里那种"从父级往下选"的写法需要额外注意。
+   * 这里全部用普通选择器，不用 :global()。
+   *
+   * 【为什么写死变量而不是用 daisyUI 的 card 类】
+   * daisyUI 的 .card 自带 padding / 圆角 / 阴影，覆盖它比从零写更啰嗦，
+   * 而且悬停那套效果（描边变主色 + 箭头滑入）本来就要自己写。
+   * 颜色全部走 theme.css 的语义变量，不写死色值 —— 深浅色主题都能用。
+   */
+  .friend-card {
+    /*
+     * 横向 flex + 圆角 + 描边，是这张卡片的骨架。
+     * min-height 是给"简介特别短"的友链兜底的：没有它，
+     * 一条只有名字的友链会变成一条 24px 高的细缝。
+     */
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-height: 5.25rem;
+    padding: 0.875rem;
+    overflow: hidden;
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-box);
+    background-color: var(--color-base-200);
+    color: var(--color-base-content);
+    text-decoration: none;
+    transition:
+      border-color 0.25s ease,
+      background-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  /**
+   * 悬停 / 键盘聚焦时给同一套反馈。
+   *
+   * 【为什么把 :focus-visible 也算进来】
+   * 键盘用户 Tab 过来时，如果只有一条虚线焦点圈、卡片本身毫无变化，
+   * 就看不出"这张卡片是可点开的"。让焦点和悬停长一样，
+   * 键盘和鼠标看到的东西才是同一套。
+   */
+  .friend-card:hover,
+  .friend-card:focus-visible {
+    border-color: var(--color-primary);
+    background-color: color-mix(
+      in oklab,
+      var(--color-primary) 5%,
+      var(--color-base-200)
+    );
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 4px 12px color-mix(in oklab, var(--color-primary) 18%, transparent);
+  }
+
+  .friend-card:hover .friend-card__title,
+  .friend-card:focus-visible .friend-card__title {
+    color: var(--color-primary);
+  }
+
+  .friend-card:hover .friend-card__arrow,
+  .friend-card:focus-visible .friend-card__arrow {
+    opacity: 1;
+    transform: none;
+  }
+
+  .friend-card:hover .friend-card__avatar img,
+  .friend-card:focus-visible .friend-card__avatar img {
+    transform: scale(1.05);
+  }
+
+  /* ---- 右上角的 ↗ ---- */
+  .friend-card__arrow {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    display: inline-flex;
+    color: var(--color-primary);
+    /*
+     * 默认是"藏起来"而不是 display: none —— display 不能做过渡，
+     * 那样箭头会突然蹦出来。往左上偏一点点再滑进来，动感就出来了。
+     */
+    opacity: 0;
+    transform: translate(-0.25rem, 0.25rem);
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease;
+  }
+
+  /* ---- 头像 ---- */
+  .friend-card__avatar {
+    position: relative;
+    z-index: 2; /* 压在箭头上面，不然箭头会盖住头像右肩膀 */
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .friend-card__avatar img {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-base-300);
+    object-fit: cover;
+    transition: transform 0.25s ease;
+  }
+
+  /* ---- 文字区 ---- */
+  .friend-card__info {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    min-width: 0; /* 没有它，下面两个 truncate 都不会生效 */
+    flex: 1;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .friend-card__title {
+    /* 站点名可能很长（"XX的个人博客 | 记录技术与生活"），一行截断最整齐 */
+    overflow: hidden;
+    padding-right: 1.25rem; /* 给右上角的箭头让位 */
+    color: var(--color-base-content);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  /**
+   * 简介只留两行。
+   *
+   * 【为什么用 -webkit-box 这套老写法】
+   * 多行截断到现在也只有它各浏览器都认。项目里 line-clamp-2 那个工具类
+   * 生成的也是同一套属性 —— 这里写开是为了和卡片其余部分放在一起，
+   * 读的时候不用来回跳。
+   */
+  .friend-card__desc {
+    display: -webkit-box;
+    overflow: hidden;
+    /*
+     * 颜色用 theme.css 的 --text-muted，不是随手调一个透明度。
+     * 那三档的数值是按 WCAG 对比度算出来的（表格在 theme.css 里），
+     * 自己再编一档就等于把"整页发灰"那个老毛病请回来 —— AGENTS.md 里写明禁止。
+     * ⚠️ 变量名是 --text-muted，不是 --color-base-content-muted：后者不存在。
+     */
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* ---- 标签 ---- */
+  .friend-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.125rem;
+  }
+
+  .friend-card__tag {
+    padding: 0.0625rem 0.5rem;
+    border-radius: 9999px;
+    background-color: color-mix(
+      in oklab,
+      var(--color-base-content) 8%,
+      transparent
+    );
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+  }
+
+  /**
+   * 减少动态效果：只关过渡，悬停的颜色和箭头照样出现。
+   * （和 src/styles/back-to-top.css 最后一节同一个做法。）
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .friend-card,
+    .friend-card__arrow,
+    .friend-card__avatar img,
+    .friend-card__title {
+      transition: none;
+    }
+  }
+</style>
