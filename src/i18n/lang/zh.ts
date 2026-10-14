@@ -12,6 +12,7 @@ export default {
     friends: "友链",
     notes: "说说",
     projects: "项目",
+    more: "更多",
   },
 
   post: {

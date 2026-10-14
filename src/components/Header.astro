@@ -41,6 +41,7 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconSearch from "@/assets/icons/IconSearch.svg";
+import IconChevronDown from "@/assets/icons/IconChevronDown.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconX from "@/assets/icons/IconX.svg";
 
@@ -78,8 +79,7 @@ const isActive = (path: string) => {
  * 写成数组是因为下面要渲染**两遍**：桌面横排一遍、移动端抽屉一遍。
  * 改版前这两处各写了一遍，四个链接就是八段几乎一样的标记。
  *
- * 顺序就是显示顺序。辅助页面（标签/归档/近况/关于）在页脚 ——
- * 理由见下面那段注释和 Footer.astro。
+ * 顺序就是显示顺序。
  */
 const navItems = [
   { path: "/posts", label: t.nav.posts },
@@ -87,6 +87,35 @@ const navItems = [
   { path: "/notes", label: t.nav.notes },
   { path: "/projects", label: t.nav.projects },
 ];
+
+/**
+ * 「更多」菜单里的辅助页面。
+ *
+ * 【为什么这几个从页脚搬了上来】
+ * 它们原来和订阅源（RSS/Atom/Sitemap）一起挤在页脚的一行里，共七个链接。
+ * 页脚是"收尾"，塞七个链接就变成了"第二个导航区"——扫视成本高；
+ * 而真正想找它们的人是在**找入口**，抬头看页眉才是第一反应。
+ *
+ * 搬进「更多」之后页脚只剩品牌标识和版权。桌面端渲染成下拉菜单、
+ * 移动端进抽屉，两边共用这一份数组 —— 和 navItems 同一个理由：
+ * 加一个入口只改一处。
+ *
+ * 归档页可以被 config 关掉，所以它是有条件的。
+ */
+const moreItems = [
+  { path: "/tags", label: t.nav.tags },
+  ...(features.showArchives !== false
+    ? [{ path: "/archives", label: t.nav.archives }]
+    : []),
+  { path: "/now", label: t.nav.now },
+  { path: "/about", label: t.nav.about },
+];
+
+/**
+ * 当前页是不是「更多」里的某一页（比如正在看 /tags）。
+ * 是的话，触发按钮也要亮起来 —— 否则页眉上没有任何地方指示当前位置。
+ */
+const isMoreActive = moreItems.some(item => isActive(item.path));
 
 /**
  * 服务端渲染时拿不到用户的主题偏好（它存在 localStorage 里），
@@ -167,6 +196,44 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
               </li>
             ))
           }
+
+          {
+            /*
+              「更多」下拉。
+
+              ⚠️ 用 <details>/<summary> 而不是自己写 JS 开关：
+              键盘操作（Enter/Space 展开）、展开状态语义都由浏览器给，
+              我们少维护一段脚本。样式复用 daisyUI 的 dropdown + menu。
+            */
+          }
+          <li>
+            <details class="dropdown dropdown-end dropdown-bottom nav-more">
+              <summary
+                class="nav-link"
+                data-current={isMoreActive ? "true" : undefined}
+              >
+                {t.nav.more}
+                <IconChevronDown class="nav-more__caret size-3.5 shrink-0" />
+              </summary>
+
+              <ul
+                class="menu dropdown-content bg-base-100 border-base-300 rounded-box mt-2 w-40 border p-1.5 shadow-lg"
+              >
+                {
+                  moreItems.map(item => (
+                    <li>
+                      <a
+                        href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                        aria-current={isActive(item.path) ? "page" : undefined}
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </details>
+          </li>
         </ul>
       </nav>
 
@@ -258,6 +325,23 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
       <ul class="menu w-full gap-1">
         {
           navItems.map(item => (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, item.path.slice(1))}
+                aria-current={isActive(item.path) ? "page" : undefined}
+                data-mobile-menu-link
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+
+        <!-- 「更多」里的辅助页面（桌面端在下拉菜单里） -->
+        <li class="menu-title">{t.nav.more}</li>
+
+        {
+          moreItems.map(item => (
             <li>
               <a
                 href={getRelativeLocaleUrl(locale, item.path.slice(1))}

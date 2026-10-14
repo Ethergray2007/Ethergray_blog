@@ -12,6 +12,7 @@ export default {
     friends: "Friends",
     notes: "Notes",
     projects: "Projects",
+    more: "More",
   },
   post: {
     updatedAt: "Updated",

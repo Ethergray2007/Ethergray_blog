@@ -14,6 +14,15 @@ export interface UIStrings {
     notes: string;
     /** /projects 页面（项目） */
     projects: string;
+    /**
+     * 页眉「更多」菜单的标题。
+     *
+     * 标签 / 归档 / 近况 / 关于这四个辅助页面从页脚搬到了这个菜单里，
+     * 所以页眉需要一个词把它们收起来。用「更多」而不是「关于」之类的
+     * 具体分类名：这四个页面之间没有共同的"用途"，硬起一个分类名
+     * 反而会让人猜不到里面有什么。
+     */
+    more: string;
   };
   post: {
     updatedAt: string;

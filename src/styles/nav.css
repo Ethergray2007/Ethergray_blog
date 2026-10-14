@@ -373,6 +373,66 @@
 }
 
 /* ============================================================
+ * 五之二、「更多」下拉（辅助页面的入口）
+ * ============================================================ */
+
+/**
+ * 触发按钮：外形复用 .nav-link，只抹掉 <summary> 的原生三角。
+ *
+ * ⚠️ `list-style: none` 和 `::-webkit-details-marker` 要一起写：
+ * 前者管 Firefox，后者管 Chrome/Safari 的旧行为。只写一个的话，
+ * 另一个浏览器上会多出一个三角。
+ * （daisyUI 的 `.dropdown:is(details)` 里也写了后者，但它挂在
+ *   .dropdown 上 —— 我们不敢只靠它，换个结构就丢了。）
+ */
+.nav-more > summary {
+  cursor: pointer;
+  list-style: none;
+  gap: 0.25rem;
+}
+
+.nav-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+/**
+ * 箭头：展开时转 180°。
+ *
+ * 用 transition 而不是 animation —— 它表达的是**当前状态**
+ * （开着还是关着），不是"入场动效"，不需要每次重播一遍。
+ */
+.nav-more__caret {
+  transition: rotate 0.2s ease;
+}
+
+/**
+ * 展开态 / "当前页就在这个菜单里"两种情况下，触发按钮都亮起来。
+ *
+ * 后者不能省：正在看 /tags 时，页眉上如果没有一处指示当前位置，
+ * 导航就"丢"了 —— 读者会以为自己在别的地方。
+ */
+.nav-more[open] > summary,
+.nav-more[data-current="true"] > summary {
+  color: var(--color-primary);
+}
+
+.nav-more[open] .nav-more__caret {
+  rotate: 180deg;
+}
+
+/**
+ * 面板：加一层毛玻璃。
+ *
+ * 底色在组件里用 base-100（卡片色），不能换成页面底色 ——
+ * 它是一块**浮层**，得比页面亮一档才浮得起来（见 AGENTS.md 设计系统那节）。
+ * 毛玻璃是为了让它压在深色首屏上时也立得住。
+ */
+.nav-more .dropdown-content {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* ============================================================
  * 六、右侧工具组
  * ============================================================ */
 
@@ -662,6 +722,7 @@
   .nav-link,
   .nav-icon-btn,
   .nav-search,
+  .nav-more__caret,
   .theme-switch,
   .theme-switch::after,
   .theme-switch__icon {
