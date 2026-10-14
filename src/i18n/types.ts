@@ -59,6 +59,19 @@ export interface UIStrings {
     copyCode: string;
     copied: string;
     copyFailed: string;
+    /**
+     * 评论区（Giscus）的标题和一行说明。
+     *
+     * 这两条由文章页在服务端渲染。giscus 自己那个 iframe 里的界面文字
+     * 改不了（是它提供的），所以这里只管我们外面这一层。
+     */
+    comments: string;
+    commentsHint: string;
+    /**
+     * 配置没填全（缺 repoId 或 categoryId）时，代替评论区出现的一行提示。
+     * 只在开发环境显示 —— 线上宁可什么都不显示，也不要挂一块"没配对"的告示。
+     */
+    commentsUnconfigured: string;
   };
   pagination: {
     prev: string;

@@ -30,6 +30,11 @@ export default {
     copyCode: "Copy code",
     copied: "Copied",
     copyFailed: "Copy failed",
+    comments: "Comments",
+    commentsHint:
+      "Comments are powered by GitHub Discussions and need a GitHub account to post.",
+    commentsUnconfigured:
+      "Comments are not configured yet: fill in comments.repoId and comments.categoryId in astro-paper.config.ts.",
   },
   pagination: {
     prev: "Prev",

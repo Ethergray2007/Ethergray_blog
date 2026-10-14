@@ -31,6 +31,11 @@ export default {
     copyCode: "复制代码",
     copied: "已复制",
     copyFailed: "复制失败",
+    comments: "评论",
+    commentsHint:
+      "评论由 GitHub Discussions 提供，需要 GitHub 账号登录后才能发言。",
+    commentsUnconfigured:
+      "评论区还没配置：在 astro-paper.config.ts 的 comments 段里填好 repoId 和 categoryId。",
   },
 
   pagination: {

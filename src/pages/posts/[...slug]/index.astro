@@ -19,6 +19,7 @@ import BackButton from "./_components/BackButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
 import TableOfContents from "./_components/TableOfContents.astro";
 import CopyCodeButton from "./_components/CopyCodeButton.astro";
+import GiscusComments from "./_components/GiscusComments.astro";
 
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -248,6 +249,9 @@ const ogImage = ogImageUrl
 
     <!-- Previous / Next -->
     <AdjacentPostNav {prevPost} {nextPost} />
+
+    <!-- 评论区（Giscus）：配置在 astro-paper.config.ts 的 comments 段，没配就不渲染 -->
+    <GiscusComments />
 
     <!--
       返回顶部按钮用的是页面顶部的 <BackButton />，这里不再放第二个。

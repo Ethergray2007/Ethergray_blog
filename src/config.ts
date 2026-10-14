@@ -36,6 +36,8 @@ const config: ResolvedAstroPaperConfig = {
   },
   socials: userConfig.socials ?? [],
   shareLinks: userConfig.shareLinks ?? [],
+  // 可选模块：没写就保持 undefined，文章页的评论区整块不渲染
+  comments: userConfig.comments,
 };
 
 export default config;
