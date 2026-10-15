@@ -12,6 +12,7 @@ export default {
     friends: "Friends",
     notes: "Notes",
     projects: "Projects",
+    rss: "RSS",
     more: "More",
   },
   post: {
@@ -85,9 +86,14 @@ export default {
 
     projectsTitle: "Projects",
     projectsDesc: "Things I'm building and learning.",
+
+    rssTitle: "RSS Feed",
+    rssDesc: "Subscribe to new posts with any RSS reader.",
   },
   friends: {
     empty: "No links yet.",
+    count: "{{n}} links",
+    openSite: "opens in a new tab",
   },
   notes: {
     empty: "No notes yet.",
@@ -95,6 +101,24 @@ export default {
   projects: {
     empty: "No projects yet.",
     viewSource: "View source",
+  },
+  rss: {
+    feedTitle: "Feed URL",
+    feedDesc:
+      "Paste this address into any RSS/Atom reader (Feedly, Inoreader, Follow, NetNewsWire, …) and new posts will show up automatically.",
+    copy: "Copy link",
+    copyLabel: "Copy feed URL",
+    copied: "Copied",
+    copyFailed: "Copy failed",
+    viewXml: "View raw XML",
+    howToTitle: "How to subscribe",
+    howToDesc:
+      "No account needed — paste the address above into any reader below.",
+    webGroup: "Web / cross-platform",
+    appGroup: "Desktop / mobile apps",
+    latestTitle: "Latest posts",
+    latestDesc: "This is what ends up in your reader.",
+    allPosts: "All posts",
   },
   a11y: {
     skipToContent: "Skip to content",
@@ -148,6 +172,17 @@ export default {
     rebuildFailed: "Could not reach Netlify. Check the server logs.",
     savedNeedsRebuild:
       "Saved to the database. Click “Rebuild now” to publish it to the site.",
+    savedAsDraft: "Saved as a draft. Drafts do not appear on the site.",
+    invalidPostId: "The post ID in the URL is invalid.",
+    titleRequired: "The title cannot be empty.",
+    loadFailed: "Could not load the post.",
+    saveFailed: "Could not save the post.",
+    rebuildRequestFailed: "Could not request a rebuild.",
+    apiBadRequest: "The submitted data is invalid. Check it and try again.",
+    apiNotFound: "The post was not found. Refresh the page and try again.",
+    apiSlugTaken: "This URL slug is already in use. Choose another one.",
+    apiInternal: "The server encountered an error. Please try again later.",
+    apiRequestFailed: "The request failed. Please try again later.",
     rebuildHint: "Each rebuild costs Netlify 15 credits",
     backToList: "Back to list",
     logout: "Sign out",

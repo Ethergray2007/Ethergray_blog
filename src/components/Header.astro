@@ -121,6 +121,12 @@ const moreItems = [
     : []),
   { path: "/now", label: t.nav.now },
   { path: "/about", label: t.nav.about },
+  /**
+   * /rss 是**订阅说明书**那一页（不是 /rss.xml 那段 XML）。
+   * 放「更多」而不是主导航：订阅是偶尔做一次的事，
+   * 不该占主导航的位置。
+   */
+  { path: "/rss", label: t.nav.rss },
 ];
 
 /**

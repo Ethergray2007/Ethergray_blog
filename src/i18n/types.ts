@@ -15,6 +15,13 @@ export interface UIStrings {
     /** /projects 页面（项目） */
     projects: string;
     /**
+     * /rss 页面（RSS 订阅说明）。
+     *
+     * 页眉「更多」菜单和面包屑都用这一条 —— 和 /now 一个待遇：
+     * 它是辅助页面，不是内容类型，所以不进主导航。
+     */
+    rss: string;
+    /**
      * 页眉「更多」菜单的标题。
      *
      * 标签 / 归档 / 近况 / 关于这四个辅助页面从页脚搬到了这个菜单里，
@@ -157,6 +164,10 @@ export interface UIStrings {
     /** /projects 页面（项目） */
     projectsTitle: string;
     projectsDesc: string;
+
+    /** /rss 页面（RSS 订阅说明） */
+    rssTitle: string;
+    rssDesc: string;
   };
   /**
    * 友链页面上用到的零散文案。
@@ -171,6 +182,21 @@ export interface UIStrings {
   friends: {
     /** 一条友链都没有时显示 */
     empty: string;
+    /**
+     * 列表上方的条数，例如「8 个友链」。
+     *
+     * 必须带上 `{{n}}` 占位符（用 tplStr 填，见 src/i18n/format.ts）——
+     * 中文说「8 个友链」、英文说「8 links」，
+     * 中间那个量词没法用拼接拼出来，只能整句存在语言文件里。
+     */
+    count: string;
+    /**
+     * 卡片链接的读屏说明，例如「在新窗口打开」。
+     *
+     * 卡片上会拼成「站名 —— 在新窗口打开」再交给 aria-label，
+     * 理由见 src/pages/friends.astro 里 openLabel 那段的注释。
+     */
+    openSite: string;
   };
   /** 说说页面上用到的零散文案 */
   notes: {
@@ -183,6 +209,37 @@ export interface UIStrings {
     empty: string;
     /** 「查看源码」链接的文字 */
     viewSource: string;
+  };
+  /**
+   * /rss 页面上用到的文案。
+   *
+   * 【为什么分成四段】
+   * 页面上正好四块：订阅地址 / 复制按钮 / 如何订阅 / 最新推送文章。
+   * 复制按钮那几条是给客户端脚本用的 —— 脚本在浏览器里跑，读不到服务端
+   * 渲染时的 t 对象，所以页面把它们写进 button 的 data-* 属性，
+   * 脚本再去读（和文章页的代码块复制按钮同一套办法）。
+   */
+  rss: {
+    /** 「订阅地址」分区的标题和说明 */
+    feedTitle: string;
+    feedDesc: string;
+    /** 按钮上的字 */
+    copy: string;
+    /** 读屏软件用的按钮说明，比按钮上的字更完整 */
+    copyLabel: string;
+    copied: string;
+    copyFailed: string;
+    /** 打开原始 XML 那个链接 */
+    viewXml: string;
+    /** 「如何订阅」分区 */
+    howToTitle: string;
+    howToDesc: string;
+    webGroup: string;
+    appGroup: string;
+    /** 「最新推送文章」分区 */
+    latestTitle: string;
+    latestDesc: string;
+    allPosts: string;
   };
   a11y: {
     skipToContent: string;
@@ -249,6 +306,18 @@ export interface UIStrings {
     rebuildFailed: string;
     /** 保存之后的提醒：这次的改动不会自动上线 */
     savedNeedsRebuild: string;
+    /** 保存草稿之后的提示：草稿不会出现在站点上 */
+    savedAsDraft: string;
+    invalidPostId: string;
+    titleRequired: string;
+    loadFailed: string;
+    saveFailed: string;
+    rebuildRequestFailed: string;
+    apiBadRequest: string;
+    apiNotFound: string;
+    apiSlugTaken: string;
+    apiInternal: string;
+    apiRequestFailed: string;
     /** 按钮旁那行小字，写明点一下要花多少积分 */
     rebuildHint: string;
 

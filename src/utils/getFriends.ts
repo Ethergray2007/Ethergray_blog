@@ -25,6 +25,12 @@ export type Friend = {
   url: string;
   /** 头像地址 */
   avatar: string;
+  /**
+   * 标签，渲染成卡片底部的小圆角标签（例如「技术」「生活」）。
+   * 没写就是空数组，卡片上什么都不显示 —— 标签是**可选**的装饰，
+   * 不是必填信息，所以不在这里做任何校验或去重。
+   */
+  tags: string[];
   /** 排序权重。不直接给页面用，排完序就没意义了 */
   order: number;
 };
@@ -51,6 +57,7 @@ export function getFriends(entries: CollectionEntry<"friends">[]): Friend[] {
       description: entry.data.description,
       url: entry.data.url,
       avatar: entry.data.avatar,
+      tags: entry.data.tags ?? [],
       order: entry.data.order ?? DEFAULT_ORDER,
     }))
     .sort((a, b) => {

@@ -338,18 +338,38 @@ src/styles/hero.css         首屏：全屏海报（背景图 + 视频 + 压暗�
 它有多层 mask（径向淡出 + 底部淡出），**必须配 `mask-composite: intersect`** ——
 默认是并集，底部那条生硬的切边会留着。
 
-**颜色与参考站的关系**：整套视觉参照 [elysia.nodejs.cn](https://elysia.nodejs.cn/)。
-强调色 `#f06292` 直接来自它的 `--vp-c-brand-1`；首屏海报的压暗遮罩、
-列表页顶部的 ray，都是按它那套"低透明度 + 多层叠加 + 色标停在 50%"的做法调的。
+**参考站有两个，别把它们混成一个**（这一段以前只写了 elysia，会让人
+以为首屏和页眉也是它）：
 
-⚠️ 参考站有过多层 mesh gradient 的首屏，这个项目也曾照搬（AGENTS.md 旧版
-把它记成"7 层光晕"）。**那套配方已经跟着上一版首屏一起删掉了** ——
-现在首屏是"一整屏海报（背景图 + 视频 + 一层压暗遮罩）"，
+```text
+elysia.nodejs.cn        VitePress + Tailwind 手写 CSS，没用任何 UI 组件库
+                        → 主题色族            theme.css 的强调色 #f06292
+                                              来自它的 --vp-c-brand-1
+                        → 列表页顶部的 ray    page-glow.css 的 .ray 配方
+                        → 氛围层              atmosphere.css 的网格 + 光晕
+
+blog.fqzlr.top          个人博客，基于 Astro 主题（Firefly / Shirone / Fuwari 系）
+                        → 首屏海报            Hero.astro / hero.css
+                        → 页眉                nav.css
+                        → 友链卡片            FriendCard.astro
+```
+
+⚠️ 每处注释里的「参考站」指的是**该文件自己那一行对应的那个站**，
+不要当成同一个。以前这里是笼统的一句话「整套视觉参照 elysia.nodejs.cn」，
+照它去改首屏或页眉就会改错方向。
+
+`elysia.nodejs.cn` 那边"低透明度 + 多层叠加 + 色标停在 50%"的做法，
+我们用在首屏海报的压暗遮罩和列表页顶部的 ray 上，这两处与它一致。
+
+⚠️ 它曾经有过一套多层渐变（mesh gradient）的首屏配方，这个项目也照搬过
+（AGENTS.md 旧版把它记成"7 层光晕"）。**那套配方已经跟着上一版首屏一起
+删掉了** —— 现在首屏是"一整屏海报（背景图 + 视频 + 一层压暗遮罩）"，
 `hero.css` 里只剩 5 处渐变；氛围层那三团极低透明度的角落光在
 `atmosphere.css`，别再按"7 层 mesh"去描述或恢复它。
 
-它是 VitePress + Tailwind 手写 CSS，**没有用任何 UI 组件库** ——
-所以"换成 Elysia 用的那套 UI"这件事不存在，观感是自己写出来的。
+`elysia.nodejs.cn` 那边是 VitePress + Tailwind **手写 CSS，没有用任何
+UI 组件库** —— 所以"换成 Elysia 用的那套 UI"这件事不存在，它的观感
+也是自己写出来的。
 
 ### `git diff` 显示的差异 ≠「这次会话改的」
 
@@ -425,6 +445,23 @@ npm run build      下载字体（上面那条链）
 npx astro check    读 Neon 数据库里的文章 —— content loader 走 HTTP 驱动
 npm run dev        同上，起服务时就要读一次
 ```
+
+**开发服务器跑着的时候不要跑 `npm run build`** —— 两边会抢 `.astro/`，
+报的错是：
+
+```text
+EPERM: operation not permitted, rename
+  '...\.astro\content-assets.mjs.tmp' -> '...\.astro\content-assets.mjs'
+```
+
+（2026-10-15 实测。`astro dev` 会持续写这个文件，构建那边改名就失败。）
+同一次实测还撞上第二种表现：dev server 和构建同时读数据库时，代理会拒绝
+并发请求，构建报的还是"连不上数据库"（真实 cause 是
+`Error connecting to database: TypeError: fetch failed`）——
+很容易误判成数据库挂了、或者连接串写错了。
+
+**先停掉 dev server，再跑构建。** 想同时预览，用 `npm run preview` ——
+它读的是已经构建好的 `dist/`，不会再写 `.astro/`。
 
 症状一模一样地**不提网络**：字体报 `Cannot find the font path.`，
 数据库报 content loader 里 `loadRows()` 的栈（指向
@@ -829,7 +866,11 @@ character at index 8 has a value of 20266 which is greater than 255
 src/pages/            文件路径 = 网址。index.astro → /
   [...slug]/          动态路由
   _components/        下划线开头 = 不会被当成路由
-src/content/posts/    文章（Markdown），字段定义在 src/content.config.ts
+src/content/          友链 / 说说 / 项目（仍是 Markdown 文件）
+  ⚠️ 没有 posts/ —— 文章已搬进数据库的 posts 表
+     （字段定义在 src/content.config.ts，读取走 src/db/loaders/posts.ts）
+src/db/               表结构、仓库函数、Neon HTTP 驱动
+                      改这一层时看本文件「数据库层的三条特殊约定」
 src/utils/            纯函数
 src/i18n/             文案
 src/types/config.ts   站点配置的类型定义

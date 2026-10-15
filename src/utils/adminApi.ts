@@ -91,6 +91,17 @@ export class NotLoggedInError extends Error {
   }
 }
 
+/** 保留接口错误码，让界面按当前语言显示错误说明 */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly code: string | undefined
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 /**
  * 触发重建的结果。
  *
@@ -134,11 +145,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   const data = (await response.json().catch(() => null)) as
-    | (T & { error?: string })
+    | (T & { error?: string; code?: string })
     | null;
 
   if (!response.ok) {
-    throw new Error(data?.error ?? `请求失败（HTTP ${response.status}）`);
+    throw new ApiRequestError(
+      data?.error ?? `请求失败（HTTP ${response.status}）`,
+      data?.code
+    );
   }
 
   if (data === null) {

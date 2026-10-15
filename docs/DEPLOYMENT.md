@@ -11,7 +11,7 @@
 
 | 变量 | 值 |
 | --- | --- |
-| `DATABASE_URL` | Neon 给**连接池**连接串（见下方"必须用连接池"） |
+| `DATABASE_URL` | Neon 给的连接串，用 **Pooled** 那条（带 `-pooler`，见下方"连接串用哪一条"） |
 | `BETTER_AUTH_SECRET` | 和 `.env` 里同一个值 |
 | `GITHUB_CLIENT_ID` | **线上那个** OAuth App 的 Client ID |
 | `GITHUB_CLIENT_SECRET` | **线上那个** OAuth App 的 Client secret |
@@ -56,33 +56,53 @@ Netlify Function，所以上面这些**必须**在后台 UI 里配。
 
 ---
 
-## 必须用连接池连接串
+## 连接串用哪一条（`-pooler` 是怎么回事）
 
-Neon 提供两种连接串（[出处](https://neon.com/docs/connect/choose-connection)）：
+Neon 提供两种连接串（[出处](https://neon.com/docs/connect/choose-connection)），
+**区别只在主机名里有没有 `-pooler`**：
 
-```
-# 连接池（Pooled）—— 我们用这个
+```text
+# 连接池（Pooled）
 postgresql://user:pass@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 
-# 直连（Direct）—— 不要用于 Netlify
+# 直连（Direct）
 postgresql://user:pass@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 ```
 
-**区别只在主机名里有没有 `-pooler`。**
+我们这儿的实际情况是：
 
-为什么要用连接池：Netlify Functions 每次冷启动都可能新建数据库连接。
-不用连接池的话，并发请求很容易把数据库的连接数用满。
+```text
+应用运行时   src/db/client.ts 用的是 Neon **HTTP** 驱动。
+             每条查询是一个独立的 fetch 请求，没有 TCP 连接、
+             也不用连接池 —— 所以两种主机名对它都无害。
+             （2026-10-15 实测：同一个端点，带 -pooler 和不带都能跑通。）
+
+npm run db:migrate   走的是 drizzle-kit，它用项目里的 postgres.js 包，
+                     也就是 **TCP** 驱动。这种长连接场景才需要池化。
+```
+
+**结论：继续用带 `-pooler` 的那条，两种用途都合适。** 直连那条不是不能用，
+只是对 `db:migrate` 这种 TCP 场景不划算。
+
+⚠️ 这里以前写的是「必须用连接池连接串」，理由是"Netlify Functions 冷启动
+会新建连接、容易把连接数用满"——那是**换 HTTP 驱动之前**的理由（当时用
+`postgres` 包发 TCP 连接），现在不成立了。同一条理由也写在 `.env.example`
+和 `README.md` 里，改动时三个地方要一起改。
+
+⚠️ 另外以前这里写着「我们客户端也设了 `max: 1`（见 `src/db/client.ts`）」——
+**我们的代码里没有这个设置**。`max: 1` 是 `drizzle-kit` 自己起连接时的行为
+（它在内部 `postgres.default(url, { max: 1 })`），和 `src/db/client.ts` 无关。
 
 ### 关于"双重连接池"
 
-同一份文档里的警告：
+Neon 文档里有这样一条警告（[出处](https://neon.com/docs/connect/choose-connection)）：
 
 > If you use a pooled Neon connection, avoid adding client-side pooling on top.
 
-Neon 那边已经用 PgBouncer 做了池化。我们客户端也设了 `max: 1`
-（见 `src/db/client.ts`），这是**刻意保留**的 —— 它保证每个函数实例
-最多只占一个连接，而不是在 PgBouncer 之上再叠一层池。
-两侧加起来的连接数才不会失控。
+它针对的是"客户端自己也维护连接池"那种写法（比如自己设 `max: 20`）。
+**这条对 HTTP 驱动的我们完全不适用** —— HTTP 驱动根本没有"客户端连接池"
+这个概念，每条查询都是独立的 HTTP 请求。所以不存在双重池化的问题，
+`-pooler` 那条连接串对我们没有副作用。
 
 ---
 
@@ -129,22 +149,13 @@ Neon 那边已经用 PgBouncer 做了池化。我们客户端也设了 `max: 1`
 
 `drizzle-kit`（跑迁移的工具）自己不依赖 `postgres`，而是**用项目里装的那个**
 来执行迁移。删掉之后 `npm run db:migrate` 会失败，报错信息还不明显。
-
 （`npm run db:migrate` 的输出里有 `Using 'postgres' driver for database querying`
-这一行，就是这个原因。）
-
-### 关于"双重连接池"
-
-Neon 文档里的警告：
-
-> If you use a pooled Neon connection, avoid adding client-side pooling on top.
-
-这条对 HTTP 驱动**不适用** —— HTTP 驱动根本没有"客户端连接池"这个概念，
-每条查询都是独立的 HTTP 请求。所以也不存在双重池化的问题。
-
-连接串里的 `-pooler` 保留着，它对 HTTP 驱动无害（主机名指向同一个地方）。
+这一行，就是这个原因。那行日志里的 `postgres` 指的是 postgres.js 这个包，
+不是 Postgres 数据库本身。）
 
 ---
+
+## 函数区域要和数据库在同一侧
 
 这是**最容易忽略、影响最大**的一点。
 
@@ -183,12 +194,13 @@ Netlify 后台改：**Cloud compute → Functions → Region**，然后重新部
 
 ```text
 □ Neon 项目建在 US East（跟 Netlify 函数的默认区域一致）
-□ 复制的连接串主机名里带 -pooler
+□ 连接串从 Neon 控制台复制的是 Pooled 那条（主机名里带 -pooler）
 □ GitHub 上建了**线上专用的** OAuth App，回调地址填线上域名
 □ Netlify 后台配了 5 个变量：DATABASE_URL / BETTER_AUTH_SECRET /
   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_OWNER_ID
 □ 推送到 main 之前，先在 develop 的预览站上验证
-□ 本地跑过四条检查 + 两套测试
+□ 本地跑过四条检查（format:check / astro check / eslint / build）
+  + `npm test`（七组：db / api / auth / feed / friends / notes / projects）
 ```
 
 ---
@@ -205,4 +217,11 @@ https://你的域名/api/health
 那说明服务端真的在跑。
 
 如果返回 500，先看 Netlify 的 Functions 日志
-（后台 → Logs → Functions），常见原因是环境变量没配或连接串用了直连版。
+（后台 → Logs → Functions），最常见的原因是环境变量没配
+（尤其是 `DATABASE_URL`）。
+
+⚠️ 连接串用了直连版（不带 `-pooler`）**不会让这个接口返回 500** ——
+HTTP 驱动两种主机名都能连（理由见上面「连接串用哪一条」）。
+直连版的代价只体现在 `npm run db:migrate` 这类走 TCP 的操作上。
+所以排查线上问题时，别把"改了文章没生效"归到 `-pooler` 上，
+那更可能是构建没触发或没跑完。

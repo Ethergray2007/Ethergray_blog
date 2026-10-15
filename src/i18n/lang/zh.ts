@@ -12,6 +12,7 @@ export default {
     friends: "友链",
     notes: "说说",
     projects: "项目",
+    rss: "RSS 订阅",
     more: "更多",
   },
 
@@ -90,10 +91,15 @@ export default {
 
     projectsTitle: "项目",
     projectsDesc: "我在做和在学的东西。",
+
+    rssTitle: "RSS 订阅",
+    rssDesc: "用 RSS 阅读器订阅本站最新文章。",
   },
 
   friends: {
     empty: "还没有友链。",
+    count: "{{n}} 个友链",
+    openSite: "在新窗口打开",
   },
 
   notes: {
@@ -103,6 +109,24 @@ export default {
   projects: {
     empty: "还没有项目。",
     viewSource: "查看源码",
+  },
+
+  rss: {
+    feedTitle: "订阅地址",
+    feedDesc:
+      "把下面这个地址填进任意 RSS/Atom 阅读器（Feedly、Inoreader、Follow、NetNewsWire 等），有新文章就会自动送到你手里。",
+    copy: "复制链接",
+    copyLabel: "复制订阅地址",
+    copied: "已复制",
+    copyFailed: "复制失败",
+    viewXml: "查看原始 XML",
+    howToTitle: "如何订阅",
+    howToDesc: "不用注册任何账号 —— 把上面的地址粘进下面任意一个阅读器就行。",
+    webGroup: "网页版 / 跨平台",
+    appGroup: "桌面 / 手机应用",
+    latestTitle: "最新推送文章",
+    latestDesc: "订阅之后，阅读器里收到的就是这些内容。",
+    allPosts: "查看全部文章",
   },
 
   a11y: {
@@ -156,6 +180,17 @@ export default {
     rebuildFailed: "通知 Netlify 失败了，看服务端日志。",
     savedNeedsRebuild:
       "已保存到数据库。要让它出现在站点上，点右边的「立即重建」。",
+    savedAsDraft: "已保存为草稿。草稿不会出现在站点上。",
+    invalidPostId: "网址里的文章编号不对。",
+    titleRequired: "标题不能为空。",
+    loadFailed: "加载文章失败。",
+    saveFailed: "保存文章失败。",
+    rebuildRequestFailed: "重建请求失败。",
+    apiBadRequest: "提交的数据不正确，请检查后重试。",
+    apiNotFound: "找不到这篇文章，请刷新页面后重试。",
+    apiSlugTaken: "这个网址标识已被占用，请换一个。",
+    apiInternal: "服务器暂时出错，请稍后重试。",
+    apiRequestFailed: "请求失败，请稍后重试。",
     rebuildHint: "每次重建消耗 Netlify 15 积分",
     backToList: "返回列表",
     logout: "登出",
