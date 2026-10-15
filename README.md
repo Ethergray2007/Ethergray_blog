@@ -9,7 +9,7 @@ Personal blog built with **Astro**.
 ## ✨ Features / 特性
 
 - ⚡ Fast and lightweight static site
-- 📝 Markdown / MDX blog posts
+- 📝 文章正文用 Markdown 写（存在数据库里，不在 git 的 .md 文件里）
 - 🎨 Responsive design
 - 🌙 Light / Dark mode
 - 🔎 Static search
@@ -19,40 +19,51 @@ Personal blog built with **Astro**.
 
 ## 🛠️ Tech Stack / 技术栈
 
-- **Framework:** Astro
-- **Styling:** Tailwind CSS
-- **Language:** TypeScript
+- **Framework:** Astro 7（页面在构建时生成静态 HTML）
+- **API:** Elysia 1.4（跑在 Astro 的 `/api/*` 路由里，不是独立服务）
+- **Database:** Neon PostgreSQL + Drizzle ORM（走 Neon HTTP 驱动）
+- **Auth:** Better Auth 1.7（GitHub 登录，无状态模式）
+- **Styling:** Tailwind CSS 4 + daisyUI 5（设计 token 只在 `src/styles/theme.css`）
+- **Language:** TypeScript 6
+- **Search:** Pagefind（构建时生成索引）
 - **Package Manager:** npm
-- **Deployment:** Netlify
+- **Deployment:** Netlify（develop = Deploy Preview，main = 生产）
 - **Version Control:** Git + GitHub
+
+⚠️ 这个项目**不只是静态站点**：访客读的是构建产物，但后台写作和登录走
+运行时 API（见下面「数据库」和「在线写作后台」两节）。技术栈只列 Astro
+会让人以为没有后端。
 
 ## 📁 Project Structure / 项目结构
 
-```text
-/
-├── public/                 # Static assets / 静态资源
-├── docs/                   # 学习路线 / Learning roadmap
-├── practice/               # TypeScript 练习册 / TS exercises
+/ 仓库根目录
+├── public/ 静态资源（图片、视频、favicon）
+├── docs/ 学习路线 / 部署指南 / 素材说明
+├── practice/ TypeScript 练习册（\_ 开头的临时脚本不进 git）
+├── scripts/ 一次性脚本（建库、导入旧文章、提交信息检查）
+├── drizzle/ SQL 迁移文件（**要提交**，线上靠它建表）
 ├── src/
-│   ├── assets/             # Images and icons / 图片与图标
-│   ├── components/         # Reusable components / 可复用组件
-│   ├── content/            # Blog content / 博客内容
-│   │   ├── pages/
-│   │   └── posts/
-│   ├── i18n/               # Internationalization / 国际化
-│   ├── layouts/            # Page layouts / 页面布局
-│   ├── pages/              # Routes / 页面路由
-│   ├── scripts/            # Client-side scripts / 客户端脚本
-│   ├── styles/             # Global styles / 全局样式
-│   ├── types/              # Type definitions / 类型定义
-│   └── utils/              # Utility functions / 工具函数
+│ ├── assets/ 参与构建的图片与图标
+│ ├── components/ 可复用组件
+│ ├── content/ 友链 / 说说 / 项目（Markdown 文件）
+│ │ ⚠️ 没有 posts/ —— 文章在数据库的 posts 表里
+│ ├── db/ 表结构、仓库函数、Neon HTTP 驱动
+│ ├── i18n/ 文案（types.ts + lang/zh.ts + lang/en.ts）
+│ ├── layouts/ 页面布局
+│ ├── lib/ 认证、订阅源、重建通知这类服务端逻辑
+│ ├── pages/ 文件路径 = 网址。index.astro → /
+│ ├── scripts/ 只在浏览器里跑的小脚本
+│ ├── styles/ 全局样式与设计 token
+│ ├── types/ 站点配置的类型定义
+│ └── utils/ 纯函数
 │
-├── astro.config.ts         # Astro configuration / Astro 配置
-├── astro-paper.config.ts   # Site configuration / 网站配置
-├── package.json            # Project dependencies / 项目依赖
-├── package-lock.json       # Dependency lockfile / 依赖锁定文件
-└── tsconfig.json           # TypeScript configuration / TypeScript 配置
-```
+├── astro.config.ts Astro 配置
+├── astro-paper.config.ts 站点配置（站名、每页篇数、功能开关）
+├── drizzle.config.ts drizzle-kit 配置（迁移）
+├── package.json 依赖与命令
+└── tsconfig.json TypeScript 配置
+
+````
 
 ## 🧩 可选模块 / Optional modules
 
@@ -84,10 +95,10 @@ Personal blog built with **Astro**.
 | 分享按钮              | `astro-paper.config.ts` 的 `shareLinks`                                                                                              | 把数组清空：`shareLinks: []`                                                                                               |
 | 编辑本页链接          | `astro-paper.config.ts` 的 `features.editPost`                                                                                       | 改成 `{ enabled: false }`                                                                                                  |
 | 在线写作后台          | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                        | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                        |
-| 文章存数据库          | `src/db/loaders/posts.ts`<br>`src/content.config.ts` 里的 `loader`<br>`scripts/import-posts.ts`                                      | 照 `src/db/loaders/posts.ts` 文件头写的 3 步做（换回 `glob()` + 把文章放回 `src/content/posts/`）                          |
+| 文章存数据库          | `src/db/loaders/posts.ts`<br>`src/content.config.ts` 里的 `loader`<br>`scripts/import-posts.ts`                                      | 照 `src/db/loaders/posts.ts` 文件头写的 3 步做（换成 `glob()` + 把文章放回 `src/content/posts/`，那个目录现在没有，要自己建） |
 | 保存后自动重建        | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                           | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                                  |
-| 练习册                | `practice/`                                                                                                                          | 整个目录删掉，再删 `package.json` 里的 `learn*` 三个脚本                                                                   |
-| 学习路线              | `docs/`                                                                                                                              | 整个目录删掉                                                                                                               |
+| 练习册                | `practice/`                                                                                                                          | 整个目录删掉，再删 `package.json` 里的 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
+| 学习路线              | `docs/LEARNING-ROADMAP.md`                                                                                                           | 只删这一个文件。⚠️ 不要整个删掉 `docs/` —— 里面还有部署指南和素材说明                                                     |
 
 ## 📚 学习资料 / Learning
 
@@ -99,7 +110,7 @@ Personal blog built with **Astro**.
 npm run learn          # 看题目
 npm run learn:check    # 判你的答案
 npm run learn:answers  # 判标准答案（用来确认练习册本身没坏）
-```
+````
 
 ## 🗄️ 数据库 / Database
 
@@ -110,7 +121,7 @@ npm run db:generate    # 改完 schema 后生成迁移文件
 npm run db:migrate     # 把迁移应用到数据库
 npm run db:studio      # 打开可视化界面查看数据
 npm run db:test        # 跑数据层测试
-npm run posts:import   # 把 src/content/posts/ 下的 Markdown 导入数据库
+npm run posts:import   # 把 Markdown 文章导入数据库（要自己准备好这些文件）
 ```
 
 ### 文章存在数据库里
@@ -284,7 +295,7 @@ http://localhost:4321/admin
 （见 `src/pages/api/session/[...path].ts`）。
 
 ```bash
-npm run api:test       # 跑 API 测试（用内存数据库，53 项断言）
+npm run api:test       # 跑 API 测试（用内存数据库，62 项断言）
 ```
 
 ### 接口一览
@@ -327,14 +338,14 @@ npm run api:test       # 跑 API 测试（用内存数据库，53 项断言）
 
 完整说明见 `.env.example`，这里只列清单：
 
-| 变量                     | 用途                                       |
-| ------------------------ | ------------------------------------------ |
-| `DATABASE_URL`           | 数据库连接串（要带 `-pooler`）             |
-| `BETTER_AUTH_SECRET`     | 登录状态加密用的密钥                       |
-| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID              |
-| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的密钥                    |
-| `GITHUB_OWNER_ID`        | 只允许这个 GitHub 用户登录                 |
-| `NETLIFY_BUILD_HOOK_URL` | 保存文章后自动触发重建（见「数据库」那节） |
+| 变量                     | 用途                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`           | 数据库连接串（用 Neon 控制台里 Pooled 那条，带 `-pooler`；理由见 [部署指南](docs/DEPLOYMENT.md)） |
+| `BETTER_AUTH_SECRET`     | 登录状态加密用的密钥                                                                              |
+| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID                                                                     |
+| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的密钥                                                                           |
+| `GITHUB_OWNER_ID`        | 只允许这个 GitHub 用户登录                                                                        |
+| `NETLIFY_BUILD_HOOK_URL` | 保存文章后自动触发重建（见「数据库」那节）                                                        |
 
 ⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 和 `NETLIFY_BUILD_HOOK_URL`
 泄露都会出事（前两个能冒充你登录，最后一个谁拿到都能触发构建）。
