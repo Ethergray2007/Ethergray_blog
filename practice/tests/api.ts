@@ -247,6 +247,15 @@ check(
   "标题超长返回 422",
   (await asUser("POST", "/api/posts", { title: "字".repeat(300) })).status === 422
 );
+check(
+  "不支持的文章状态返回 422",
+  (
+    await asUser("POST", "/api/posts", {
+      title: "状态无效",
+      status: "published!",
+    })
+  ).status === 422
+);
 
 // slug 冲突
 const takenSlug = post?.slug as string;
@@ -255,6 +264,65 @@ const conflict = await asUser("POST", "/api/posts", {
   slug: takenSlug,
 });
 check("slug 重复返回 409", conflict.status === 409, `实际 ${conflict.status}`);
+
+const concurrentSlug = "concurrent-duplicate-slug";
+const concurrentCreates = await Promise.all([
+  asUser("POST", "/api/posts", {
+    title: "并发文章一",
+    slug: concurrentSlug,
+  }),
+  asUser("POST", "/api/posts", {
+    title: "并发文章二",
+    slug: concurrentSlug,
+  }),
+]);
+const concurrentStatuses = concurrentCreates.map(result => result.status).sort();
+check(
+  "并发创建相同 slug 返回一个 201 和一个 409",
+  concurrentStatuses[0] === 201 && concurrentStatuses[1] === 409,
+  `实际 ${concurrentStatuses.join(", ")}`
+);
+check(
+  "并发 slug 冲突返回统一错误码",
+  concurrentCreates.some(
+    result =>
+      result.status === 409 && result.body?.code === "SLUG_TAKEN"
+  )
+);
+
+const updateRacePosts = await Promise.all([
+  asUser("POST", "/api/posts", {
+    title: "待更新文章一",
+    slug: "update-race-one",
+  }),
+  asUser("POST", "/api/posts", {
+    title: "待更新文章二",
+    slug: "update-race-two",
+  }),
+]);
+const updateRaceIds = updateRacePosts.map(
+  result =>
+    (result.body?.post as { id?: number } | undefined)?.id
+);
+const concurrentUpdates =
+  updateRaceIds[0] !== undefined && updateRaceIds[1] !== undefined
+    ? await Promise.all([
+        asUser("PATCH", `/api/posts/${updateRaceIds[0]}`, {
+          slug: "update-race-target",
+        }),
+        asUser("PATCH", `/api/posts/${updateRaceIds[1]}`, {
+          slug: "update-race-target",
+        }),
+      ])
+    : [];
+const concurrentUpdateStatuses = concurrentUpdates
+  .map(result => result.status)
+  .sort();
+check(
+  "并发更新为相同 slug 返回一个 200 和一个 409",
+  concurrentUpdateStatuses[0] === 200 && concurrentUpdateStatuses[1] === 409,
+  `实际 ${concurrentUpdateStatuses.join(", ")}`
+);
 
 /* ==================================================================
  * 5. 读取单篇
@@ -306,6 +374,14 @@ check("标题已更新", patchedPost?.title === "改过的标题");
 check(
   "只改标题时其他字段不变",
   patchedPost?.description === "这是摘要" && patchedPost?.status === "draft"
+);
+const invalidStatusPatch = await asUser("PATCH", `/api/posts/${postId}`, {
+  status: "published!",
+});
+check(
+  "修改时传入不支持的状态返回 422",
+  invalidStatusPatch.status === 422,
+  `实际 ${invalidStatusPatch.status}`
 );
 
 /**

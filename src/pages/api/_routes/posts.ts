@@ -20,7 +20,7 @@ import {
   listAllPosts,
   updatePost,
 } from "../../../db/repositories/posts.ts";
-import { POST_STATUS } from "../../../db/schema.ts";
+import { POST_STATUS, type PostRow } from "../../../db/schema.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
 import {
   notifyNetlifyRebuild,
@@ -86,6 +86,37 @@ function toSlug(input: string): string {
 /** 校验 status 是不是允许的取值 */
 function isPostStatus(value: unknown): value is "draft" | "published" {
   return value === POST_STATUS.draft || value === POST_STATUS.published;
+}
+
+/** 识别 slug 唯一索引冲突；Drizzle 会把驱动错误放在 cause 链上 */
+function isSlugUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+
+  for (let depth = 0; depth < 5 && current; depth++) {
+    if (typeof current !== "object") {
+      return false;
+    }
+
+    const cause = current as {
+      cause?: unknown;
+      code?: unknown;
+      constraint?: unknown;
+      message?: unknown;
+    };
+
+    if (
+      cause.constraint === "posts_slug_unique" ||
+      (cause.code === "23505" &&
+        typeof cause.message === "string" &&
+        cause.message.includes("posts_slug_unique"))
+    ) {
+      return true;
+    }
+
+    current = cause.cause;
+  }
+
+  return false;
 }
 
 /**
@@ -283,15 +314,29 @@ export function postRoutes(
           };
         }
 
-        const post = await createPost(db, {
-          slug,
-          title: body.title,
-          description: body.description ?? "",
-          body: body.body ?? "",
-          tags: body.tags ?? [],
-          status: isPostStatus(body.status) ? body.status : POST_STATUS.draft,
-          featured: body.featured ?? false,
-        });
+        let post: PostRow;
+
+        try {
+          post = await createPost(db, {
+            slug,
+            title: body.title,
+            description: body.description ?? "",
+            body: body.body ?? "",
+            tags: body.tags ?? [],
+            status: isPostStatus(body.status) ? body.status : POST_STATUS.draft,
+            featured: body.featured ?? false,
+          });
+        } catch (error) {
+          if (!isSlugUniqueViolation(error)) {
+            throw error;
+          }
+
+          set.status = 409;
+          return {
+            error: `网址标识「${slug}」已被占用，换一个或清空让它自动生成。`,
+            code: API_ERROR.slugTaken,
+          };
+        }
 
         /**
          * 先写库，再通知重建 —— 顺序不能反。
@@ -414,17 +459,31 @@ export function postRoutes(
          * 只把"确实传了的字段"交给仓库层。
          * 直接传 undefined 会把字段更新成 NULL，那是覆盖而不是局部修改。
          */
-        const post = await updatePost(db, id, {
-          ...(body.title !== undefined && { title: body.title }),
-          ...(body.description !== undefined && {
-            description: body.description,
-          }),
-          ...(body.body !== undefined && { body: body.body }),
-          ...(body.tags !== undefined && { tags: body.tags }),
-          ...(body.slug !== undefined && { slug: body.slug }),
-          ...(body.featured !== undefined && { featured: body.featured }),
-          ...(isPostStatus(body.status) && { status: body.status }),
-        });
+        let post: PostRow | null;
+
+        try {
+          post = await updatePost(db, id, {
+            ...(body.title !== undefined && { title: body.title }),
+            ...(body.description !== undefined && {
+              description: body.description,
+            }),
+            ...(body.body !== undefined && { body: body.body }),
+            ...(body.tags !== undefined && { tags: body.tags }),
+            ...(body.slug !== undefined && { slug: body.slug }),
+            ...(body.featured !== undefined && { featured: body.featured }),
+            ...(isPostStatus(body.status) && { status: body.status }),
+          });
+        } catch (error) {
+          if (!isSlugUniqueViolation(error)) {
+            throw error;
+          }
+
+          set.status = 409;
+          return {
+            error: `网址标识「${body.slug ?? ""}」已被占用。`,
+            code: API_ERROR.slugTaken,
+          };
+        }
 
         if (!post) {
           set.status = 404;

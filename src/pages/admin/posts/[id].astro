@@ -49,7 +49,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       </a>
     </div>
 
-    <p id="status" class="text-error mb-4 text-sm"></p>
+    <p id="status-message" class="text-error mb-4 text-sm"></p>
 
     <form id="post-form" class="flex flex-col gap-5">
       {/* 标题 */}
@@ -110,10 +110,10 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       {/* 状态 + 置顶 */}
       <div class="flex flex-wrap items-center gap-6">
         <div class="flex items-center gap-2">
-          <label class="label" for="status">
+          <label class="label" for="post-status">
             <span class="label-text">{t.admin.fieldStatus}</span>
           </label>
-          <select id="status" class="select select-bordered select-sm">
+          <select id="post-status" class="select select-bordered select-sm">
             <option value="draft">{t.admin.statusDraft}</option>
             <option value="published">{t.admin.statusPublished}</option>
           </select>
@@ -207,10 +207,12 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     document.querySelector<HTMLInputElement>("#description");
   const bodyInput = document.querySelector<HTMLTextAreaElement>("#body");
   const tagsInput = document.querySelector<HTMLInputElement>("#tags");
-  const statusSelect = document.querySelector<HTMLSelectElement>("#status");
+  const statusSelect =
+    document.querySelector<HTMLSelectElement>("#post-status");
   const featuredInput = document.querySelector<HTMLInputElement>("#featured");
   const saveButton = document.querySelector<HTMLButtonElement>("#save");
-  const statusEl = document.querySelector<HTMLParagraphElement>("#status");
+  const statusEl =
+    document.querySelector<HTMLParagraphElement>("#status-message");
   const savedEl = document.querySelector<HTMLSpanElement>("#saved");
   const rebuildButton = document.querySelector<HTMLButtonElement>("#rebuild");
   const rebuildStatusEl =
@@ -225,6 +227,25 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     }
   }
 
+  function errorMessage(error: unknown, fallback: string): string {
+    if (error instanceof ApiRequestError) {
+      switch (error.code) {
+        case "BAD_REQUEST":
+          return cfg.texts.apiBadRequest ?? fallback;
+        case "NOT_FOUND":
+          return cfg.texts.apiNotFound ?? fallback;
+        case "SLUG_TAKEN":
+          return cfg.texts.apiSlugTaken ?? fallback;
+        case "INTERNAL":
+          return cfg.texts.apiInternal ?? fallback;
+        default:
+          return cfg.texts.apiRequestFailed ?? fallback;
+      }
+    }
+
+    return error instanceof Error ? error.message : fallback;
+  }
+
   /**
    * 这次改动对线上的影响，该跟作者说什么。
    *
@@ -232,7 +253,10 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
    * "要不要自动重建"这条规则只写在 src/pages/api/_routes/posts.ts 里，
    * 前端再抄一份的话，迟早两边对不上。
    */
-  function rebuildMessage(outcome: RebuildOutcome | null): string {
+  function rebuildMessage(
+    outcome: RebuildOutcome | null,
+    savedStatus?: string
+  ): string {
     switch (outcome) {
       case "triggered":
         return cfg.texts.rebuildOk ?? "";
@@ -244,11 +268,13 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         return cfg.texts.rebuildFailed ?? "";
 
       /**
-       * null = 后端**没有**触发重建。会走到这里的只有一种情况：
-       * 改了一篇已发布文章的正文/标题/标签。页面还在线上，只是内容旧了，
-       * 所以提醒作者点旁边的按钮。
+       * null 也可能是保存草稿，此时不需要重建，也不该提示作者发布。
        */
       default:
+        if (savedStatus === "draft") {
+          return cfg.texts.savedAsDraft ?? "";
+        }
+
         return cfg.texts.savedNeedsRebuild ?? "";
     }
   }
@@ -293,7 +319,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   /** 编辑模式下把文章内容填进表单 */
   async function loadExisting(): Promise<void> {
     if (currentId === null || Number.isNaN(currentId)) {
-      showError("网址里的文章编号不对。");
+      showError(cfg.texts.invalidPostId ?? "");
       return;
     }
 
@@ -313,7 +339,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         return;
       }
 
-      showError(error instanceof Error ? error.message : "加载失败。");
+      showError(errorMessage(error, cfg.texts.loadFailed ?? ""));
     }
   }
 
@@ -324,13 +350,13 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     const data = collectForm();
 
     if (String(data.title).length === 0) {
-      showError("标题不能为空。");
+      showError(cfg.texts.titleRequired ?? "");
       return;
     }
 
     if (saveButton) {
       saveButton.disabled = true;
-      saveButton.textContent = cfg.texts.saving ?? "保存中……";
+      saveButton.textContent = cfg.texts.saving ?? "";
     }
 
     try {
@@ -354,7 +380,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       }
 
       if (savedEl) {
-        savedEl.textContent = cfg.texts.saved ?? "已保存";
+        savedEl.textContent = cfg.texts.saved ?? "";
       }
 
       /**
@@ -362,7 +388,10 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
        * 保存成功不等于上线 —— 站点是构建时生成的静态 HTML。
        */
       if (rebuildStatusEl) {
-        rebuildStatusEl.textContent = rebuildMessage(rebuild);
+        rebuildStatusEl.textContent = rebuildMessage(
+          rebuild,
+          String(data.status)
+        );
       }
     } catch (error) {
       if (error instanceof NotLoggedInError) {
@@ -370,11 +399,11 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         return;
       }
 
-      showError(error instanceof Error ? error.message : "保存失败。");
+      showError(errorMessage(error, cfg.texts.saveFailed ?? ""));
     } finally {
       if (saveButton) {
         saveButton.disabled = false;
-        saveButton.textContent = cfg.texts.save ?? "保存";
+        saveButton.textContent = cfg.texts.save ?? "";
       }
     }
   });
@@ -390,7 +419,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     clearMessages();
 
     if (rebuildStatusEl) {
-      rebuildStatusEl.textContent = cfg.texts.rebuilding ?? "正在请求……";
+      rebuildStatusEl.textContent = cfg.texts.rebuilding ?? "";
     }
 
     if (rebuildButton) {
@@ -410,7 +439,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         return;
       }
 
-      showError(error instanceof Error ? error.message : "重建请求失败。");
+      showError(errorMessage(error, cfg.texts.rebuildRequestFailed ?? ""));
     } finally {
       if (rebuildButton) {
         rebuildButton.disabled = false;

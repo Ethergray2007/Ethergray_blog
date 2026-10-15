@@ -306,6 +306,18 @@ export interface UIStrings {
     rebuildFailed: string;
     /** 保存之后的提醒：这次的改动不会自动上线 */
     savedNeedsRebuild: string;
+    /** 保存草稿之后的提示：草稿不会出现在站点上 */
+    savedAsDraft: string;
+    invalidPostId: string;
+    titleRequired: string;
+    loadFailed: string;
+    saveFailed: string;
+    rebuildRequestFailed: string;
+    apiBadRequest: string;
+    apiNotFound: string;
+    apiSlugTaken: string;
+    apiInternal: string;
+    apiRequestFailed: string;
     /** 按钮旁那行小字，写明点一下要花多少积分 */
     rebuildHint: string;
 

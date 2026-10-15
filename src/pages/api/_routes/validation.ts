@@ -46,7 +46,9 @@ export const createPostSchema = Type.Object({
   tags: Type.Optional(
     Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 })
   ),
-  status: Type.Optional(Type.String()),
+  status: Type.Optional(
+    Type.Union([Type.Literal("draft"), Type.Literal("published")])
+  ),
   featured: Type.Optional(Type.Boolean()),
   slug: Type.Optional(Type.String({ maxLength: 200 })),
 });
