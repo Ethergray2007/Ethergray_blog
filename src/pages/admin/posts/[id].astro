@@ -185,6 +185,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   import {
     postsApi,
     rebuildApi,
+    ApiRequestError,
     NotLoggedInError,
     type RebuildOutcome,
   } from "@/utils/adminApi";
