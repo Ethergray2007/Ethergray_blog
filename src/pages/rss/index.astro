@@ -15,13 +15,9 @@
  * 它由相对路径 + Astro.site（= astro-paper.config.ts 里的 site.url）
  * 拼出来，所以换域名时这里一行都不用改。
  *
- * ⚠️ 相对路径是**写死的 "/rss.xml"**，没有走 getRelativeLocaleUrl()。
- *   那个函数在 Astro 7 里会给非页面路由补一个结尾斜杠：
- *   getRelativeLocaleUrl("zh", "rss.xml") → "/rss.xml/"（构建产物里实测过，
- *   Layout.astro 的 <link rel="alternate"> 现在就是这个带斜杠的地址）。
- *   Netlify 恰好把 /rss.xml/ 也解析到了那个文件（实测两个都返回 200），
- *   但订阅地址是要**给别人抄走**的：换个托管平台、或者阅读器不跟 301，
- *   带斜杠的那个就 404 了。Hero.astro 里的 RSS 链接也是写的 "/rss.xml"。
+ * ⚠️ 订阅源是全语言共用的端点，不能走 getRelativeLocaleUrl()：
+ *   它会给 URL 加语言前缀（英文页可能变成 /en/rss.xml/），而这个路由并不存在。
+ *   Layout.astro 的 alternate 链接也必须保持无语言前缀、无结尾斜杠。
  *
  * 【为什么只列 RSS 一个地址】
  * RSS 2.0 所有阅读器都认；Atom 同时在 <head> 里声明着
