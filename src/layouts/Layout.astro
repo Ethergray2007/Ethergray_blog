@@ -46,7 +46,24 @@ const atomHref = getAssetPath("atom.xml");
 >
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {
+      /*
+        ⚠️ `viewport-fit=cover` 不能删 —— 它是整站 safe-area 的**总开关**。
+
+        不写这个（默认是 `viewport-fit=auto`）时，浏览器会把页面
+        限制在"安全区"内，于是 CSS 里读到的
+          env(safe-area-inset-top / bottom / left / right)
+        **全部是 0**。也就是说下面那些给刘海屏留白的地方会一行都不生效，
+        而且在 iPhone 上表现为：页面永远进不了刘海和 Home 指示条那两条区域。
+
+        写了之后页面铺满整块屏幕，再由我们自己用 env() 把内容推回安全区
+        （见 nav.css 的 #site-header 和 back-to-top.css）。
+      */
+    }
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
 
     {
       /*
@@ -130,7 +147,28 @@ const atomHref = getAssetPath("atom.xml");
     />
 
     <!-- Browser theme color -->
-    <meta name="theme-color" content="#fdfdfd" />
+    {
+      /*
+        两条 theme-color：浏览器按当前系统深浅色自己挑一条。
+        写 <meta name="theme-color"> 时它只影响**移动端地址栏**的着色，
+        桌面浏览器忽略 —— 所以这里不需要 CSS 或 JS 参与。
+
+        ⚠️ 这两个色值必须和 atmosphere.css 里的 --page-bg **保持一致**，
+        不能凭印象写。它原来是硬编码的 #fdfdfd（既不是浅色的 #f7f7fb、
+        也不是深色的 #0b0e15）—— 结果是地址栏永远偏白，
+        深色模式下和页面顶部之间会露出一条明显的色差。
+      */
+    }
+    <meta
+      name="theme-color"
+      content="#f7f7fb"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0b0e15"
+      media="(prefers-color-scheme: dark)"
+    />
 
     <slot name="head" />
 

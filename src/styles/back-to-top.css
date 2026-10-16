@@ -36,6 +36,21 @@
   bottom: 2rem;
   z-index: 45;
 
+  /*
+   * 刘海屏 / 手势条补偿（对应 Layout.astro 里的 viewport-fit=cover）。
+   *
+   * 「底部留 32px」是给**普通手机**准备的经验值，但 iPhone 的
+   * home indicator 和 Android 的手势导航条高度并不固定（34px / 48px…），
+   * 写死的 32px 在那些机型上会让按钮压在系统手势区里 ——
+   * 点它会先触发系统手势。
+   *
+   * env() 拿到的是**这台设备实际的安全区高度**，非刘海机型返回 0。
+   * 外面套 max() 是为了兼容老浏览器：不认识 env() 时整条声明作废，
+   * 保留上一行的 2rem，而不是把按钮甩到屏幕外。
+   */
+  bottom: max(2rem, calc(env(safe-area-inset-bottom) + 0.75rem));
+  right: calc(0.5rem + env(safe-area-inset-right));
+
   display: grid;
   place-items: center;
   width: 2.5rem;

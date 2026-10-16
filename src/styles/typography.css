@@ -66,6 +66,19 @@
       th {
         @apply py-1.5;
       }
+
+      /*
+       * 宽表格在手机上靠横向滚动看（Tailwind Typography 的 prose 已经
+       * 给 table 加了 overflow-x: auto，所以不用自己再包一层容器）。
+       *
+       * ⚠️ 但滚到边界会**把滚动传给外层**：手指继续往左划，页面会开始
+       * 上下动，或者触发浏览器自己的「后退」手势 —— 表现是"看表格时
+       * 页面乱跑"。overscroll-behavior-x: contain 把滚动关在这个盒子里。
+       *
+       * 别改用 touch-action: pan-x —— 那会**禁掉表格区域的上下滚**，
+       * 手指按在表格上就划不动页面了。overscroll 才是对的那一个。
+       */
+      overscroll-behavior-x: contain;
     }
 
     code {

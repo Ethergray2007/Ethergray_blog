@@ -55,6 +55,18 @@
   html {
     font-family: var(--font-sans);
     -webkit-text-size-adjust: 100%;
+
+    /*
+     * 锚点落点补偿。
+     *
+     * 页眉是 position: sticky（见 nav.css 的 #site-header），
+     * 所以点文章目录（TOC）或 `#标题` 链接跳转时，目标标题会**停在
+     * 页眉底下**被盖住 —— 表现是"点了目录，跳到那一节但看不见标题"。
+     *
+     * scroll-padding-top 让浏览器在滚动定位时预留这段距离，
+     * 不用给每个标题加 scroll-margin-top。5rem = 页眉高度 4rem + 一点余量。
+     */
+    scroll-padding-top: 5rem;
   }
 
   * {

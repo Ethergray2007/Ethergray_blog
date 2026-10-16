@@ -63,6 +63,29 @@
   border-radius: 0 0 0.75rem 0.75rem;
 
   /*
+   * ============================================================
+   * 刘海屏 / 挖孔屏的安全区补偿
+   * ============================================================
+   *
+   * 配合 Layout.astro 里的 `viewport-fit=cover`：页面铺满整块屏幕
+   * （包括刘海底下那一条），再由我们自己把导航内容推回安全区。
+   *
+   * 只加 padding、**不加高度**，因为 .nav-glass 的高度是内容撑的
+   * （有一个 min-h，见下），所以加在它外面不会把导航条压扁 ——
+   * 表现出来就是「在 iPhone 上导航条比 iPhone SE 上矮一点/高一点」，
+   * 而不是内容被挤爆。写死 height 就会出现后一种情况。
+   *
+   * 横屏时刘海会跑到左边（右侧），所以左右也要补。
+   * 竖屏手机上 env(safe-area-inset-left/right) 基本都是 0，不影响。
+   *
+   * 注意：padding 加在 #site-header 这个**吸顶外壳**上，
+   * 下面那条品牌渐变亮线是 `.nav-glass::before`（在 padding 里面），
+   * 所以亮线不会跑到刘海区域里去。
+   */
+  padding-top: env(safe-area-inset-top);
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+
+  /*
    * ⚠️ 这里**不能**加 overflow: hidden。
    * 吸顶元素一旦裁剪，它下面的内容滚动时会被"咬掉"一块，
    * 而且 sticky 的定位基准也会受影响。
@@ -529,6 +552,28 @@
   transition:
     border-color 0.25s ease,
     background-color 0.25s ease;
+}
+
+/*
+ * 命中区扩展：视觉上仍然是 40×22 的胶囊，但**可点范围**撑到 40×44。
+ *
+ * 为什么需要它：SC 2.5.8 只是底线（24×24），而这个项目给页眉里的图标按钮
+ * 定的标准是 44×44（见 .nav-icon-btn）。主题开关是页眉里**唯一**一个
+ * 不到那个标准的控件 —— 40×22，而它出现在每一页上。
+ *
+ * 为什么用伪元素撑、而不是直接把 height 改大：
+ * 胶囊的 40×22 是按开与关的形状调的（见上面那段注释），改高就变成
+ * 另一个东西了。撑命中区不动外观，是这两件事各归各位。
+ *
+ * 为什么用 ::before 而不是 ::after：::after 已经被滑块占了。
+ *
+ * 只往上下撑（左右不撑）是有意的 —— 左右各挨着搜索按钮和汉堡按钮，
+ * 横向撑开会把它们的点击区叠掉。
+ */
+.theme-switch::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
 }
 
 .theme-switch:hover {

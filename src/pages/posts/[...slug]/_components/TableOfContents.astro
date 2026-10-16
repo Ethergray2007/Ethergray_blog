@@ -96,9 +96,24 @@ const visibleHeadings = headings.filter(
         <ul class="border-base-300 space-y-2 border-s ps-4 text-sm">
           {visibleHeadings.map(heading => (
             <li class:list={[{ "ps-4": heading.depth === 3 }]}>
+              {/*
+                ⚠️ `block py-1` 不能删，它解决的是两个真实问题：
+
+                ① 触屏目标太小。链接原来只有 18px 高（text-sm 的行高），
+                   而 WCAG 2.2 SC 2.5.8 要求 24×24。加上 py-1 之后是
+                   26px，直接达标，不用去蹭"间距例外"那条豁免。
+
+                ② 第一条目录**紧贴着上面的 <summary>**（nav 没有 pt，
+                   间距是 0）。手机上想点第一条，很容易点到 summary，
+                   结果是目录被收起来 —— 而 summary 也是可点的。
+
+                改 py-1 而不是给 nav 加 pt：光加间距只能让第一条勉强
+                不撞，链接本身还是 18px 的小目标；把链接撑到 26px
+                两个问题一起解决。block 顺带让整行可点，行内更好按。
+              */}
               <a
                 href={`#${heading.slug}`}
-                class="text-base-content-strong hover:text-primary link-hover transition-colors"
+                class="text-base-content-strong hover:text-primary link-hover block py-1 transition-colors"
               >
                 {heading.text}
               </a>
