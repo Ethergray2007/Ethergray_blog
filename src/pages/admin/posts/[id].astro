@@ -60,7 +60,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         <input
           id="title"
           type="text"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full text-base sm:text-sm"
           required
         />
       </div>
@@ -70,7 +70,11 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         <label class="label" for="slug">
           <span class="label-text">{t.admin.fieldSlug}</span>
         </label>
-        <input id="slug" type="text" class="input input-bordered w-full" />
+        <input
+          id="slug"
+          type="text"
+          class="input input-bordered w-full text-base sm:text-sm"
+        />
         <p class="mt-1 text-xs opacity-60">{t.admin.slugHint}</p>
       </div>
 
@@ -82,7 +86,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         <input
           id="description"
           type="text"
-          class="input input-bordered w-full"
+          class="input input-bordered w-full text-base sm:text-sm"
         />
       </div>
 
@@ -91,10 +95,20 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         <label class="label" for="body">
           <span class="label-text">{t.admin.fieldBody}</span>
         </label>
+
+        {
+          /*
+          ⚠️ `text-base sm:text-sm` 看着绕，但不能只写 text-sm：
+          移动端 Safari（iOS）在聚焦 font-size < 16px 的输入框时会
+          **自动放大整个页面**，而且不会自己缩回去 —— 手机上写作时
+          每点一次正文框就被放大一次。所以手机上强制 16px，
+          桌面端才回到 14px。标题 / 摘要 / 标签那几个框同理。
+        */
+        }
         <textarea
           id="body"
           rows="16"
-          class="textarea textarea-bordered w-full font-mono text-sm"
+          class="textarea textarea-bordered w-full font-mono text-base sm:text-sm"
         ></textarea>
       </div>
 
@@ -103,7 +117,11 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         <label class="label" for="tags">
           <span class="label-text">{t.admin.fieldTags}</span>
         </label>
-        <input id="tags" type="text" class="input input-bordered w-full" />
+        <input
+          id="tags"
+          type="text"
+          class="input input-bordered w-full text-base sm:text-sm"
+        />
         <p class="mt-1 text-xs opacity-60">{t.admin.tagsHint}</p>
       </div>
 
