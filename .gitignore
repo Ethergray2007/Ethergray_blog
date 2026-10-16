@@ -41,6 +41,15 @@ pnpm-debug.log*
 # 调试时截的页面截图，不是项目内容
 .dsh-shots/
 
+# Playwright 下载的无头浏览器（约 120 MB）和它截的图。
+#
+# ⚠️ 浏览器本体只能放在项目内：这台机器的沙箱不允许写
+#    %LOCALAPPDATA%\ms-playwright，默认路径会直接 spawn EPERM。
+#    所以用 PLAYWRIGHT_BROWSERS_PATH 指到项目里 —— 但这样就**必须**
+#    挡住它，否则一次 git add -A 就是一百多兆的二进制进仓库。
+.playwright-browsers/
+practice/_shots/
+
 # 本项目专用的 npm 缓存（避免写全局缓存目录，也避免误提交）
 .npm-cache/
 
