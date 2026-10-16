@@ -120,8 +120,15 @@ const navLinks = [
   >
     <!-- Hero -->
     <section class="py-8 sm:py-12 lg:py-16">
-      <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
-        <div>
+      {
+        /*
+        ⚠️ 两处 min-w-0 都是为了 .stats（见下面那段注释），删掉就会破版。
+      */
+      }
+      <div
+        class="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end"
+      >
+        <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
             <span class="badge badge-primary badge-soft"> Open Source </span>
             <span class="badge badge-outline"> Acknowledgements </span>
@@ -142,7 +149,28 @@ const navLinks = [
           </p>
         </div>
 
-        <div class="card border-base-300 bg-base-100 border shadow-sm">
+        {
+          /*
+          ⚠️ `min-w-0` 不能删 —— 这是手机端整页能左右晃的原因。
+
+          里面那个 `.stats` 是 daisyUI 的 **inline-grid + grid-auto-flow: column**，
+          它自己声明了 overflow-x: auto（本来就能横向滚），但那是"内容比容器宽"
+          时才生效的。问题出在**容器本身**：
+
+            两个 .stat 各 174px + 卡片的 p-6（左右各 24px） ≈ 397px
+            → 这个宽度成了卡片的 **min-content 宽度**
+            → 卡片是 grid 项，而 grid 项的 min-width 默认是 auto
+            → 外层那个单列 grid 被撑到 397px，整页跟着变宽
+
+          症状很迷惑：320px 的机器上页面宽 413px、能左右滑；
+          而 390px 的手机反而正常 —— 因为 397px 刚好挤得进 390px 的容器。
+          换句话说**只有 360px 以下的机型才会看到这个问题**。
+
+          加上 min-w-0 之后，列宽重新由容器决定，.stats 退回它自己的
+          横向滚动（卡宽不够时能划着看，不会顶破整页）。
+        */
+        }
+        <div class="card border-base-300 bg-base-100 min-w-0 border shadow-sm">
           <div class="card-body p-6">
             <div class="flex items-center justify-between">
               <span class="text-base-content-faint text-sm"> 本页涵盖 </span>
