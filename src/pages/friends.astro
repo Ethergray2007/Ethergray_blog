@@ -7,7 +7,7 @@
  * 想删掉这个页面？
  *   照 src/utils/getFriends.ts 文件头写的 6 步做。
  *
- * 【现在这个页面是空的，这是有意的】
+ * 【只展示真实友链】
  * 页面上只放**我自己认识的、真的在看的**博客，不对外开放申请。
  * 所以既没有"想交换友链？把信息按这个格式发给我"那种区块，
  * 也没有「在线」标记 —— 那种标记要么是假的（手写的），
@@ -55,13 +55,13 @@ const friends = getFriends(entries);
             也知道自己有没有滚到底。
             卡片自带足够的视觉重量，这里不需要再加一层"列表标题"。
           */}
-          <p class="text-base-content-faint text-xs">
+          <p class="text-base-content-muted text-sm">
             {tplStr(t.friends.count, { n: friends.length })}
           </p>
 
-          <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {friends.map(friend => (
-              <li class="flex">
+              <li class="flex min-w-0">
                 {/*
                   flex 是必要的：卡片是 flex 项，父级 <li> 不加 flex 的话
                   同一行两张卡片的高度会不一样（内容少的那张会短一截）。
