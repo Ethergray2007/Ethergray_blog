@@ -73,13 +73,14 @@
       textarea.style.opacity = "0";
       document.body.append(textarea);
       textarea.select();
-      // execCommand 已被标记为过时，但它是非安全上下文下唯一可行的方案。
-      // 现代浏览器优先走上面的 navigator.clipboard，这里只是兜底。
-      // 用 @ts-ignore 而不是 @ts-expect-error：
-      //   后者会在"没有错误可压制"时报错，而 tsc 和 Astro 语言服务
-      //   对这个 API 的判断不一致，会导致构建失败。
-      // @ts-ignore -- 故意调用被标记为 deprecated 的 API
-      const ok = document.execCommand("copy");
+      // execCommand 已被标记为过时，但它是非安全上下文下唯一可行的兜底方案。
+      // 窄化类型保留兼容调用；原生方法必须绑定 document，否则会报 Illegal invocation。
+      const execCommand = (
+        document as unknown as {
+          execCommand?: (command: string) => boolean;
+        }
+      ).execCommand;
+      const ok = execCommand ? execCommand.call(document, "copy") : false;
       textarea.remove();
       return ok;
     } catch {
