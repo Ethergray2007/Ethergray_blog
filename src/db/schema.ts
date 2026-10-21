@@ -10,9 +10,13 @@
  *   npm run db:migrate
  *
  * 为什么字段设计和 src/content.config.ts 尽力保持一致：
- *   现在文章存在 Markdown 文件里（frontmatter 定义在 content.config.ts）。
- *   以后文章会搬进数据库。两边字段对齐，搬迁时不用做字段映射，
- *   页面上展示的逻辑也不用改。
+ *   文章**已经搬进数据库**了（src/content/posts/ 那个目录没有了，
+ *   但 content.config.ts 里定义字段清单和类型的地方还在）。
+ *   搬运完成后两边继续对齐，作用变成"改一边时必须改另一边"：
+ *   数据库列和集合字段是同一份数据的两种写法，
+ *   真正做转换的是 src/db/loaders/posts.ts 的 toEntryData()。
+ *   字段一旦错位，页面上会表现为某个值变成 undefined，
+ *   而不是像类型错误那样当场报出来。
  * ============================================================
  */
 import { sql } from "drizzle-orm";
