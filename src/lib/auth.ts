@@ -70,19 +70,59 @@ export function readOwnerId(): number {
  * 线上用 Netlify 自动注入的 URL，本地开发时那个变量不存在，
  * 所以要允许 localhost 的几个端口。
  */
+function normalizeOrigin(value: string): string {
+  const trimmed = value.trim().replace(/\/$/, "");
+
+  return trimmed || "http://localhost:4321";
+}
+
+function readBaseURL(): string {
+  const envCandidates = [
+    process.env.BETTER_AUTH_URL,
+    process.env.URL,
+    process.env.DEPLOY_URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.NETLIFY_URL,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  const configured = envCandidates[0];
+
+  if (configured) {
+    return normalizeOrigin(configured);
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "缺少发布站点地址：请在 Netlify 的 Environment variables 里配置 BETTER_AUTH_URL 或 URL。"
+    );
+  }
+
+  return "http://localhost:4321";
+}
+
 function trustedOrigins(): string[] {
   const origins = ["http://localhost:4321", "http://127.0.0.1:4321"];
+  const baseURL = readBaseURL();
+
+  origins.push(baseURL);
+
+  if (baseURL.startsWith("https://")) {
+    origins.push(baseURL.replace(/^https:/, "http:"));
+  }
 
   if (process.env.URL) {
-    origins.push(process.env.URL);
+    origins.push(normalizeOrigin(process.env.URL));
   }
 
-  // Netlify 的预览站地址（每次部署都不同，用通配符匹配）
   if (process.env.DEPLOY_PRIME_URL) {
-    origins.push(process.env.DEPLOY_PRIME_URL);
+    origins.push(normalizeOrigin(process.env.DEPLOY_PRIME_URL));
   }
 
-  return origins;
+  if (process.env.DEPLOY_URL) {
+    origins.push(normalizeOrigin(process.env.DEPLOY_URL));
+  }
+
+  return [...new Set(origins)];
 }
 
 export const auth = betterAuth({
@@ -97,8 +137,7 @@ export const auth = betterAuth({
    * 本地开发时这个变量不存在，用它自己的默认值（localhost:3000）会出错，
    * 所以显式给一个。线上由 Netlify 的 URL 变量提供。
    */
-  baseURL:
-    process.env.BETTER_AUTH_URL ?? process.env.URL ?? "http://localhost:4321",
+  baseURL: readBaseURL(),
 
   /**
    * 换个路径，避开 /api/auth/。
@@ -181,9 +220,12 @@ export const auth = betterAuth({
           }
 
           const accountId = String(record.accountId ?? "");
+          const expectedOwnerId = String(readOwnerId());
 
-          if (accountId !== String(readOwnerId())) {
-            throw new Error("这个 GitHub 账号不是本博客的主人，无权登录。");
+          if (accountId !== expectedOwnerId) {
+            throw new Error(
+              `这个 GitHub 账号不是本博客的主人（期望 ${expectedOwnerId}，实际 ${accountId}），无权登录。`
+            );
           }
 
           return { data: account };
