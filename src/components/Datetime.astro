@@ -51,17 +51,21 @@ const date = datetime.format(dateFormat);
 ---
 
 <div class:list={[className]}>
+  <!-- 日期只是阅读辅助信息，去掉徽章外观，避免被误认为可点击的标签。 -->
   <time
     class:list={[
-      "badge badge-ghost gap-2",
+      "text-base-content-muted inline-flex flex-wrap items-center gap-x-2 gap-y-1 leading-6",
       {
-        "badge-sm": size === "sm",
-        "badge-lg": size === "lg",
+        "text-sm": size === "sm",
+        "text-base": size === "lg",
       },
     ]}
     datetime={datetime.toISOString()}
   >
-    <IconCalendar class:list={["size-4", { "size-5": size === "lg" }]} />
+    <IconCalendar
+      class:list={["size-4 shrink-0", { "size-5": size === "lg" }]}
+      aria-hidden="true"
+    />
 
     {isModified && <span>{t.post.updatedAt}:</span>}
 

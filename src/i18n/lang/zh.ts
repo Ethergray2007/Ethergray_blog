@@ -5,7 +5,8 @@ export default {
     home: "首页",
     posts: "文章",
     tags: "标签",
-    about: "关于",
+    about: "关于我",
+    credits: "本站与致谢",
     archives: "归档",
     search: "搜索",
     now: "近况",
@@ -49,6 +50,7 @@ export default {
     badge: "博客",
     heroLead: "一个个人博客，写技术，也写学习过程本身。",
     viewSource: "博客源码",
+    startReading: "开始阅读",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
     motionTitle: "动图",
@@ -79,6 +81,8 @@ export default {
 
     searchTitle: "搜索",
     searchDesc: "搜索文章……",
+    searchDevHintTitle: "开发环境提示",
+    searchDevHintBody: "Pagefind 搜索索引需要先执行一次生产构建。",
 
     nowTitle: "近况",
     nowDesc: "我现在在做什么、在学什么。",

@@ -64,8 +64,8 @@
    * 图片也确实 200 加载，但页面就是一片纯黑，看起来像"视频没生效"。
    * 素材本身完全没问题（抽帧检查过：帧平均亮度 130/255）。
    *
-   * 兜底底色现在写在 .hero-bg-layer 自己身上 —— 那一层是 fixed inset:0，
-   * 本来就要铺满整屏，底色跟着它走既保住兜底、又不会压住自己内部的内容。
+   * 兜底底色现在写在 .hero-bg-layer 自己身上 —— 那一层 absolute inset:0，
+   * 铺满首屏，既保住兜底、又不会压住自己内部的内容。
    */
 }
 
@@ -87,9 +87,7 @@
  * 排 z-index。代价是它必须由**画布底色**垫底 —— 祖先元素的不透明
  * 背景会把它整层盖住（见 .hero-fullscreen 里的说明）。
  *
- * ⚠️ 它的祖先里**不能**有 filter / transform / will-change ——
- * 那些属性会让那个祖先成为 fixed 的包含块（这一层现在是 absolute，
- * 影响的是它内部的定位基准）。页眉上的 backdrop-filter 不影响。
+ * 背景和文字各自一层，背景模糊不会影响标题与阅读入口。
  */
 .hero-bg-layer {
   position: absolute;
@@ -124,10 +122,9 @@
 /**
  * 静态背景图。
  *
- * 三个用途：
+ * 两个用途：
  *   1. 视频加载出来之前的首帧（避免一片黑）
- *   2. "减少动态效果"用户的最终画面
- *   3. 视频加载失败时的降级
+ *   2. 视频加载失败时的降级
  *
  * 【为什么用 CSS background 而不是 <img>】
  * 它是纯装饰、不需要 alt、也不需要被搜索引擎索引；
@@ -349,6 +346,36 @@
  * 链接行
  * ============================================================ */
 
+/* 实心阅读入口承担主动作，玻璃胶囊只保留辅助入口的视觉重量。
+ * 首屏是固定深色区，因此白底深字不跟随页面的主题切换。 */
+.hero-read-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  max-width: 100%;
+  margin-top: 1.75rem;
+  padding: 0.625rem 1.5rem;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #08090f;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-shadow: none;
+  transition: background-color 0.18s ease;
+}
+
+.hero-read-link:hover {
+  background: rgb(255 255 255 / 0.9);
+}
+
+.hero-read-link:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 4px;
+}
+
 .hero-links {
   display: flex;
   flex-wrap: wrap; /* 窄屏放不下就换行，不要横向溢出 */
@@ -371,9 +398,8 @@
  *   font-size       .875rem（14px），字重 500
  *   gap             0.375rem（图标与文字之间）
  *
- * 【为什么半透明白 + 模糊，而不是实心按钮】
- * 实心色块会在视频上"贴一块补丁"，把沉浸感打散；
- * 半透明 + 模糊是让画面**从按钮里透出来**，按钮属于画面的一部分。
+ * 【为什么辅助入口用半透明白 + 模糊】
+ * 半透明让辅助入口融进画面，把实心色块的视觉重量留给阅读主入口。
  *
  * 【为什么是 40px 高，而不是上一版的 44px 圆钮】
  * 44px 是 WCAG 2.5.5（AAA，增强级）的目标尺寸；2.5.8（AA，WCAG 2.2
@@ -401,8 +427,19 @@
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   transition:
-    background-color 0.2s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
     transform 0.15s ease;
+}
+
+@media (max-width: 40rem) {
+  .hero-links {
+    gap: 0.5rem;
+  }
+
+  .hero-link {
+    padding-inline: 0.875rem;
+  }
 }
 
 /* 图标 18px，比 14px 的文字略大一点，撑住胶囊的高度 */
@@ -413,13 +450,14 @@
 }
 
 /**
- * 悬停：底色变亮（14% → 28%）。
+ * 悬停：轻微提亮底色和边框，不移动按钮，避免抢过首屏画面。
  *
  * 参考站的 :hover 只做这一件事（`background: #ffffff47`）——
  * 胶囊本身已经是"可以按"的形状，不需要再靠位移或缩放解释自己。
  */
 .hero-link:hover {
-  background: rgb(255 255 255 / 0.28);
+  background: rgb(255 255 255 / 0.22);
+  border-color: rgb(255 255 255 / 0.6);
 }
 
 /**
@@ -507,14 +545,15 @@
  *   · 下滑提示的浮动动画（持续运动，最容易引起不适）
  *   · 按下时的缩放（位移类动效）
  *   · 背景模糊的渐进（滚动时持续变化）
- * 关掉之后首屏仍然是完整的静态画面，只是不动。
+ * 背景视频保留自动播放，只减少这里列出的装饰动效。
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll-hint {
     animation: none;
   }
 
-  .hero-link {
+  .hero-link,
+  .hero-read-link {
     transition: none;
   }
 

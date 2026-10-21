@@ -71,28 +71,30 @@ const notes = await Promise.all(
             <li class="relative pb-10 pl-6 last:pb-0">
               {/* 时间轴上的小圆点 */}
               <span
-                class="bg-base-100 border-base-300 absolute -left-[5px] mt-1.5 size-[9px] rounded-full border-2"
+                class="bg-base-100 border-primary/60 absolute -left-[5px] mt-1.5 size-[10px] rounded-full border-2 shadow-[0_0_0_2px_rgba(214,51,108,0.10)]"
                 aria-hidden="true"
               />
 
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Datetime
-                  pubDatetime={entry.data.date}
-                  timezone={config.site.timezone}
-                  size="sm"
-                />
-                {entry.data.tags.map(tag => (
-                  <span class="badge badge-ghost badge-sm">{tag}</span>
-                ))}
-              </div>
+              <div class="border-base-300 bg-base-100/80 rounded-[1.25rem] border p-4 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:p-5">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Datetime
+                    pubDatetime={entry.data.date}
+                    timezone={config.site.timezone}
+                    size="sm"
+                  />
+                  {entry.data.tags.map(tag => (
+                    <span class="badge badge-ghost badge-sm">{tag}</span>
+                  ))}
+                </div>
 
-              {/*
-                正文用 Astro 的 <Content /> 渲染（见上面 render 那段注释）。
-                内容是我们自己写的 Markdown，不是用户输入 ——
-                但即使是自己写的，走框架的渲染也比手写 innerHTML 少一类坑。
-              */}
-              <div class="prose prose-sm sm:prose-base dark:prose-invert mt-2 max-w-2xl">
-                <Content />
+                {/*
+                  正文用 Astro 的 <Content /> 渲染（见上面 render 那段注释）。
+                  内容是我们自己写的 Markdown，不是用户输入 ——
+                  但即使是自己写的，走框架的渲染也比手写 innerHTML 少一类坑。
+                */}
+                <div class="prose prose-sm sm:prose-base dark:prose-invert mt-3 max-w-2xl">
+                  <Content />
+                </div>
               </div>
             </li>
           ))}

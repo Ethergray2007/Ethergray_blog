@@ -5,7 +5,8 @@ export default {
     home: "Home",
     posts: "Posts",
     tags: "Tags",
-    about: "About",
+    about: "About me",
+    credits: "Site & credits",
     archives: "Archives",
     search: "Search",
     now: "Now",
@@ -46,6 +47,7 @@ export default {
     badge: "Blog",
     heroLead: "A personal blog about tech, and about learning itself.",
     viewSource: "Source code",
+    startReading: "Start reading",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
     motionTitle: "Motion",
@@ -74,6 +76,9 @@ export default {
 
     searchTitle: "Search",
     searchDesc: "Search any article ...",
+    searchDevHintTitle: "Development notice",
+    searchDevHintBody:
+      "The Pagefind search index needs one production build first.",
 
     nowTitle: "Now",
     nowDesc: "What I'm doing and learning right now.",

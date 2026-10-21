@@ -48,6 +48,12 @@ const t = useTranslations(locale);
             transition:persist
             data-backurl={backUrl}
             data-bundle-path={pagefindBundlePath}
+            data-dev-hint-title={import.meta.env.DEV
+              ? t.pages.searchDevHintTitle
+              : null}
+            data-dev-hint-body={import.meta.env.DEV
+              ? t.pages.searchDevHintBody
+              : null}
           >
           </div>
         </div>
@@ -59,6 +65,44 @@ const t = useTranslations(locale);
 </Layout>
 
 <script>
+  /**
+   * 开发环境那块提示的文字，由页面渲染进 data-* 属性。
+   *
+   * 【为什么不直接写在下面】
+   * 这个 script 是在浏览器里跑的，读不到服务端渲染时用的 t 对象。
+   * 写死中文的话英文站点会半中半英 —— 和文章页复制按钮
+   *（CopyCodeButton.astro）、/rss 页复制按钮是同一套办法。
+   */
+  function getDevHint(container: HTMLElement) {
+    return {
+      title: container.dataset.devHintTitle || "Development notice",
+      body:
+        container.dataset.devHintBody ||
+        "The Pagefind search index needs one production build first.",
+    };
+  }
+
+  /**
+   * 转成能塞进 innerHTML 的文本。
+   *
+   * 文案本身来自我们自己的 i18n 文件，正常不会带这些字符；
+   * 但这段是拼 HTML 字符串，先转义一下更稳妥 ——
+   * 将来谁在文案里写个 & 或者 < 都不会把这块结构弄坏。
+   */
+  function escapeHtml(text: string): string {
+    return text.replace(
+      /[&<>"']/g,
+      char =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char] ?? char
+    );
+  }
+
   function initSearch() {
     const pageFindSearch =
       document.querySelector<HTMLElement>("#pagefind-search");
@@ -86,14 +130,19 @@ const t = useTranslations(locale);
       /*
        * Pagefind needs a generated search index.
        * Show a message in development mode.
+       *
+       * 文案来自页面的 data-* 属性（见上面 getDevHint 的说明），
+       * 兜底那两句只在属性缺失时才用得上。
        */
       if (import.meta.env.DEV) {
+        const hint = getDevHint(pageFindSearch);
+
         pageFindSearch.innerHTML = `
           <div class="alert alert-warning">
             <div>
-              <strong>开发环境提示</strong>
+              <strong>${escapeHtml(hint.title)}</strong>
               <p class="mt-1">
-                Pagefind 搜索索引需要先执行一次生产构建。
+                ${escapeHtml(hint.body)}
               </p>
             </div>
           </div>

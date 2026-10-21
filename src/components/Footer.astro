@@ -33,7 +33,8 @@
  * 上一版是"品牌一行、版权一行"居中堆叠。站主要求横向排列，
  * 宽屏下现在是一行：品牌靠左、版权靠右。窄屏（< 640px）仍然
  * 堆叠居中 —— 手机上左右分栏会让两样东西都贴到边。
- * 两侧内缩（mx-16 / sm:mx-32）保留：页脚内容不该贴到屏幕边。
+ * 两侧沿用 content-shell：与正文共用最大宽度和断点留白，
+ * 避免独立的固定外边距让品牌和版权偏离内容基线。
  *
  * 【顶上为什么只剩一条线】
  * 原来有**两条**横线：footer 自己的 border-top（上面压着一条品牌渐变
@@ -82,16 +83,21 @@ const copyrightLine = tplStr(t.footer.copyrightLine, {
   <!--
     宽屏一行排开（品牌在左、版权在右），窄屏才上下堆叠并居中。
 
-    pt-8 是"渐变线 → 内容"之间的距离。这一段的空白原来由上面那个
-    虚线 <div>（mt-10 / mb-5）撑开，虚线删掉后改由这里自己的
-    padding 给，页脚总高度基本不变。
+    content-shell 与正文共用左右基线；垂直留白留在内层，
+    保证页脚背景与顶部渐变线仍然铺满视口。
   -->
   <div
-    class="mx-16 flex flex-col items-center gap-3 pt-8 pb-6 sm:mx-32 sm:flex-row sm:justify-between"
+    class="content-shell flex flex-col items-center gap-3 py-7 sm:flex-row sm:justify-between sm:gap-6 sm:py-8"
   >
     <!-- 品牌标识（参考站这里是备案号的自由区，我们没有） -->
-    <BrandMark size="sm" />
+    <div class="flex items-center gap-3">
+      <BrandMark size="sm" />
+    </div>
 
-    <p class="text-base-content-muted text-sm">{copyrightLine}</p>
+    <p
+      class="text-base-content-muted text-center text-sm leading-6 text-pretty sm:text-right"
+    >
+      {copyrightLine}
+    </p>
   </div>
 </footer>

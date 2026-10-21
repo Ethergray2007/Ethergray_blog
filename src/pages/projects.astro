@@ -61,14 +61,21 @@ const projects = await Promise.all(
       projects.length === 0 ? (
         <p class="text-base-content-muted">{t.projects.empty}</p>
       ) : (
-        <ul class="flex flex-col gap-6">
+        <ul class="grid grid-cols-1 gap-6 md:grid-cols-2">
           {projects.map(({ entry, Content }) => (
-            <li class="card bg-base-200 p-6">
+            <li
+              class:list={[
+                "border-base-300 bg-base-100 rounded-box border p-5 sm:p-6",
+                entry.data.featured && "md:col-span-2",
+              ]}
+            >
               <div class="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 class="text-xl font-bold">{entry.data.title}</h2>
+                <h2 class="text-xl font-bold tracking-tight">
+                  {entry.data.title}
+                </h2>
 
                 {/* 状态徽章 */}
-                <span class="badge badge-outline badge-sm">
+                <span class="badge badge-outline badge-sm border-primary/40 text-primary">
                   {entry.data.status}
                 </span>
               </div>
@@ -97,7 +104,7 @@ const projects = await Promise.all(
                     href={entry.data.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="link link-primary text-sm"
+                    class="link link-primary text-sm font-medium"
                   >
                     {t.projects.viewSource}
                   </a>

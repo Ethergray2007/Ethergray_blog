@@ -120,7 +120,8 @@ const moreItems = [
     ? [{ path: "/archives", label: t.nav.archives }]
     : []),
   { path: "/now", label: t.nav.now },
-  { path: "/about", label: t.nav.about },
+  { path: "/profile", label: t.nav.about },
+  { path: "/about", label: t.nav.credits },
   /**
    * /rss 是**订阅说明书**那一页（不是 /rss.xml 那段 XML）。
    * 放「更多」而不是主导航：订阅是偶尔做一次的事，
@@ -177,26 +178,17 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
     <div class="nav-grid">
       <!-- Logo -->
       <div class="flex min-w-0 items-center">
-        {
-          /*
-          ⚠️ group 类挂在 <a> 上，配合 nav.css 里的
-          `.group:hover .brand-bar` 实现"悬停时竖条长高"。
-          缺了 group，那个动效不会触发。
-        */
-        }
         <a
           href={getRelativeLocaleUrl(locale, "")}
-          class="group flex items-center gap-2.5 rounded-lg py-1.5 ps-1 pe-2 transition-opacity hover:opacity-90"
+          class="flex items-center rounded-lg py-1.5 ps-1 pe-2 transition-opacity hover:opacity-90"
         >
-          <span class="brand-bar" aria-hidden="true"></span>
-
           <BrandMark />
         </a>
       </div>
 
-      <!-- Desktop navigation（靠右，紧挨工具组） -->
+      <!-- Desktop navigation（在中间栏内居中） -->
       <nav
-        class="hidden min-w-0 justify-end pe-6 md:flex"
+        class="hidden min-w-0 justify-center md:flex"
         aria-label="Primary navigation"
       >
         <ul class="flex items-center gap-1">
@@ -521,7 +513,7 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
     if (!header) return;
 
     const sync = () => {
-      header.dataset.scrolled = window.scrollY > 8 ? "true" : "false";
+      header.dataset.scrolled = window.scrollY > 50 ? "true" : "false";
     };
 
     sync();

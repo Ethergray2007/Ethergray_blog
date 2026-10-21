@@ -4,6 +4,8 @@ export interface UIStrings {
     posts: string;
     tags: string;
     about: string;
+    /** /about 保留原有致谢内容，作者介绍由 /profile 承担 */
+    credits: string;
     archives: string;
     search: string;
     /** /now 页面（近况） */
@@ -98,6 +100,7 @@ export interface UIStrings {
     heroLead: string;
     /** 首页按钮：查看仓库说明 */
     viewSource: string;
+    startReading: string;
     featured: string;
     /** 精选区块副标题 */
     featuredDesc: string;
@@ -113,10 +116,8 @@ export interface UIStrings {
     /**
      * 首页「从哪看起」区块的标题。
      *
-     * 这个区块列的是各内容类型的入口（文章/说说/项目/友链/标签）+ 真实数量。
-     * 存在的理由：顶部导航为了清爽只留了 4 个内容链接，
-     * 「标签」「归档」这些被移到了页脚 —— 这个区块把那个缺口补回来，
-     * 而且是带数量的，比一个光秃秃的链接更有信息量。
+     * 文章之后提供说说、项目、友链和标签的轻量入口与真实数量。
+     * 标签、归档等完整导航仍在页眉「更多」中，避免首页重复铺六张卡片。
      */
     browseTitle: string;
     /** 「从哪看起」区块副标题 */
@@ -148,6 +149,20 @@ export interface UIStrings {
 
     searchTitle: string;
     searchDesc: string;
+
+    /**
+     * 开发环境下搜索页里那块提示（Pagefind 还没索引可查）。
+     *
+     * 【为什么要走 i18n，而不是留在 search.astro 的脚本里】
+     * 这个提示是页面里的客户端脚本插进 DOM 的，写死在脚本里就只有中文，
+     * 英文站点会半中半英 —— 和文章页复制按钮、/rss 页复制按钮
+     * 是同一类问题（见 post.copy 上面那段说明）。
+     * 所以由页面用 t.pages.* 渲染进 data-* 属性，脚本再去读。
+     *
+     * 只在开发环境显示 —— 线上搜索框是能用的，不该出现这块提示。
+     */
+    searchDevHintTitle: string;
+    searchDevHintBody: string;
 
     /** /now 页面（近况） */
     nowTitle: string;

@@ -25,15 +25,16 @@ const locale = Astro.currentLocale ?? config.site.lang;
     href={getRelativeLocaleUrl(locale, `tags/${tag}/`)}
     transition:name={tag}
     class:list={[
-      "badge badge-outline hover:badge-primary gap-1 transition-colors",
+      "group border-base-300 bg-base-100 text-base-content hover:border-primary/50 hover:bg-primary/5 hover:text-primary inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors duration-200",
       {
-        "badge-sm": size === "sm",
-        "badge-lg": size === "lg",
+        "text-xs": size === "sm",
+        "text-sm": size === "lg",
       },
     ]}
   >
     <IconHash
       class:list={[
+        "text-primary/80 group-hover:text-primary transition-colors",
         {
           "size-3": size === "sm",
           "size-4": size === "lg",
@@ -41,11 +42,13 @@ const locale = Astro.currentLocale ?? config.site.lang;
       ]}
     />
 
-    {tagName}
+    <span>{tagName}</span>
 
     {
       count !== undefined && (
-        <span class="text-base-content-faint ms-0.5 tabular-nums">{count}</span>
+        <span class="text-base-content-muted group-hover:text-primary ms-0.5 tabular-nums transition-colors">
+          {count}
+        </span>
       )
     }
   </a>

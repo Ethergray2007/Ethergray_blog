@@ -37,15 +37,15 @@ const { pageTitle, pageDesc, class: className } = Astro.props;
       · 放在 header 前面是为了让它铺在标题后面（DOM 顺序决定
         同层级的绘制顺序），而不是盖在标题上
 
-    盖住标题不会影响可读性：射线在浅色模式下是 30% 透明度的
-    反相条纹、深色模式 50%，压在文字上的那部分几乎看不出来。
+    射线的强度由 page-glow.css 统一控制，标题本身保持纯色，
+    不再叠文字光晕，避免浅色主题里的小字边缘发虚。
   */
   }
   <div class="relative overflow-hidden">
     <PageGlow />
 
     <header class="relative mb-8 sm:mb-10">
-      <h1 class="page-heading">
+      <h1 class="page-heading leading-tight break-words">
         {pageTitle}
       </h1>
 
@@ -59,7 +59,7 @@ const { pageTitle, pageDesc, class: className } = Astro.props;
 
       {
         pageDesc && (
-          <p class="text-base-content-muted mt-5 max-w-2xl text-sm leading-7 sm:text-lg">
+          <p class="text-base-content-muted mt-4 max-w-2xl text-sm leading-7 text-pretty sm:text-base sm:leading-8">
             {pageDesc}
           </p>
         )

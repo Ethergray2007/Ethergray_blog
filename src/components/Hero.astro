@@ -25,12 +25,11 @@
  * 这一版换成后者，是参考站的做法。
  *
  * ------------------------------------------------------------
- * 【⭐ 三个滚动交互，都照参考站的源码数值】
+ * 【背景范围与滚动交互】
  *
- * 1. **视频固定不动，内容滚过去**
- *    视频那层是 `position: fixed`，所以往下滚时画面纹丝不动、
- *    内容从它上面滑过 —— 这是"沉浸感"的来源。
- *    （用 absolute 的话画面会跟着滚走，立刻变成普通横幅。）
+ * 1. **背景只属于首屏**
+ *    背景层用 `position: absolute`，由首屏的 overflow 裁剪。
+ *    这样滚到文章区后，海报不会留在正文背后干扰阅读。
  *
  * 2. **标题随滚动上移并淡出**（参考站 TITLE_FADE_RATIO = 0.5）
  *    滚到**半个视口高**时标题完全消失：
@@ -42,14 +41,12 @@
  *    下滑 0→300px 之间，视频的模糊从 0 连续升到最大。
  *    效果是内容浮上来时背景逐渐"退到后面"，层次感比单纯变暗好。
  *
- * ⚠️ 视频那层**不能**放进任何带 filter / transform / will-change
- * 的祖先里 —— 那些属性会成为 fixed 的包含块，画面就不再固定了。
- * 所以它的外层是空的、没有任何滤镜的 .hero-bg-layer。
- *
- * ⚠️ 页眉的 backdrop-filter **不会**破坏它（backdrop-filter 不创建
- * 包含块，只有 filter 会）。这一点实测确认过。
+ * ⚠️ 背景模糊加在 .hero-bg-layer，文字放在它外面，
+ * 否则标题和阅读入口也会一起变糊。
  * ============================================================
  */
+import { getRelativeLocaleUrl } from "astro:i18n";
+
 import config from "@/config";
 import { useTranslations } from "@/i18n";
 
@@ -85,13 +82,13 @@ const heroLinks = [
     external: true,
   },
   {
-    href: "/rss.xml",
-    label: "RSS",
+    href: getRelativeLocaleUrl(locale, "rss"),
+    label: t.nav.rss,
     icon: "rss",
-    external: true,
+    external: false,
   },
   {
-    href: "/about/",
+    href: getRelativeLocaleUrl(locale, "profile"),
     label: t.nav.about,
     icon: "user",
     external: false,
@@ -102,7 +99,7 @@ const heroLinks = [
 <section id="hero" class="hero-fullscreen">
   {
     /*
-    固定的背景层：视频 + 压暗 + 网格。
+    由首屏裁剪的背景层：视频 + 压暗 + 网格。
 
     ⚠️ `aria-hidden` 是必须的 —— 整个背景层是纯装饰，
     读屏软件不需要念它。视频本身也设了 aria-hidden。
@@ -132,6 +129,10 @@ const heroLinks = [
       <h1 class="hero-title">{site.title}</h1>
 
       <p class="hero-subtitle">{t.home.heroLead}</p>
+
+      <a href="#reading" class="hero-read-link">
+        {t.home.startReading}
+      </a>
 
       <div class="hero-links">
         {

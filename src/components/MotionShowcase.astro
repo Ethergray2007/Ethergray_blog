@@ -109,7 +109,7 @@ const clips = [
   <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
     {
       clips.map(clip => (
-        <li>
+        <li class="group overflow-hidden rounded-[1.25rem]">
           {/*
             两个关键属性：
               loading="lazy"   首屏不下载，滚动到附近才加载
@@ -126,7 +126,7 @@ const clips = [
             height={clip.height}
             loading="lazy"
             decoding="async"
-            class="border-base-300 rounded-box h-auto w-full border"
+            class="border-base-300 bg-base-200/50 h-auto w-full rounded-[1.25rem] border object-cover shadow-[0_12px_32px_rgba(15,23,42,0.06)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_40px_rgba(214,51,108,0.10)]"
           />
         </li>
       ))

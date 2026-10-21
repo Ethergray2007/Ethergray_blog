@@ -257,45 +257,6 @@
  * 四、品牌标识
  * ============================================================ */
 
-/**
- * logo 方块：主色→次色的斜向渐变。
- *
- * 用 135deg 而不是 90deg：斜向比水平更有方向感，
- * 而且在小正方形里水平渐变会显得呆。
- * 用法见 src/components/BrandMark.astro。
- */
-.brand-mark {
-  background-image: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-secondary) 100%
-  );
-}
-
-/**
- * logo 后面那根会"长高"的强调竖条。
- *
- * 参考站的做法，动效很轻但很抓眼：
- *   静止 h-5（20px）→ 悬停 h-7（28px）
- *
- * ⚠️ 高度变化会触发布局重排，所以这里改用 transform: scaleY()——
- * 它是合成层操作，不重排。视觉上等价（都从中心向两端长），
- * 但滚动列表里划过一堆链接时不会掉帧。
- */
-.brand-bar {
-  display: block;
-  width: 0.25rem;
-  height: 1.5rem;
-  border-radius: 999px;
-  background-color: var(--color-primary);
-  transform-origin: center;
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.group:hover .brand-bar {
-  transform: scaleY(1.35);
-}
-
 /* ============================================================
  * 五、导航菜单
  * ============================================================ */
@@ -848,7 +809,6 @@ body:has(#hero) #site-header[data-scrolled="false"] .theme-switch {
 @media (prefers-reduced-motion: reduce) {
   #site-header .nav-glass,
   #site-header .nav-glass::before,
-  .brand-bar,
   .nav-link,
   .nav-icon-btn,
   .nav-search,

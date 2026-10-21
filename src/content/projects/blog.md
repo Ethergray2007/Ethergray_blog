@@ -1,7 +1,7 @@
 ---
 title: "Ethergray Blog"
 summary: "个人知识库与技术实验场。"
-description: "基于 Astro 构建的个人博客。文章是纯静态的，走 CDN；后台用 Elysia + Drizzle + PostgreSQL 做在线写作，用 GitHub 账号登录。"
+description: "把静态阅读、在线写作和 GitHub 登录整合在一起的个人博客。"
 status: "进行中"
 tags:
   - Astro
@@ -12,8 +12,10 @@ href: "https://github.com/Ethergray2007/Ethergray_blog"
 featured: true
 ---
 
-这个博客本身就是最大的一个项目 —— 从选框架到加功能，整个过程都在
-[「开始搭建 EtherGray Blog」](/posts/hello-astro) 那篇文章里记着。
+[打开博客首页](/) 可以体验阅读端，开发过程记录在[「开始搭建 EtherGray Blog」](/posts/hello-astro)。
 
-值得注意的是它**不是**用现成主题一键生成的：页面结构参考了 AstroPaper，
-但登录、数据库、接口层、后台界面都是后来自己加的。
+已经实现的部分：
+
+- **静态阅读**：文章在构建时生成页面，由 CDN 分发。
+- **在线写作**：后台支持文章创建、编辑和删除。
+- **登录保护**：使用 GitHub 登录，并限制只有站点所有者可以访问。

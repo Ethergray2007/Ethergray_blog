@@ -19,50 +19,49 @@ const { title, description, tags, ...props } = data;
 const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
 ---
 
-<li class="my-4 list-none">
+<li class="my-3 min-w-0 list-none sm:my-4">
+  <!-- 卡片里有文章和标签两类链接，整块浮起会误导读者以为任意位置都能点击。 -->
   <article
-    class="card card-border bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+    class="card card-border border-base-300 bg-base-100 rounded-box h-full border"
   >
-    <div class="card-body gap-4 p-4 sm:p-6">
-      <!-- Title -->
-      <div>
-        <a href={postUrl} class="group inline-block w-full" aria-label={title}>
+    <div class="card-body min-w-0 gap-4 p-5 sm:p-6">
+      <header class="flex min-w-0 flex-col gap-2.5">
+        <a href={postUrl} class="group block rounded-sm" aria-label={title}>
           <Heading
-            class="card-title text-base-content group-hover:text-primary text-lg leading-snug tracking-tight transition-colors sm:text-xl"
+            class="card-title text-base-content group-hover:text-primary group-focus-visible:text-primary block text-lg leading-relaxed font-semibold tracking-tight text-balance wrap-anywhere transition-colors motion-reduce:transition-none sm:text-xl sm:leading-snug"
             transition:name={toTransitionName(title)}
           >
             {title}
           </Heading>
         </a>
-      </div>
-
-      <!-- Metadata -->
-      <div class="flex items-center">
         <Datetime {...props} />
-      </div>
+      </header>
 
-      <!-- Description -->
+      <!-- 摘要保持独立段落；标题和日期靠近，才会被读作同一组文章信息。 -->
       {
         description && (
-          <p class="text-base-content-strong line-clamp-3 text-sm leading-7 sm:text-base">
+          /* 行数分两档：手机上长摘要会把卡片撑得很高，列表一屏放不下几张，
+             所以手机最多 2 行；从 sm（640px）起空间够了再放到 3 行，
+             和标题 sm 档变大是同一个断点。 */
+          <p class="text-base-content-strong line-clamp-2 text-sm leading-7 wrap-anywhere sm:line-clamp-3 sm:text-base">
             {description}
           </p>
         )
       }
 
-      <!-- Tags -->
+      <!-- 标签靠底对齐，让并排卡片的摘要长短不同也能维持稳定的阅读基线。 -->
       {
         tags.length > 0 && (
-          <div class="flex flex-wrap gap-2 pt-1">
+          <div class="border-base-300 mt-auto flex flex-wrap gap-2 border-t pt-4">
             {tags.slice(0, 4).map(tag => (
               <a
                 href={getRelativeLocaleUrl(
                   Astro.currentLocale ?? "zh",
                   `tags/${slugifyStr(tag)}`
                 )}
-                class="badge badge-outline badge-sm hover:badge-primary transition-colors"
+                class="badge badge-outline badge-sm border-base-300 text-base-content-muted hover:badge-primary focus-visible:badge-primary h-auto min-h-7 max-w-full px-2.5 py-1 transition-colors motion-reduce:transition-none"
               >
-                {tag}
+                <span class="truncate">{tag}</span>
               </a>
             ))}
           </div>

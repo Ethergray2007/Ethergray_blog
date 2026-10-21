@@ -32,12 +32,12 @@ const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 
 /**
- * 「从哪看起」那一排入口。
+ * 阅读区后面的轻量内容导航。
  *
  * 数量全部来自**真实的内容集合**，不是写死的数字 ——
  * 所以加了文章、加了友链，这里会跟着变。
  *
- * 为什么要在这里再查一遍集合（下面「最近文章」用的是 posts）：
+ * 为什么要在这里再查一遍集合（「最近文章」用的是 posts）：
  * 这四个集合本来就各查各的，没有共用列表可比。
  * 而且 getUniqueTags / getFriends 这些函数已经处理好了
  * 排序、去重、过滤草稿，直接调用比自己在这里重写一遍可靠。
@@ -50,40 +50,24 @@ const [friendEntries, noteEntries, projectEntries] = await Promise.all([
 
 const browseItems = [
   {
-    href: getRelativeLocaleUrl(locale, "posts"),
-    label: t.nav.posts,
-    desc: t.home.recentPostsDesc,
-    count: sortedPosts.length,
-  },
-  {
     href: getRelativeLocaleUrl(locale, "notes"),
     label: t.nav.notes,
-    desc: t.pages.notesDesc,
     count: getNotes(noteEntries).length,
   },
   {
     href: getRelativeLocaleUrl(locale, "projects"),
     label: t.nav.projects,
-    desc: t.pages.projectsDesc,
     count: getProjects(projectEntries).length,
   },
   {
     href: getRelativeLocaleUrl(locale, "friends"),
     label: t.nav.friends,
-    desc: t.pages.friendsDesc,
     count: getFriends(friendEntries).length,
   },
   {
     href: getRelativeLocaleUrl(locale, "tags"),
     label: t.nav.tags,
-    desc: t.pages.tagsDesc,
     count: getUniqueTags(posts).length,
-  },
-  {
-    href: getRelativeLocaleUrl(locale, "archives"),
-    label: t.nav.archives,
-    desc: t.pages.archivesDesc,
-    count: sortedPosts.length,
   },
 ];
 
@@ -102,64 +86,90 @@ const homePath = getRelativeLocaleUrl(locale, "");
     id="main-content"
     data-layout="index"
     data-home-path={homePath}
-    class="content-shell pt-10 pb-8 sm:pt-12 sm:pb-10 lg:pb-12"
+    class="content-shell home-content pt-10 pb-10 sm:pt-14 sm:pb-12 lg:pt-16 lg:pb-16"
   >
+    {/* 海报负责个性，内容区先呈现文章，分类入口和动图放在阅读之后。 */}
+    <div id="reading" tabindex="-1">
+      <!-- Featured -->
+      {
+        featuredPosts.length > 0 && (
+          <section id="featured" class="mb-12 sm:mb-16">
+            <div class="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <h2 class="section-heading">{t.home.featured}</h2>
+
+                <p class="section-lede">{t.home.featuredDesc}</p>
+              </div>
+            </div>
+
+            <ul class="post-list grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+              {featuredPosts.slice(0, 2).map(data => (
+                <Card variant="h3" {...data} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      <!-- Recent Posts -->
+      {
+        recentPosts.length > 0 && (
+          <section id="recent-posts" class="mb-8">
+            <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 class="section-heading">{t.home.recentPosts}</h2>
+                <p class="section-lede">{t.home.recentPostsDesc}</p>
+              </div>
+              <a
+                href={getRelativeLocaleUrl(locale, "posts")}
+                class="link link-hover text-primary inline-flex min-h-11 shrink-0 items-center gap-2 text-sm font-semibold"
+              >
+                {t.home.allPosts}
+                <IconArrowRight class="size-4 rtl:-rotate-180" />
+              </a>
+            </div>
+
+            <ul class="post-list grid gap-4 sm:gap-5">
+              {recentPosts.slice(0, postsConfig.perIndex).map(data => (
+                <Card variant="h3" {...data} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
+
+    {/* 即使还没有文章，阅读入口也能抵达文章列表。 */}
     {
-      /*
-      ============================================================
-      从哪看起
-      ============================================================
-      列各内容类型的入口 + 真实数量。
-
-      【为什么需要这一块】
-      顶部导航为了清爽只留了 4 个内容链接，「标签」「归档」移到了页脚。
-      但那样它们也更难被发现 —— 这个区块正好把缺口补回来。
-
-      【和顶部导航的分工】
-        顶部   去哪儿（始终可见，4 个内容类型）
-        这里   有什么（带数量，一眼看出哪个板块有内容）
-
-      数量是**真实**的（来自各内容集合），不是装饰性数字。
-      某个板块为空时它会显示 0 —— 这也是诚实的：
-      与其藏起来，不如让人一眼看出"这里还没东西"。
-      ============================================================
-    */
-    }
-    {
-      /*
-      ⚠️ 「动图」区块（MotionShowcase）原来在这个位置 ——
-      也就是「从哪看起」**上面**。改版时把它移到了文章列表下面。
-
-      理由是构图问题：那两张 GIF 在页面上占了将近一整屏。
-      放在这里会把"从哪看起"和"最近文章"一起挤到第二屏 ——
-      读者打开首页看到的是两张动图，而不是"这个站有什么内容"。
-
-      首页的信息优先级应该是：
-        首屏（我是谁）→ 有什么 → 最近写了什么 → 这些动图
-      动图是装饰性的趣味内容，排在最后不影响任何人，
-      放前面却会挡住主要内容。
-    */
+      recentPosts.length === 0 && (
+        <a href={getRelativeLocaleUrl(locale, "posts")} class="btn btn-outline">
+          {t.home.allPosts}
+        </a>
+      )
     }
 
-    <section id="browse">
+    <section
+      id="browse"
+      class="border-base-300 mt-12 border-t pt-8 sm:mt-16 sm:pt-10"
+    >
       <div class="mb-5">
         <h2 class="section-heading">{t.home.browseTitle}</h2>
 
         <p class="section-lede">{t.home.browseDesc}</p>
       </div>
 
-      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 实色表面挡住背景网格，避免入口与页面底色混在一起。 */}
+      <ul class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {
           browseItems.map(item => (
-            <li>
+            <li class="h-full">
               <a
                 href={item.href}
-                class="card border-base-300 bg-base-100 hover:border-primary/60 hover:bg-base-200/60 group flex h-full flex-row items-center justify-between gap-3 border p-4 transition-colors"
+                class="group border-base-content/15 bg-base-100 hover:border-primary focus-visible:border-primary hover:bg-base-200 focus-visible:bg-base-200 flex h-full min-h-16 items-center justify-between gap-3 rounded-lg border px-4 py-3 shadow-sm transition-colors duration-200"
               >
-                <span class="min-w-0">
-                  <span class="block truncate font-semibold">{item.label}</span>
-                  <span class="text-base-content-muted mt-0.5 block truncate text-sm">
-                    {item.desc}
+                <span class="relative min-w-0">
+                  <span class="group-hover:text-primary group-focus-visible:text-primary block font-semibold tracking-tight transition-colors">
+                    {item.label}
                   </span>
                 </span>
 
@@ -167,8 +177,14 @@ const homePath = getRelativeLocaleUrl(locale, "");
                   数量。用 tabular-nums 让它等宽 ——
                   否则 1 和 8 宽度不同，右侧会跳。
                 */}
-                <span class="text-base-content-faint group-hover:text-primary shrink-0 font-mono text-lg tabular-nums transition-colors">
-                  {item.count}
+                <span class="flex shrink-0 items-center gap-2">
+                  <span class="text-base-content-muted font-mono text-sm tabular-nums">
+                    {item.count}
+                  </span>
+                  <IconArrowRight
+                    class="text-base-content-faint group-hover:text-primary group-focus-visible:text-primary size-3.5 transition-colors rtl:-rotate-180"
+                    aria-hidden="true"
+                  />
                 </span>
               </a>
             </li>
@@ -177,66 +193,23 @@ const homePath = getRelativeLocaleUrl(locale, "");
       </ul>
     </section>
 
-    <!-- Featured -->
-    {
-      featuredPosts.length > 0 && (
-        <section
-          id="featured"
-          class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
-        >
-          <div class="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <h2 class="section-heading">{t.home.featured}</h2>
-
-              <p class="section-lede">{t.home.featuredDesc}</p>
-            </div>
-          </div>
-
-          <ul class="grid grid-cols-1 gap-x-5 lg:grid-cols-2">
-            {featuredPosts.map(data => (
-              <Card variant="h3" {...data} />
-            ))}
-          </ul>
-        </section>
-      )
-    }
-
-    <!-- Recent Posts -->
-    {
-      recentPosts.length > 0 && (
-        <section
-          id="recent-posts"
-          class="border-base-300 mt-10 border-t pt-10 sm:mt-12 sm:pt-12"
-        >
-          <div class="mb-5">
-            <h2 class="section-heading">{t.home.recentPosts}</h2>
-
-            <p class="section-lede">{t.home.recentPostsDesc}</p>
-          </div>
-
-          <ul>
-            {recentPosts.slice(0, postsConfig.perIndex).map(data => (
-              <Card variant="h3" {...data} />
-            ))}
-          </ul>
-        </section>
-      )
-    }
-
-    <!-- Motion（装饰性内容，排在所有正文区块之后） -->
     <MotionShowcase />
-
-    <!-- All Posts -->
-    <section
-      class="border-base-300 mt-8 flex justify-center border-t pt-8 sm:mt-10 sm:pt-10"
-    >
-      <a href={getRelativeLocaleUrl(locale, "posts")} class="btn btn-outline">
-        {t.home.allPosts}
-
-        <IconArrowRight class="size-4 rtl:-rotate-180" />
-      </a>
-    </section>
   </main>
 
   <Footer />
 </Layout>
+
+<style>
+  /* 卡片在其他页面靠外边距分隔；首页交给 grid 的 gap，避免两种间距叠加。 */
+  .post-list > :global(li) {
+    margin-block: 0;
+  }
+
+  .home-content {
+    background-image: radial-gradient(
+      ellipse 100% 18rem at 50% 0,
+      color-mix(in oklab, var(--color-primary) 6%, transparent),
+      transparent
+    );
+  }
+</style>
