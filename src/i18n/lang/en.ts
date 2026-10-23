@@ -181,6 +181,8 @@ export default {
     invalidPostId: "The post ID in the URL is invalid.",
     titleRequired: "The title cannot be empty.",
     loadFailed: "Could not load the post.",
+    retryLoad: "Retry loading the post",
+    unsavedChanges: "You have unsaved changes. Save before leaving.",
     saveFailed: "Could not save the post.",
     rebuildRequestFailed: "Could not request a rebuild.",
     apiBadRequest: "The submitted data is invalid. Check it and try again.",

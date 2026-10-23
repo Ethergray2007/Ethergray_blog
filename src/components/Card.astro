@@ -19,16 +19,16 @@ const { title, description, tags, ...props } = data;
 const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
 ---
 
-<li class="my-3 min-w-0 list-none sm:my-4">
+<li class="my-4 min-w-0 list-none sm:my-5">
   <!-- 卡片里有文章和标签两类链接，整块浮起会误导读者以为任意位置都能点击。 -->
   <article
-    class="card card-border border-base-300 bg-base-100 rounded-box h-full border"
+    class="post-card card card-border border-base-300 bg-base-100 rounded-box h-full border"
   >
-    <div class="card-body min-w-0 gap-4 p-5 sm:p-6">
-      <header class="flex min-w-0 flex-col gap-2.5">
+    <div class="card-body min-w-0 gap-5 p-6 sm:p-8">
+      <header class="flex min-w-0 flex-col gap-3">
         <a href={postUrl} class="group block rounded-sm" aria-label={title}>
           <Heading
-            class="card-title text-base-content group-hover:text-primary group-focus-visible:text-primary block text-lg leading-relaxed font-semibold tracking-tight text-balance wrap-anywhere transition-colors motion-reduce:transition-none sm:text-xl sm:leading-snug"
+            class="post-card-title card-title text-base-content group-hover:text-primary group-focus-visible:text-primary block text-xl leading-relaxed font-semibold tracking-tight text-balance wrap-anywhere transition-colors motion-reduce:transition-none sm:text-2xl sm:leading-snug"
             transition:name={toTransitionName(title)}
           >
             {title}
@@ -43,7 +43,7 @@ const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
           /* 行数分两档：手机上长摘要会把卡片撑得很高，列表一屏放不下几张，
              所以手机最多 2 行；从 sm（640px）起空间够了再放到 3 行，
              和标题 sm 档变大是同一个断点。 */
-          <p class="text-base-content-strong line-clamp-2 text-sm leading-7 wrap-anywhere sm:line-clamp-3 sm:text-base">
+          <p class="text-base-content-strong line-clamp-2 max-w-prose text-sm leading-7 wrap-anywhere sm:line-clamp-3 sm:text-base sm:leading-8">
             {description}
           </p>
         )
@@ -52,14 +52,14 @@ const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
       <!-- 标签靠底对齐，让并排卡片的摘要长短不同也能维持稳定的阅读基线。 -->
       {
         tags.length > 0 && (
-          <div class="border-base-300 mt-auto flex flex-wrap gap-2 border-t pt-4">
+          <div class="border-base-300 mt-auto flex flex-wrap gap-2 border-t pt-5">
             {tags.slice(0, 4).map(tag => (
               <a
                 href={getRelativeLocaleUrl(
                   Astro.currentLocale ?? "zh",
                   `tags/${slugifyStr(tag)}`
                 )}
-                class="badge badge-outline badge-sm border-base-300 text-base-content-muted hover:badge-primary focus-visible:badge-primary h-auto min-h-7 max-w-full px-2.5 py-1 transition-colors motion-reduce:transition-none"
+                class="post-card-tag badge badge-sm border-base-300 bg-base-200 text-base-content-muted hover:badge-primary focus-visible:badge-primary h-auto min-h-7 max-w-full px-3 py-1.5 transition-colors motion-reduce:transition-none"
               >
                 <span class="truncate">{tag}</span>
               </a>
@@ -70,3 +70,15 @@ const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
     </div>
   </article>
 </li>
+
+<style>
+  /* 只有链接响应交互，留白区域保持静止，避免把多入口文章卡误画成一个按钮。 */
+  .post-card :global(a:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
+  .post-card-tag {
+    border-radius: var(--radius-selector);
+  }
+</style>

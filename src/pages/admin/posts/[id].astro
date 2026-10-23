@@ -49,109 +49,140 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       </a>
     </div>
 
-    <p id="status-message" class="text-error mb-4 text-sm"></p>
+    <p
+      id="status-message"
+      class="text-error mb-4 text-sm"
+      role="status"
+      aria-live="polite"
+    >
+      {!isNew && t.admin.loading}
+    </p>
+    <button
+      id="retry-load"
+      type="button"
+      class="btn btn-outline btn-sm mb-4"
+      hidden>{t.admin.retryLoad}</button
+    >
 
     <form id="post-form" class="flex flex-col gap-5">
-      {/* 标题 */}
-      <div>
-        <label class="label" for="title">
-          <span class="label-text">{t.admin.fieldTitle}</span>
-        </label>
-        <input
-          id="title"
-          type="text"
-          class="input input-bordered w-full text-base sm:text-sm"
-          required
-        />
-      </div>
+      {/* 未加载的空表单不能当成文章提交，也不能接收会被晚到数据覆盖的输入。 */}
+      <fieldset
+        id="editor-fields"
+        class="flex min-w-0 flex-col gap-5"
+        disabled={!isNew}
+      >
+        {/* 标题 */}
+        <div>
+          <label class="label" for="title">
+            <span class="label-text">{t.admin.fieldTitle}</span>
+          </label>
+          <input
+            id="title"
+            type="text"
+            class="input input-bordered w-full text-base sm:text-sm"
+            required
+          />
+        </div>
 
-      {/* 网址标识 */}
-      <div>
-        <label class="label" for="slug">
-          <span class="label-text">{t.admin.fieldSlug}</span>
-        </label>
-        <input
-          id="slug"
-          type="text"
-          class="input input-bordered w-full text-base sm:text-sm"
-        />
-        <p class="mt-1 text-xs opacity-60">{t.admin.slugHint}</p>
-      </div>
+        {/* 网址标识 */}
+        <div>
+          <label class="label" for="slug">
+            <span class="label-text">{t.admin.fieldSlug}</span>
+          </label>
+          <input
+            id="slug"
+            type="text"
+            class="input input-bordered w-full text-base sm:text-sm"
+          />
+          <p class="mt-1 text-xs opacity-60">{t.admin.slugHint}</p>
+        </div>
 
-      {/* 摘要 */}
-      <div>
-        <label class="label" for="description">
-          <span class="label-text">{t.admin.fieldDescription}</span>
-        </label>
-        <input
-          id="description"
-          type="text"
-          class="input input-bordered w-full text-base sm:text-sm"
-        />
-      </div>
+        {/* 摘要 */}
+        <div>
+          <label class="label" for="description">
+            <span class="label-text">{t.admin.fieldDescription}</span>
+          </label>
+          <input
+            id="description"
+            type="text"
+            class="input input-bordered w-full text-base sm:text-sm"
+          />
+        </div>
 
-      {/* 正文 */}
-      <div>
-        <label class="label" for="body">
-          <span class="label-text">{t.admin.fieldBody}</span>
-        </label>
+        {/* 正文 */}
+        <div>
+          <label class="label" for="body">
+            <span class="label-text">{t.admin.fieldBody}</span>
+          </label>
 
-        {
-          /*
+          {
+            /*
           ⚠️ `text-base sm:text-sm` 看着绕，但不能只写 text-sm：
           移动端 Safari（iOS）在聚焦 font-size < 16px 的输入框时会
           **自动放大整个页面**，而且不会自己缩回去 —— 手机上写作时
           每点一次正文框就被放大一次。所以手机上强制 16px，
           桌面端才回到 14px。标题 / 摘要 / 标签那几个框同理。
         */
-        }
-        <textarea
-          id="body"
-          rows="16"
-          class="textarea textarea-bordered w-full font-mono text-base sm:text-sm"
-        ></textarea>
-      </div>
-
-      {/* 标签 */}
-      <div>
-        <label class="label" for="tags">
-          <span class="label-text">{t.admin.fieldTags}</span>
-        </label>
-        <input
-          id="tags"
-          type="text"
-          class="input input-bordered w-full text-base sm:text-sm"
-        />
-        <p class="mt-1 text-xs opacity-60">{t.admin.tagsHint}</p>
-      </div>
-
-      {/* 状态 + 置顶 */}
-      <div class="flex flex-wrap items-center gap-6">
-        <div class="flex items-center gap-2">
-          <label class="label" for="post-status">
-            <span class="label-text">{t.admin.fieldStatus}</span>
-          </label>
-          <select id="post-status" class="select select-bordered select-sm">
-            <option value="draft">{t.admin.statusDraft}</option>
-            <option value="published">{t.admin.statusPublished}</option>
-          </select>
+          }
+          <textarea
+            id="body"
+            rows="16"
+            class="textarea textarea-bordered w-full font-mono text-base sm:text-sm"
+          ></textarea>
         </div>
 
-        <label class="flex cursor-pointer items-center gap-2">
-          <input id="featured" type="checkbox" class="checkbox checkbox-sm" />
-          <span class="text-sm">{t.admin.fieldFeatured}</span>
-        </label>
-      </div>
+        {/* 标签 */}
+        <div>
+          <label class="label" for="tags">
+            <span class="label-text">{t.admin.fieldTags}</span>
+          </label>
+          <input
+            id="tags"
+            type="text"
+            class="input input-bordered w-full text-base sm:text-sm"
+          />
+          <p class="mt-1 text-xs opacity-60">{t.admin.tagsHint}</p>
+        </div>
 
-      <div class="flex items-center gap-3">
-        <button id="save" type="submit" class="btn btn-primary">
-          {t.admin.save}
-        </button>
-        <span id="saved" class="text-success text-sm"></span>
-      </div>
+        {/* 状态 + 置顶 */}
+        <div class="flex flex-wrap items-center gap-6">
+          <div class="flex items-center gap-2">
+            <label class="label" for="post-status">
+              <span class="label-text">{t.admin.fieldStatus}</span>
+            </label>
+            <select id="post-status" class="select select-bordered select-sm">
+              <option value="draft">{t.admin.statusDraft}</option>
+              <option value="published">{t.admin.statusPublished}</option>
+            </select>
+          </div>
 
-      {
-        /*
+          <label class="flex cursor-pointer items-center gap-2">
+            <input id="featured" type="checkbox" class="checkbox checkbox-sm" />
+            <span class="text-sm">{t.admin.fieldFeatured}</span>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            id="save"
+            type="submit"
+            class="btn btn-primary"
+            disabled={!isNew}
+          >
+            {t.admin.save}
+          </button>
+          <span id="saved" class="text-success text-sm" aria-live="polite"
+          ></span>
+        </div>
+        <p
+          id="unsaved-status"
+          class="text-base-content-muted text-sm"
+          aria-live="polite"
+        >
+        </p>
+
+        {
+          /*
         重建按钮单独一行，而且 type="button" —— 它不是"提交表单"，
         点它不该触发保存。
 
@@ -163,18 +194,19 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         属于"页面还在、内容旧了"，由作者自己决定什么时候花这 15 分。
         完整规则见 src/lib/rebuild.ts 的文件头。
       */
-      }
-      <div
-        class="border-base-300 flex flex-wrap items-center gap-3 border-t pt-4"
-      >
-        <button id="rebuild" type="button" class="btn btn-outline btn-sm">
-          {t.admin.rebuild}
-        </button>
-        <span id="rebuild-status" class="text-sm"></span>
-        <span class="text-base-content-faint text-xs"
-          >{t.admin.rebuildHint}</span
+        }
+        <div
+          class="border-base-300 flex flex-wrap items-center gap-3 border-t pt-4"
         >
-      </div>
+          <button id="rebuild" type="button" class="btn btn-outline btn-sm">
+            {t.admin.rebuild}
+          </button>
+          <span id="rebuild-status" class="text-sm"></span>
+          <span class="text-base-content-faint text-xs"
+            >{t.admin.rebuildHint}</span
+          >
+        </div>
+      </fieldset>
     </form>
   </main>
 </Layout>
@@ -199,6 +231,7 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       invalidPostId: t.admin.invalidPostId,
       titleRequired: t.admin.titleRequired,
       loadFailed: t.admin.loadFailed,
+      unsavedChanges: t.admin.unsavedChanges,
       saveFailed: t.admin.saveFailed,
       rebuildRequestFailed: t.admin.rebuildRequestFailed,
       apiBadRequest: t.admin.apiBadRequest,
@@ -231,6 +264,11 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   ) as EditorConfig;
 
   const form = document.querySelector<HTMLFormElement>("#post-form");
+  const fields = document.querySelector<HTMLFieldSetElement>("#editor-fields");
+  const retryLoadButton =
+    document.querySelector<HTMLButtonElement>("#retry-load");
+  const unsavedStatusEl =
+    document.querySelector<HTMLParagraphElement>("#unsaved-status");
   const titleInput = document.querySelector<HTMLInputElement>("#title");
   const slugInput = document.querySelector<HTMLInputElement>("#slug");
   const descriptionInput =
@@ -249,6 +287,10 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     document.querySelector<HTMLSpanElement>("#rebuild-status");
 
   let currentId: number | null = cfg.isNew ? null : Number(cfg.id);
+  let ready = cfg.isNew;
+  let loading = false;
+  let saving = false;
+  let savedSnapshot = "";
 
   /** 显示一条错误提示 */
   function showError(text: string): void {
@@ -346,12 +388,50 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
     };
   }
 
+  function hasUnsavedChanges(): boolean {
+    return saving || (ready && JSON.stringify(collectForm()) !== savedSnapshot);
+  }
+
+  function updateUnsavedStatus(): void {
+    const dirty = hasUnsavedChanges();
+
+    if (unsavedStatusEl) {
+      unsavedStatusEl.textContent = dirty
+        ? (cfg.texts.unsavedChanges ?? "")
+        : "";
+    }
+
+    if (dirty && savedEl) {
+      savedEl.textContent = "";
+    }
+  }
+
+  function setReady(value: boolean): void {
+    ready = value;
+    if (fields) fields.disabled = !value;
+    if (saveButton) saveButton.disabled = !value || saving;
+  }
+
   /** 编辑模式下把文章内容填进表单 */
   async function loadExisting(): Promise<void> {
-    if (currentId === null || Number.isNaN(currentId)) {
+    if (loading) return;
+
+    setReady(false);
+
+    if (
+      currentId === null ||
+      !/^\d+$/.test(cfg.id) ||
+      !Number.isSafeInteger(currentId) ||
+      currentId <= 0 ||
+      currentId > 2147483647
+    ) {
       showError(cfg.texts.invalidPostId ?? "");
       return;
     }
+
+    loading = true;
+    showError(cfg.texts.loading ?? "");
+    if (retryLoadButton) retryLoadButton.hidden = true;
 
     try {
       const post = await postsApi.get(currentId);
@@ -363,6 +443,12 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       if (tagsInput) tagsInput.value = post.tags.join(", ");
       if (statusSelect) statusSelect.value = post.status;
       if (featuredInput) featuredInput.checked = post.featured;
+
+      // 必须在字段填好后才建立基线，否则刚加载的文章会被误判为未保存。
+      savedSnapshot = JSON.stringify(collectForm());
+      setReady(true);
+      clearMessages();
+      updateUnsavedStatus();
     } catch (error) {
       if (error instanceof NotLoggedInError) {
         location.replace("/admin");
@@ -370,11 +456,17 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       }
 
       showError(errorMessage(error, cfg.texts.loadFailed ?? ""));
+      if (retryLoadButton) retryLoadButton.hidden = false;
+    } finally {
+      loading = false;
     }
   }
 
   form?.addEventListener("submit", async event => {
     event.preventDefault();
+    // disabled 只挡正常点击；脚本提交、重复按键也不能绕过加载和请求状态。
+    if (!ready || saving) return;
+
     clearMessages();
 
     const data = collectForm();
@@ -383,6 +475,9 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       showError(cfg.texts.titleRequired ?? "");
       return;
     }
+
+    saving = true;
+    updateUnsavedStatus();
 
     if (saveButton) {
       saveButton.disabled = true;
@@ -404,10 +499,13 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
         history.replaceState(null, "", `/admin/posts/${post.id}`);
       }
 
-      // 后端可能会改写 slug（比如标题是中文时自动生成），同步回表单
-      if (slugInput) {
+      // 只同步请求里那份 slug；保存期间新输入的 slug 不能被旧响应覆盖。
+      if (slugInput && slugInput.value.trim() === data.slug) {
         slugInput.value = post.slug;
       }
+
+      // 记录这次真正提交的快照，而非响应到来时的表单；期间继续写的内容仍未保存。
+      savedSnapshot = JSON.stringify({ ...data, slug: post.slug });
 
       if (savedEl) {
         savedEl.textContent = cfg.texts.saved ?? "";
@@ -431,11 +529,25 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
 
       showError(errorMessage(error, cfg.texts.saveFailed ?? ""));
     } finally {
+      saving = false;
       if (saveButton) {
-        saveButton.disabled = false;
+        saveButton.disabled = !ready;
         saveButton.textContent = cfg.texts.save ?? "";
       }
+      updateUnsavedStatus();
     }
+  });
+
+  retryLoadButton?.addEventListener("click", () => void loadExisting());
+  form?.addEventListener("input", updateUnsavedStatus);
+  form?.addEventListener("change", updateUnsavedStatus);
+
+  // 后台使用整页导航：原生离开确认同时覆盖返回列表、刷新和关闭，不再维护第二套路由守卫。
+  window.addEventListener("beforeunload", event => {
+    if (!hasUnsavedChanges()) return;
+    event.preventDefault();
+    // returnValue 虽已弃用，但旧版浏览器仍靠它显示离开提醒，保留这条兼容写法。
+    event.returnValue = "";
   });
 
   /**
@@ -476,6 +588,8 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
       }
     }
   });
+
+  savedSnapshot = JSON.stringify(collectForm());
 
   if (!cfg.isNew) {
     void loadExisting();

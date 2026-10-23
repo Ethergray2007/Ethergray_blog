@@ -100,6 +100,8 @@ RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xm
 
 每个功能都做成**自包含**的：删除时不需要动别的地方，照着下表删就行。
 
+文章页的返回顶部按钮统一由 `Layout.astro` 渲染，`showBackButton` 控制文章页是否显示；其他页面沿用全局按钮。
+
 | 功能                  | 相关文件                                                                                                                             | 怎么删                                                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | 文章目录              | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                                                        | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                                        |
@@ -126,6 +128,9 @@ RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xm
 | 分享按钮              | `astro-paper.config.ts` 的 `shareLinks`                                                                                              | 把数组清空：`shareLinks: []`                                                                                               |
 | 编辑本页链接          | `astro-paper.config.ts` 的 `features.editPost`                                                                                       | 改成 `{ enabled: false }`                                                                                                  |
 | 在线写作后台          | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                        | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                        |
+| 后台浏览器回归        | `practice/tests/admin-browser.ts`                                                                                                  | 删这个文件，再删 `package.json` 里的 `admin:browser:test` 命令和下方运行说明                                               |
+| 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts` | 先删 `PostLayout.astro` 的 JSON-LD script 和对应 import，再删本文件及公开页面回归中的对应测试 |
+| 公开页面浏览器回归 | `practice/tests/public-browser.ts` | 删本文件、`package.json` 的 `public:browser:test` 命令和下方运行说明 |
 | 文章存数据库          | `src/db/loaders/posts.ts`<br>`src/content.config.ts` 里的 `loader`<br>`scripts/import-posts.ts`                                      | 照 `src/db/loaders/posts.ts` 文件头写的 3 步做（换成 `glob()` + 把文章放回 `src/content/posts/`，那个目录现在没有，要自己建） |
 | 保存后自动重建        | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                           | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                                  |
 | 练习册                | `practice/`                                                                                                                          | 整个目录删掉，再删 `package.json` 里的 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
@@ -315,6 +320,31 @@ http://localhost:4321/admin
 
 后台页面是**按需渲染**的（`prerender = false`），而博客正文页仍然是
 构建时生成的静态 HTML —— 读者访问的部分没有变慢。
+
+后台使用整页导航，不接入公开页面的 `ClientRouter`。否则往返列表与编辑页后，
+已执行的模块脚本不会重新初始化，表格可能一直显示「加载中」，保存按钮也可能失效。
+
+编辑已有文章时，读取成功前表单和保存按钮保持禁用；读取失败后可以重试。
+有未保存修改或保存请求尚未完成时，刷新、返回列表和关闭页面会触发浏览器的离开提醒。
+保存失败仍保留提醒；请求期间继续编辑的内容，也不会被误当成已经保存。
+离开提醒不等于自动备份，请仍然及时保存，尤其不要依赖手机强制关闭应用时一定能弹出提醒。
+
+**后台浏览器回归**（独立运行，不包含在 `npm test` 中）：
+
+```bash
+# 一个终端启动本地服务
+npm run dev
+# 另一个终端运行浏览器回归
+npm run admin:browser:test
+# 公开页面回归：菜单跨断点、主题色、文章元数据和返回顶部
+npm run public:browser:test
+```
+
+测试需要可用的 Playwright Chromium 或本机 Microsoft Edge；只访问本地站点，
+全部后台接口都被测试数据拦截，不会保存真实文章或请求生产重建。
+覆盖页面往返、读取失败重试、未保存离开以及保存中继续编辑等行为。
+公开页面回归同样拦截全部 API，需要文章列表至少有一篇可见文章。
+回归结束后先停止开发服务，再执行 `npm run build`，避免争用 `.astro/`。
 
 ## 🔌 API
 

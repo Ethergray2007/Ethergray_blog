@@ -3,6 +3,28 @@
 @layer base {
   .app-prose {
     @apply prose;
+    line-height: 1.9;
+    overflow-wrap: break-word;
+
+    /* 中文长文靠段落节奏分层，不给每个标题额外加装饰线或底色。 */
+    h2 {
+      margin-top: 2.4em;
+      font-size: 1.55em;
+      line-height: 1.45;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    h3 {
+      margin-top: 1.9em;
+      font-size: 1.2em;
+      line-height: 1.5;
+      font-weight: 650;
+    }
+
+    p {
+      margin-block: 1.25em;
+    }
 
     h1,
     h2,
@@ -41,7 +63,7 @@
     }
 
     img {
-      @apply border-base-300 mx-auto border;
+      @apply border-base-300 mx-auto rounded-xl border;
     }
 
     img[role="button"] {
@@ -91,7 +113,7 @@
 
     blockquote {
       /* 引用块是"要读的文字"→ strong 档（三档定义见 theme.css） */
-      @apply border-s-primary/80 text-base-content-strong wrap-break-word;
+      @apply border-s-primary text-base-content-strong bg-base-200 rounded-e-lg py-0.5 pe-5 wrap-break-word not-italic;
     }
 
     details:not(.callout) {
@@ -104,6 +126,9 @@
 
     pre {
       @apply focus-visible:outline-primary focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
+      border-radius: 0.75rem;
+      line-height: 1.75;
+      overscroll-behavior-x: contain;
     }
   }
 

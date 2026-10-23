@@ -438,6 +438,17 @@ const searchHref = getRelativeLocaleUrl(locale, "search");
   document.addEventListener("astro:page-load", initMobileMenu);
   initMobileMenu();
 
+  // CSS 隐藏 dialog 不会退出模态状态，切到桌面后整页仍会被它阻止操作。
+  // 和抽屉的 md:hidden 共用 48rem 断点；监听只注册一次，并在触发时查找当前页面的节点，
+  // 避免 ClientRouter 换页后持有旧 dialog 或重复添加监听。
+  window.matchMedia("(min-width: 48rem)").addEventListener("change", event => {
+    if (!event.matches) return;
+
+    const dialog = document.querySelector<HTMLDialogElement>("#mobile-menu");
+
+    if (dialog?.open) dialog.close();
+  });
+
   /**
    * 搜索快捷键：按 `/` 跳到搜索页。
    *

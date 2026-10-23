@@ -7,6 +7,7 @@ import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
 import { getPostSlug } from "@/utils/getPostPaths";
 import { readFontFile } from "@/utils/readFontFile";
 import config from "@/config";
+import { postFilter } from "@/utils/postFilter";
 
 export async function getStaticPaths() {
   if (!config.features.dynamicOgImage) {
@@ -14,7 +15,8 @@ export async function getStaticPaths() {
   }
 
   const posts = await getCollection("posts").then(p =>
-    p.filter(({ data }) => !data.draft && !data.ogImage)
+    // 图片和正文必须使用同一发布规则，否则未来文章的标题图片会提前公开。
+    p.filter(post => postFilter(post) && !post.data.ogImage)
   );
 
   return posts.map(post => ({

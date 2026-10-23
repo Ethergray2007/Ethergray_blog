@@ -38,7 +38,7 @@ export type TagWithCount = Tag & {
 };
 
 /**
- * 统计一组"标签数组"里每个标签出现了几次，按数量从多到少排序。
+ * 统计一组"标签数组"里每个标签对应的文章数，按数量从多到少排序。
  *
  * 为什么参数是 string[][] 而不是完整的文章对象：
  *   它只关心标签，不关心文章的其他字段。
@@ -54,22 +54,27 @@ export type TagWithCount = Tag & {
 export function countTags(tagGroups: string[][]): TagWithCount[] {
   const counter = new Map<string, TagWithCount>();
 
-  for (const rawTag of tagGroups.flat()) {
-    const tag = slugifyStr(rawTag);
+  for (const tags of tagGroups) {
+    // 同一篇文章可能重复填写标签或混用大小写，但标签页只会列出这篇文章一次。
+    const seen = new Set<string>();
+    for (const rawTag of tags) {
+      const tag = slugifyStr(rawTag);
 
-    // 纯标点的标签转出来是空串，网址会变成 /tags//，直接跳过
-    // （和 getUniqueTags 保持一致，否则两个函数的标签数量对不上）
-    if (tag.length === 0) {
-      continue;
-    }
+      // 纯标点的标签转出来是空串，网址会变成 /tags//，直接跳过
+      // （和 getUniqueTags 保持一致，否则两个函数的标签数量对不上）
+      if (tag.length === 0 || seen.has(tag)) {
+        continue;
+      }
+      seen.add(tag);
 
-    const existing = counter.get(tag);
+      const existing = counter.get(tag);
 
-    if (existing) {
-      existing.count += 1;
-    } else {
-      // 第一次遇到这个标签：以原始写法作为显示名
-      counter.set(tag, { tag, tagName: rawTag, count: 1 });
+      if (existing) {
+        existing.count += 1;
+      } else {
+        // 第一次遇到这个标签：以原始写法作为显示名
+        counter.set(tag, { tag, tagName: rawTag, count: 1 });
+      }
     }
   }
 

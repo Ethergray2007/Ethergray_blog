@@ -44,11 +44,13 @@ function reflect(): void {
     .querySelector("#theme-btn")
     ?.setAttribute("aria-checked", String(themeValue === DARK));
 
-  const bg = window.getComputedStyle(document.body).backgroundColor;
+  // 页面画布色只设在 html 上；body 故意透明，读它会把地址栏也设成透明。
+  const bg = window.getComputedStyle(root).backgroundColor;
 
+  // 两条 meta 按系统主题匹配；手动主题可能与系统相反，所以都同步为当前页面色。
   document
-    .querySelector("meta[name='theme-color']")
-    ?.setAttribute("content", bg);
+    .querySelectorAll("meta[name='theme-color']")
+    .forEach(meta => meta.setAttribute("content", bg));
 }
 
 function persist(): void {
@@ -95,8 +97,8 @@ document.addEventListener("astro:before-swap", event => {
   ).newDocument;
 
   newDocument
-    .querySelector("meta[name='theme-color']")
-    ?.setAttribute("content", color);
+    .querySelectorAll("meta[name='theme-color']")
+    .forEach(meta => meta.setAttribute("content", color));
 });
 
 // Only follow OS theme changes when the user has NOT made

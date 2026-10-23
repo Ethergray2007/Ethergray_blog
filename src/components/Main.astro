@@ -24,7 +24,7 @@ const { pageTitle, pageDesc, class: className } = Astro.props;
 
 <main
   id="main-content"
-  class:list={["content-shell flex-1 py-8 sm:py-10 lg:py-12", className]}
+  class:list={["content-shell flex-1 py-8 sm:py-12 lg:py-14", className]}
 >
   {
     /*
@@ -44,8 +44,8 @@ const { pageTitle, pageDesc, class: className } = Astro.props;
   <div class="relative overflow-hidden">
     <PageGlow />
 
-    <header class="relative mb-8 sm:mb-10">
-      <h1 class="page-heading leading-tight break-words">
+    <header class="relative mb-10 pb-2 sm:mb-12 sm:pb-3">
+      <h1 class="page-heading leading-tight tracking-tight break-words">
         {pageTitle}
       </h1>
 
@@ -59,7 +59,7 @@ const { pageTitle, pageDesc, class: className } = Astro.props;
 
       {
         pageDesc && (
-          <p class="text-base-content-muted mt-4 max-w-2xl text-sm leading-7 text-pretty sm:text-base sm:leading-8">
+          <p class="text-base-content-muted mt-5 max-w-2xl text-sm leading-7 text-pretty sm:text-base sm:leading-8">
             {pageDesc}
           </p>
         )

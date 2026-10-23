@@ -15,7 +15,6 @@ import { toTransitionName } from "@/utils/toTransitionName";
 
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
-import BackButton from "./_components/BackButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
 import TableOfContents from "./_components/TableOfContents.astro";
 import CopyCodeButton from "./_components/CopyCodeButton.astro";
@@ -121,21 +120,16 @@ const ogImage = ogImageUrl
 >
   <Header />
 
-  <BackButton />
-
   <main
     id="main-content"
-    class:list={[
-      "reading-shell pb-12 sm:pb-16 lg:pb-20",
-      {
-        "mt-8": !config.features.showBackButton,
-      },
-    ]}
+    class="reading-shell mt-10 pb-12 sm:mt-16 sm:pb-16 lg:pb-20"
     data-pagefind-body
   >
-    <!-- Article header -->
-    <header class="card card-border bg-base-100 mb-6 shadow-sm sm:mb-8">
-      <div class="card-body gap-4 p-5 sm:p-7 lg:p-8">
+    <!-- 标题直接落在页面上，正文独立成纸面，避免每一段信息都像一张卡片。 -->
+    <header
+      class="article-heading border-base-300 mb-7 border-b pb-8 sm:mb-9 sm:pb-10"
+    >
+      <div class="flex flex-col gap-5">
         <div
           class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
         >
@@ -143,7 +137,7 @@ const ogImage = ogImageUrl
             style={{
               viewTransitionName: toTransitionName(title),
             }}
-            class="text-base-content min-w-0 text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
+            class="text-base-content min-w-0 text-3xl leading-[1.25] font-bold tracking-tight sm:text-4xl lg:text-5xl"
           >
             {title}
           </h1>
@@ -155,42 +149,33 @@ const ogImage = ogImageUrl
           }
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
-
-          {
-            description && (
-              <span class="text-base-content-faint hidden text-sm sm:inline">
-                ·
-              </span>
-            )
-          }
-
-          {
-            description && (
-              <span class="text-base-content-muted hidden max-w-full text-sm leading-6 sm:inline">
-                {description}
-              </span>
-            )
-          }
-        </div>
+        <Datetime {pubDatetime} {modDatetime} {timezone} />
+        {
+          description && (
+            <p class="text-base-content-strong max-w-full text-base leading-8 sm:text-lg">
+              {description}
+            </p>
+          )
+        }
       </div>
     </header>
 
     <!-- 目录：标题列表直接用 Astro 提取的 headings（见组件的文件头说明） -->
-    <TableOfContents {headings} />
+    <div class="article-toc">
+      <TableOfContents {headings} />
+    </div>
 
     <!-- Article content -->
     <article
       id="article"
-      class="card card-border bg-base-100 min-w-0 shadow-sm"
+      class="article-paper bg-base-100 min-w-0 rounded-2xl"
       data-heading-link-label={t.post.headingLink}
       data-copy-label={t.post.copy}
       data-copy-code-label={t.post.copyCode}
       data-copied-label={t.post.copied}
       data-copy-failed-label={t.post.copyFailed}
     >
-      <div class="card-body min-w-0 p-5 sm:p-8 lg:p-10">
+      <div class="min-w-0 px-5 py-7 sm:px-9 sm:py-10">
         <div
           class:list={[
             "app-prose w-full min-w-0",
@@ -207,9 +192,9 @@ const ogImage = ogImageUrl
     <CopyCodeButton />
 
     <!-- Article actions -->
-    <section class="mt-6 sm:mt-8">
-      <div class="card card-border bg-base-100 shadow-sm">
-        <div class="card-body gap-5 p-5 sm:p-6">
+    <section class="mt-8 sm:mt-10">
+      <div class="border-base-300 border-y">
+        <div class="flex flex-col gap-6 py-6 sm:py-7">
           <!-- Mobile edit -->
           {
             !hideEditPost && config.features.editPost?.enabled && (
@@ -252,18 +237,56 @@ const ogImage = ogImageUrl
 
     <!-- 评论区（Giscus）：配置在 astro-paper.config.ts 的 comments 段，没配就不渲染 -->
     <GiscusComments />
-
-    <!--
-      返回顶部按钮用的是页面顶部的 <BackButton />，这里不再放第二个。
-      原来这里还有个 <BackToTopButton />，它和 BackButton 的
-      id / data-* 选择器一模一样，而两边的脚本都用 document.querySelector
-      取**第一个**匹配 —— 于是它永远绑不上事件、容器停在 opacity-0
-      （等于不存在），还给页面留下重复 id。那个组件已经删掉。
-    -->
   </main>
 
   <Footer />
 </PostLayout>
+
+<style>
+  .article-heading h1 {
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  /* 目录是阅读导引，保留原来的折叠和锚点功能，只收掉卡片外观。 */
+  .article-toc :global(details) {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .article-toc :global(summary) {
+    padding: 0 0 1rem;
+  }
+
+  .article-toc :global(nav) {
+    padding: 0 0 0.5rem;
+  }
+
+  .article-paper :global(.app-prose > :first-child) {
+    margin-top: 0;
+  }
+
+  .article-paper :global(.app-prose > :last-child) {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 640px) {
+    .article-toc :global(nav > ul) {
+      columns: 2;
+      column-gap: 2rem;
+    }
+
+    .article-toc :global(nav li) {
+      break-inside: avoid;
+    }
+
+    .article-paper :global(.app-prose) {
+      font-size: 1.0625rem;
+    }
+  }
+</style>
 
 <script is:inline data-astro-rerun>
   /*

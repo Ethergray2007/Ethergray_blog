@@ -33,11 +33,29 @@ const filteredPosts = posts.filter(postFilter);
 
 const monthFormatter = new Intl.DateTimeFormat(locale, {
   month: "long",
+  timeZone: config.site.timezone,
 });
+
+// 构建机的本地时区不一定是站点时区；跨年或跨月时必须与文章日期保持一致。
+// 固定公历和数字格式，只把年份、月份用作分组键，显示名仍交给当前语言。
+const archiveDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: config.site.timezone,
+  calendar: "gregory",
+  numberingSystem: "latn",
+  year: "numeric",
+  month: "numeric",
+});
+
+function getArchiveDatePart(date: Date, part: "year" | "month") {
+  return Number(
+    archiveDateFormatter.formatToParts(date).find(value => value.type === part)
+      ?.value
+  );
+}
 
 const postsByYear = Object.entries(
   getPostsByGroupCondition(filteredPosts, post =>
-    post.data.pubDatetime.getFullYear()
+    getArchiveDatePart(post.data.pubDatetime, "year")
   )
 ).sort(([yearA], [yearB]) => Number(yearB) - Number(yearA));
 
@@ -62,9 +80,8 @@ const topTagsByYear = new Map(
       {
         postsByYear.map(([year, yearGroup]) => {
           const postsByMonth = Object.entries(
-            getPostsByGroupCondition(
-              yearGroup,
-              post => post.data.pubDatetime.getMonth() + 1
+            getPostsByGroupCondition(yearGroup, post =>
+              getArchiveDatePart(post.data.pubDatetime, "month")
             )
           ).sort(([monthA], [monthB]) => Number(monthB) - Number(monthA));
 
@@ -106,15 +123,16 @@ const topTagsByYear = new Map(
 
               {/* Timeline */}
               <ul class="timeline timeline-vertical archive-timeline max-md:timeline-compact">
-                {postsByMonth.map(([month, monthGroup], monthIndex) => {
+                {postsByMonth.map(([, monthGroup], monthIndex) => {
                   const sortedMonthPosts = [...monthGroup].sort(
                     (a, b) =>
                       new Date(b.data.pubDatetime).getTime() -
                       new Date(a.data.pubDatetime).getTime()
                   );
 
+                  // 用该组真实文章生成月份名，避免人造本地午夜跨时区后落入上个月。
                   const monthName = monthFormatter.format(
-                    new Date(2000, Number(month) - 1, 1)
+                    monthGroup[0].data.pubDatetime
                   );
 
                   return (

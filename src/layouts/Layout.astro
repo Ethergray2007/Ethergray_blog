@@ -15,15 +15,27 @@ type Props = {
   description?: string;
   ogImage?: string;
   canonicalURL?: string;
+  ogType?: "website" | "article";
+  showBackToTop?: boolean;
 };
 
 const { site } = config;
+
+/**
+ * 后台表单按整页加载初始化，不能沿用公开页面的局部切换：
+ * ClientRouter 会跳过已执行的模块，往返列表和编辑页后就会丢失事件绑定。
+ * 目标页不输出路由标记时，Astro 也会从公开页退回整页导航。
+ */
+const isAdminPage =
+  Astro.url.pathname === "/admin" || Astro.url.pathname.startsWith("/admin/");
 
 const {
   title = site.title,
   description = site.description,
   ogImage = resolveDefaultOgImagePath(config),
   canonicalURL = new URL(Astro.url.pathname, Astro.site).href,
+  ogType = "website",
+  showBackToTop = true,
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.site ?? Astro.url);
@@ -106,7 +118,7 @@ const atomHref = getAssetPath("atom.xml");
     <link rel="sitemap" href={getAssetPath("sitemap-index.xml")} />
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
 
     <meta property="og:site_name" content={site.title} />
 
@@ -150,7 +162,8 @@ const atomHref = getAssetPath("atom.xml");
       /*
         两条 theme-color：浏览器按当前系统深浅色自己挑一条。
         写 <meta name="theme-color"> 时它只影响**移动端地址栏**的着色，
-        桌面浏览器忽略 —— 所以这里不需要 CSS 或 JS 参与。
+        这两条是脚本执行前的系统主题兜底；theme.ts 会用 html 的实际底色
+        同步手动选择的主题，避免系统浅色、网站深色时地址栏仍是浅色。
 
         ⚠️ 这两个色值必须和 atmosphere.css 里的 --page-bg **保持一致**，
         不能凭印象写。它原来是硬编码的 #fdfdfd（既不是浅色的 #f7f7fb、
@@ -208,7 +221,7 @@ const atomHref = getAssetPath("atom.xml");
       })();
     </script>
 
-    <ClientRouter />
+    {!isAdminPage && <ClientRouter />}
   </head>
 
   {
@@ -246,7 +259,7 @@ const atomHref = getAssetPath("atom.xml");
           filter / backdrop-filter / transform，就会成为 fixed 的
           包含块，按钮就不再相对视口定位。理由见组件文件头。
         */}
-        <BackToTop />
+        {showBackToTop && <BackToTop />}
 
         <script>import "@/scripts/theme";</script>
       </body>

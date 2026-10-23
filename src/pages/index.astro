@@ -16,6 +16,7 @@ import { getUniqueTags } from "@/utils/getUniqueTags";
 import { getFriends } from "@/utils/getFriends";
 import { getNotes } from "@/utils/getNotes";
 import { getProjects } from "@/utils/getProjects";
+import { getAssetPath } from "@/utils/withBase";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -53,21 +54,25 @@ const browseItems = [
     href: getRelativeLocaleUrl(locale, "notes"),
     label: t.nav.notes,
     count: getNotes(noteEntries).length,
+    icon: "M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z",
   },
   {
     href: getRelativeLocaleUrl(locale, "projects"),
     label: t.nav.projects,
     count: getProjects(projectEntries).length,
+    icon: "m8 8-4 4 4 4m8-8 4 4-4 4m-3-11-2 14",
   },
   {
     href: getRelativeLocaleUrl(locale, "friends"),
     label: t.nav.friends,
     count: getFriends(friendEntries).length,
+    icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
   },
   {
     href: getRelativeLocaleUrl(locale, "tags"),
     label: t.nav.tags,
     count: getUniqueTags(posts).length,
+    icon: "M4 9h16M3 15h16M10 3 8 21M16 3l-2 18",
   },
 ];
 
@@ -89,11 +94,12 @@ const homePath = getRelativeLocaleUrl(locale, "");
     class="content-shell home-content pt-10 pb-10 sm:pt-14 sm:pb-12 lg:pt-16 lg:pb-16"
   >
     {/* 海报负责个性，内容区先呈现文章，分类入口和动图放在阅读之后。 */}
+    <div class="home-columns">
     <div id="reading" tabindex="-1">
       <!-- Featured -->
       {
         featuredPosts.length > 0 && (
-          <section id="featured" class="mb-12 sm:mb-16">
+          <section id="featured" class="mb-10 sm:mb-12">
             <div class="mb-5 flex items-end justify-between gap-4">
               <div>
                 <h2 class="section-heading">{t.home.featured}</h2>
@@ -102,7 +108,7 @@ const homePath = getRelativeLocaleUrl(locale, "");
               </div>
             </div>
 
-            <ul class="post-list grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+            <ul class="post-list grid grid-cols-1 gap-4 sm:gap-5">
               {featuredPosts.slice(0, 2).map(data => (
                 <Card variant="h3" {...data} />
               ))}
@@ -114,7 +120,7 @@ const homePath = getRelativeLocaleUrl(locale, "");
       <!-- Recent Posts -->
       {
         recentPosts.length > 0 && (
-          <section id="recent-posts" class="mb-8">
+          <section id="recent-posts">
             <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 class="section-heading">{t.home.recentPosts}</h2>
@@ -137,8 +143,6 @@ const homePath = getRelativeLocaleUrl(locale, "");
           </section>
         )
       }
-    </div>
-
     {/* 即使还没有文章，阅读入口也能抵达文章列表。 */}
     {
       recentPosts.length === 0 && (
@@ -147,28 +151,32 @@ const homePath = getRelativeLocaleUrl(locale, "");
         </a>
       )
     }
+    </div>
 
-    <section
+    <aside
       id="browse"
-      class="border-base-300 mt-12 border-t pt-8 sm:mt-16 sm:pt-10"
+      aria-labelledby="browse-title"
     >
       <div class="mb-5">
-        <h2 class="section-heading">{t.home.browseTitle}</h2>
+        <h2 id="browse-title" class="section-heading">{t.home.browseTitle}</h2>
 
         <p class="section-lede">{t.home.browseDesc}</p>
       </div>
 
-      {/* 实色表面挡住背景网格，避免入口与页面底色混在一起。 */}
-      <ul class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      {/* 桌面把入口收在文章旁，窄屏回到两列；实色底仍然挡住背景网格。 */}
+      <ul class="browse-links">
         {
           browseItems.map(item => (
             <li class="h-full">
               <a
                 href={item.href}
-                class="group border-base-content/15 bg-base-100 hover:border-primary focus-visible:border-primary hover:bg-base-200 focus-visible:bg-base-200 flex h-full min-h-16 items-center justify-between gap-3 rounded-lg border px-4 py-3 shadow-sm transition-colors duration-200"
+                class="browse-link group"
               >
-                <span class="relative min-w-0">
-                  <span class="group-hover:text-primary group-focus-visible:text-primary block font-semibold tracking-tight transition-colors">
+                <span class="browse-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d={item.icon} /></svg>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="group-hover:text-primary group-focus-visible:text-primary block font-semibold tracking-tight">
                     {item.label}
                   </span>
                 </span>
@@ -178,20 +186,25 @@ const homePath = getRelativeLocaleUrl(locale, "");
                   否则 1 和 8 宽度不同，右侧会跳。
                 */}
                 <span class="flex shrink-0 items-center gap-2">
-                  <span class="text-base-content-muted font-mono text-sm tabular-nums">
+                  <span class="browse-count text-base-content-muted text-sm tabular-nums">
                     {item.count}
                   </span>
-                  <IconArrowRight
-                    class="text-base-content-faint group-hover:text-primary group-focus-visible:text-primary size-3.5 transition-colors rtl:-rotate-180"
-                    aria-hidden="true"
-                  />
                 </span>
               </a>
             </li>
           ))
         }
       </ul>
-    </section>
+      <a href={getRelativeLocaleUrl(locale, "profile")} class="home-author">
+        <img src={getAssetPath("favicon.png")} width="36" height="36" alt="" class="size-9 rounded-full" loading="lazy" />
+        <span class="min-w-0 flex-1">
+          <span class="text-base-content block text-sm font-semibold">{config.site.author}</span>
+          <span class="text-base-content-muted block text-xs">{t.nav.about}</span>
+        </span>
+        <IconArrowRight class="text-base-content-muted size-4 rtl:-rotate-180" aria-hidden="true" />
+      </a>
+    </aside>
+    </div>
 
     <MotionShowcase />
   </main>
@@ -205,11 +218,97 @@ const homePath = getRelativeLocaleUrl(locale, "");
     margin-block: 0;
   }
 
-  .home-content {
-    background-image: radial-gradient(
-      ellipse 100% 18rem at 50% 0,
-      color-mix(in oklab, var(--color-primary) 6%, transparent),
-      transparent
-    );
+  .home-columns {
+    display: grid;
+    gap: 2.75rem;
+    align-items: start;
+  }
+
+  /* 文章与分类是不同层级：桌面留出一条窄导航栏，避免所有内容都铺成同样的大卡片。 */
+  @media (min-width: 64rem) {
+    .home-columns {
+      grid-template-columns: minmax(0, 1fr) 16rem;
+      gap: 2.5rem;
+    }
+  }
+
+  .browse-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .browse-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 4.5rem;
+    padding: 1rem;
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-box);
+    background: var(--color-base-100);
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+
+  .browse-link:hover,
+  .browse-link:focus-visible {
+    border-color: var(--color-primary);
+    background: var(--color-base-200);
+  }
+
+  .browse-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    color: var(--color-primary);
+  }
+
+  .browse-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .browse-count {
+    display: grid;
+    place-items: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    background: var(--color-base-200);
+  }
+
+  .home-author {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding: 1.25rem 0.25rem 0;
+    border-top: 1px solid var(--color-base-300);
+  }
+
+  .home-author:hover,
+  .home-author:focus-visible {
+    color: var(--color-primary);
+  }
+
+  @media (min-width: 64rem) {
+    .browse-links {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 23rem) {
+    .browse-link {
+      gap: 0.375rem;
+      padding: 0.75rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .browse-link {
+      transition: none;
+    }
   }
 </style>

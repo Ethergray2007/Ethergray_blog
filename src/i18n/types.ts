@@ -326,6 +326,9 @@ export interface UIStrings {
     invalidPostId: string;
     titleRequired: string;
     loadFailed: string;
+    retryLoad: string;
+    /** 浏览器的离开确认用系统文案，这句只用于页面内的未保存状态。 */
+    unsavedChanges: string;
     saveFailed: string;
     rebuildRequestFailed: string;
     apiBadRequest: string;

@@ -188,6 +188,8 @@ export default {
     invalidPostId: "网址里的文章编号不对。",
     titleRequired: "标题不能为空。",
     loadFailed: "加载文章失败。",
+    retryLoad: "重新加载文章",
+    unsavedChanges: "有未保存的修改，离开前请保存。",
     saveFailed: "保存文章失败。",
     rebuildRequestFailed: "重建请求失败。",
     apiBadRequest: "提交的数据不正确，请检查后重试。",
