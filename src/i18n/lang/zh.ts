@@ -53,8 +53,8 @@ export default {
     startReading: "开始阅读",
     featured: "精选文章",
     featuredDesc: "值得优先阅读的文章",
-    motionTitle: "动图",
-    motionDesc: "两张动图，随手放着。",
+    motionTitle: "片刻放空",
+    motionDesc: "写代码之外，也留一点喜欢的画面。",
     browseTitle: "从哪看起",
     browseDesc: "按内容类型浏览",
     recentPosts: "最近文章",
@@ -81,8 +81,15 @@ export default {
 
     searchTitle: "搜索",
     searchDesc: "搜索文章……",
-    searchDevHintTitle: "开发环境提示",
-    searchDevHintBody: "Pagefind 搜索索引需要先执行一次生产构建。",
+    searchInputLabel: "搜索文章",
+    searchPlaceholder: "输入标题、摘要或正文关键词",
+    searchSubmit: "搜索",
+    searchPrompt: "输入关键词，查找已发布的文章。",
+    searchLoading: "正在搜索……",
+    searchEmpty: "没有找到相关文章，试试其他关键词。",
+    searchFailed: "暂时无法搜索，请稍后重试。",
+    searchResults: "找到 {{n}} 篇文章",
+    searchQueryTooLong: "关键词最多 100 个字符。",
 
     nowTitle: "近况",
     nowDesc: "我现在在做什么、在学什么。",
@@ -154,6 +161,15 @@ export default {
     loginTitle: "登录后台",
     signInWithGithub: "用 GitHub 登录",
     githubHint: "只有博客主人的 GitHub 账号能登录。",
+    loginDescription: "继续写作，整理你的文章与灵感。",
+    loginChecking: "正在检查登录状态……",
+    loginRedirecting: "正在前往 GitHub……",
+    loginFailed:
+      "未能完成登录。请确认使用博客主人的 GitHub 账号，并检查网络后重试。",
+    loginCancelled: "GitHub 授权未完成，你可以重新登录。",
+    loginSessionUnavailable:
+      "暂时无法检查登录状态，你仍可以尝试用 GitHub 登录。",
+    loginNoScript: "请启用浏览器的 JavaScript 后再登录。",
 
     postsTitle: "文章管理",
     newPost: "写新文章",
@@ -179,12 +195,16 @@ export default {
     saved: "已保存",
     rebuild: "立即重建",
     rebuilding: "正在请求……",
-    rebuildOk: "已请求重建，约 1~2 分钟后生效。",
+    rebuildOk:
+      "重建请求已接收，尚未确认上线。请在 Netlify 的 Deploys 页面确认部署成功后，再查看正式站点。",
     rebuildNotConfigured: "没有配置 NETLIFY_BUILD_HOOK_URL，点了也不会重建。",
-    rebuildFailed: "通知 Netlify 失败了，看服务端日志。",
+    rebuildFailed:
+      "未能确认重建请求已接收。请先查看 Netlify 的 Deploys 页面；没有新部署时，再点「立即重建」重试。",
     savedNeedsRebuild:
       "已保存到数据库。要让它出现在站点上，点右边的「立即重建」。",
-    savedAsDraft: "已保存为草稿。草稿不会出现在站点上。",
+    savedAsDraft:
+      "已保存为草稿。草稿不公开，已上线的旧内容最多约 30 秒后隐藏。",
+    savedPublished: "已保存并公开，站点最多约 30 秒后更新。",
     invalidPostId: "网址里的文章编号不对。",
     titleRequired: "标题不能为空。",
     loadFailed: "加载文章失败。",

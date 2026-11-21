@@ -1,5 +1,5 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import type { PublicPost } from "@/lib/publicPosts";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import { getPostUrl } from "@/utils/getPostPaths";
@@ -10,7 +10,7 @@ import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
-} & CollectionEntry<"posts">;
+} & PublicPost;
 
 const { variant: Heading = "h2", id, data, filePath } = Astro.props;
 

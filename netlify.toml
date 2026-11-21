@@ -9,7 +9,7 @@
 
 [build]
   # 和 package.json 里的 build 脚本保持一致：
-  #   astro check → astro build → pagefind 生成搜索索引
+  #   astro check → astro build
   command = "npm run build"
 
   # Astro 的输出目录

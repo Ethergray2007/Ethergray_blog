@@ -1,4 +1,4 @@
-import type { CollectionEntry } from "astro:content";
+import type { PublicPost } from "@/lib/publicPosts";
 
 import { countTags, type TagWithCount } from "@/utils/getUniqueTags";
 
@@ -6,10 +6,10 @@ type GroupKey = string | number | symbol;
 type GroupFunction<T> = (item: T, index?: number) => GroupKey;
 
 export function getPostsByGroupCondition(
-  posts: CollectionEntry<"posts">[],
-  groupFunction: GroupFunction<CollectionEntry<"posts">>
+  posts: PublicPost[],
+  groupFunction: GroupFunction<PublicPost>
 ) {
-  const result: Record<GroupKey, CollectionEntry<"posts">[]> = {};
+  const result: Record<GroupKey, PublicPost[]> = {};
 
   for (let i = 0; i < posts.length; i++) {
     const item = posts[i];
@@ -39,7 +39,7 @@ export function getPostsByGroupCondition(
  * @param limit 最多返回几个标签，默认 5
  */
 export function getTopTagsInGroup(
-  posts: CollectionEntry<"posts">[],
+  posts: PublicPost[],
   limit = 5
 ): TagWithCount[] {
   return countTags(posts.map(post => post.data.tags)).slice(0, limit);

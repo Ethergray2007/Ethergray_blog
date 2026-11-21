@@ -51,6 +51,13 @@ async function fixture(browser: Browser) {
   const state = {
     failedReads: 0,
     failSave: false,
+    sessionUser: false,
+    failSession: false,
+    failSignIn: false,
+    signInRequests: [] as Record<string, unknown>[],
+    signInGate: Promise.resolve(),
+    releaseSignIn: () => {},
+    rebuildRequests: 0,
     listReads: 0,
     writes: [] as Record<string, unknown>[],
     saveGate: Promise.resolve(),
@@ -61,6 +68,49 @@ async function fixture(browser: Browser) {
   await context.route("**/api/**", async route => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (pathname === "/api/session/get-session" && request.method() === "GET") {
+      await route.fulfill({
+        status: state.failSession ? 503 : 200,
+        json: state.failSession
+          ? { message: "模拟会话检查失败" }
+          : state.sessionUser
+            ? {
+                user: { id: "owner", name: "测试博主" },
+                session: {
+                  id: "test-session",
+                  expiresAt: "2099-01-01T00:00:00.000Z",
+                },
+              }
+            : null,
+      });
+      return;
+    }
+    if (
+      pathname === "/api/session/sign-in/social" &&
+      request.method() === "POST"
+    ) {
+      state.signInRequests.push(request.postDataJSON());
+      await state.signInGate;
+      await route.fulfill({
+        status: state.failSignIn ? 503 : 200,
+        json: state.failSignIn
+          ? { message: "模拟登录失败", code: "TEST_ERROR" }
+          : {
+              // 只跳到本地替身页面，不访问真正的 GitHub 或发起真实 OAuth。
+              url: new URL("/admin/posts", baseURL).href,
+              redirect: true,
+            },
+      });
+      return;
+    }
+    if (pathname === "/api/rebuild" && request.method() === "POST") {
+      state.rebuildRequests++;
+      await route.fulfill({
+        status: 200,
+        json: { outcome: "triggered" },
+      });
+      return;
+    }
     const match = /^\/api\/posts(?:\/(\d+))?$/.exec(pathname);
 
     if (!match || !["GET", "POST", "PATCH"].includes(request.method())) {
@@ -114,6 +164,11 @@ async function fixture(browser: Browser) {
     holdSave() {
       state.saveGate = new Promise<void>(resolve => {
         state.releaseSave = resolve;
+      });
+    },
+    holdSignIn() {
+      state.signInGate = new Promise<void>(resolve => {
+        state.releaseSignIn = resolve;
       });
     },
   };
@@ -182,6 +237,106 @@ try {
       await test.close();
     }
   }
+
+  await check("登录请求防重复，失败可重试，成功跳转到后台", async test => {
+    const { page, state } = test;
+    state.failSignIn = true;
+    test.holdSignIn();
+    await page.goto(new URL("/admin", baseURL).href);
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLButtonElement>("#github-login")?.disabled ===
+        false
+    );
+    await page.locator("#github-login").focus();
+    const signInRequest = page.waitForRequest(r =>
+      r.url().includes("/sign-in/social")
+    );
+    await page.keyboard.press("Enter");
+    await signInRequest;
+    assert.equal(await page.locator("#github-login").isDisabled(), true);
+    await page
+      .locator("#github-login")
+      .evaluate(button => (button as HTMLButtonElement).click());
+    state.releaseSignIn();
+    await page.locator("#login-error").waitFor({ state: "visible" });
+    assert.equal(state.signInRequests.length, 1);
+    assert.match(
+      await page.locator("#login-error").innerText(),
+      /检查网络后重试/
+    );
+    assert.equal(await page.locator("#github-login").isEnabled(), true);
+    state.failSignIn = false;
+    await page.locator("#github-login").click();
+    await page.waitForURL(new URL("/admin/posts", baseURL).href);
+    assert.equal(state.signInRequests.length, 2);
+    assert.equal(state.signInRequests[0].provider, "github");
+    assert.equal(state.signInRequests[0].callbackURL, "/admin/posts");
+    assert.equal(state.signInRequests[0].errorCallbackURL, "/admin");
+  });
+
+  await check("已登录直接进入后台", async ({ page, state }) => {
+    state.sessionUser = true;
+    await page.goto(new URL("/admin", baseURL).href);
+    await page.waitForURL(new URL("/admin/posts", baseURL).href);
+    assert.equal(state.signInRequests.length, 0);
+  });
+
+  await check("会话检查失败后仍能发起登录", async ({ page, state }) => {
+    state.failSession = true;
+    await page.goto(new URL("/admin", baseURL).href);
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLButtonElement>("#github-login")?.disabled ===
+        false
+    );
+    assert.match(await page.locator("#login-status").innerText(), /仍可以/);
+    await page.locator("#github-login").click();
+    await page.waitForURL(new URL("/admin/posts", baseURL).href);
+  });
+
+  await check("回调错误只显示本地说明，取消授权后能重试", async ({ page }) => {
+    const response = await page.goto(
+      new URL("/admin?error=untrusted-error-message", baseURL).href
+    );
+    assert.match(response?.headers()["cache-control"] ?? "", /no-store/);
+    assert.equal(
+      await page.locator('meta[name="robots"]').getAttribute("content"),
+      "noindex, nofollow"
+    );
+    assert.equal(
+      (await page.locator("body").innerText()).includes(
+        "untrusted-error-message"
+      ),
+      false
+    );
+    assert.match(
+      await page.locator("#login-error").innerText(),
+      /未能完成登录/
+    );
+    await page.goto(new URL("/admin?error=access_denied", baseURL).href);
+    assert.match(await page.locator("#login-error").innerText(), /授权未完成/);
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLButtonElement>("#github-login")?.disabled ===
+        false
+    );
+    await page.evaluate(() => {
+      const button = document.querySelector<HTMLButtonElement>("#github-login");
+      const status = document.querySelector("#login-status");
+      if (button) button.disabled = true;
+      if (status) status.textContent = "正在前往 GitHub……";
+      window.dispatchEvent(
+        new PageTransitionEvent("pageshow", { persisted: true })
+      );
+    });
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLButtonElement>("#github-login")?.disabled ===
+        false
+    );
+    assert.equal(await page.locator("#login-status").innerText(), "");
+  });
 
   await check(
     "往返进入列表和编辑不同文章，都会重新初始化",
@@ -293,6 +448,39 @@ try {
     await stayOnWarning(page);
     assert.match(await page.locator("#body").inputValue(), /后续编辑/);
   });
+
+  await check(
+    "保存草稿、发布与下线都提示缓存时限且没有重建按钮",
+    async ({ page, state }) => {
+      await ready(page, 12);
+      assert.equal(await page.locator("#rebuild").count(), 0);
+      await page.locator("#save").click();
+      await saved(page);
+      assert.match(
+        await page.locator("#publication-status").innerText(),
+        /草稿/
+      );
+      for (const status of ["published", "draft"]) {
+        await page.locator("#post-status").selectOption(status);
+        const response = page.waitForResponse(
+          r => r.request().method() === "PATCH"
+        );
+        await page.locator("#save").click();
+        await response;
+        await page.waitForFunction(
+          () =>
+            document.querySelector<HTMLButtonElement>("#save")?.disabled ===
+            false
+        );
+        const text = await page.locator("#publication-status").innerText();
+        assert.match(text, status === "published" ? /公开/ : /草稿/);
+        assert.match(text, /30/);
+        assert.ok(!text.includes("立即重建"));
+      }
+      assert.equal(state.writes.length, 3);
+      assert.equal(state.rebuildRequests, 0);
+    }
+  );
 
   console.log(`\n后台浏览器回归：${passed} 项通过，所有 API 均使用内存替身。`);
 } finally {

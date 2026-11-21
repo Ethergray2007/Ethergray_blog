@@ -226,17 +226,39 @@ const heroLinks = [
   const TITLE_FADE_RATIO = 0.5;
   const BLUR_RAMP_SCROLL = 300;
   const BLUR_QUANTIZE_STEP = 2;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let ticking = false;
   let lastTransform = "";
   let lastOpacity = "";
   let lastBlur = "";
+  let heroVideo: HTMLVideoElement | null = null;
+  let motionPaused = reducedMotion.matches;
 
   function updateHeroScroll() {
     const overlay = document.querySelector<HTMLElement>(".hero-overlay");
     const bgLayer = document.querySelector<HTMLElement>(".hero-bg-layer");
 
     if (!overlay) return;
+
+    if (motionPaused) {
+      const transform = "translateY(0px)";
+      const opacity = "1";
+
+      if (transform !== lastTransform || opacity !== lastOpacity) {
+        lastTransform = transform;
+        lastOpacity = opacity;
+        overlay.style.transform = transform;
+        overlay.style.opacity = opacity;
+      }
+
+      if (bgLayer && lastBlur !== "0px") {
+        lastBlur = "0px";
+        bgLayer.style.setProperty("--hero-blur", "0px");
+      }
+
+      return;
+    }
 
     const scrollY = window.scrollY;
     const fadeDistance = window.innerHeight * TITLE_FADE_RATIO;
@@ -317,26 +339,24 @@ const heroLinks = [
    * poster 只在**视频开始播之前**显示。视频一开播它就退到后面了，
    * 而静态图必须一直在，所以它是独立的一层（.hero__bg）。
    *
-   * ⚠️ 这里原来有一道 `prefers-reduced-motion: reduce` 闸门：
-   * 系统开着「减少动态效果」就不插视频、只留静态图。
-   * 2026-10-12 按站主要求**去掉了**，现在一律自动播。
-   *
-   * 去掉它的代价要记住：前庭功能障碍的人会因为大面积持续运动的
-   * 画面产生眩晕和恶心，满屏视频正是最容易触发的那一类，
-   * 而「减少动态效果」是他们表达这个需求的**唯一**途径 ——
-   * 闸门没了，他们就没有选择权了。
-   *
-   * 以后要两头兼顾的话，正确的做法**不是**恢复这道闸门
-   * （站主自己的 Windows 就关着动效，恢复了他第一个看不见视频），
-   * 而是在首屏给一个明确的「播放背景」按钮，让人自己点。
+   * 系统开启「减少动态效果」时默认只保留静态海报，
+   * 不额外增加首屏按钮，因为动效开关属于辅助操作，不应抢占海报主视觉。
    */
   function initHeroVideo() {
     const layer = document.querySelector<HTMLElement>(".hero__video-layer");
 
     if (!layer) return;
+    if (motionPaused) return;
 
     // 已经插过了（ClientRouter 重复触发时不要叠加第二个视频）
-    if (layer.querySelector("video")) return;
+    if (layer.querySelector("video")) {
+      heroVideo = layer.querySelector<HTMLVideoElement>("video") ?? heroVideo;
+      void heroVideo?.play().catch(() => {
+        heroVideo?.remove();
+        heroVideo = null;
+      });
+      return;
+    }
 
     const video = document.createElement("video");
 
@@ -345,7 +365,7 @@ const heroLinks = [
     video.loop = true;
     video.autoplay = true;
     video.playsInline = true;
-    video.preload = "auto";
+    video.preload = "metadata";
     video.setAttribute("aria-hidden", "true");
 
     /*
@@ -373,12 +393,52 @@ const heroLinks = [
      * 永远只有静态图，控制台一句话都不说，排查时会一路往
      * "视频文件是不是坏了"的方向找。
      */
+    heroVideo = video;
     layer.append(video);
 
     // 自动播放可能被拒（省电模式等），失败就把视频摘掉露出静态图
-    void video.play().catch(() => video.remove());
+    void video.play().catch(() => {
+      video.remove();
+      heroVideo = null;
+      updateHeroScroll();
+    });
   }
 
-  document.addEventListener("astro:page-load", initHeroVideo);
-  initHeroVideo();
+  function initHeroMotion() {
+    if (!document.querySelector("#hero.hero-fullscreen")) return;
+
+    motionPaused = reducedMotion.matches;
+
+    if (motionPaused) {
+      heroVideo?.pause();
+      heroVideo?.remove();
+      heroVideo = null;
+    } else {
+      initHeroVideo();
+    }
+
+    updateHeroScroll();
+  }
+
+  document.addEventListener("astro:page-load", () => {
+    initHero();
+    initHeroMotion();
+  });
+
+  reducedMotion.addEventListener("change", event => {
+    motionPaused = event.matches;
+
+    if (motionPaused) {
+      heroVideo?.pause();
+      heroVideo?.remove();
+      heroVideo = null;
+    } else {
+      initHeroVideo();
+    }
+
+    updateHeroScroll();
+  });
+
+  initHero();
+  initHeroMotion();
 </script>

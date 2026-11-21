@@ -1,6 +1,6 @@
 ---
 import type { Page } from "astro";
-import type { CollectionEntry } from "astro:content";
+import type { PublicPost } from "@/lib/publicPosts";
 
 import IconArrowLeft from "@/assets/icons/IconArrowLeft.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
@@ -8,7 +8,7 @@ import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 import { useTranslations } from "@/i18n";
 
 type Props = {
-  page: Page<CollectionEntry<"posts">>;
+  page: Page<PublicPost>;
 };
 
 const { page } = Astro.props;

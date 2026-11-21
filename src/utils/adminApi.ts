@@ -33,16 +33,26 @@ export const authClient = createAuthClient({
 /**
  * 发起 GitHub 登录。
  *
- * 这是**整页跳转**，不是 fetch —— 浏览器会离开当前页面去 GitHub，
- * 授权完再跳回来。所以它没有返回值，也不该包在 try/catch 里等结果。
+ * SDK 会先请求本站取得授权地址，再整页跳到 GitHub。
+ * 第一步也可能超时或返回错误，所以必须等待它，页面才能恢复按钮并提示重试。
  *
  * @param callbackURL 授权成功后回到哪个页面
  */
-export function signInWithGitHub(callbackURL = "/admin/posts"): void {
-  void authClient.signIn.social({
+export async function signInWithGitHub(
+  callbackURL = "/admin/posts",
+  signal?: AbortSignal
+): Promise<void> {
+  const { data, error } = await authClient.signIn.social({
     provider: "github",
     callbackURL,
+    // 授权取消或失败时回到自己的登录页，不让作者落到 SDK 的默认错误页。
+    errorCallbackURL: "/admin",
+    fetchOptions: { signal },
   });
+
+  if (error || !data?.url) {
+    throw new Error("GITHUB_SIGN_IN_FAILED");
+  }
 }
 
 /** 登出 */
@@ -51,11 +61,17 @@ export async function signOut(): Promise<void> {
 }
 
 /** 查当前登录状态。未登录返回 null */
-export async function getCurrentUser(): Promise<{
+export async function getCurrentUser(signal?: AbortSignal): Promise<{
   id: string;
   name: string;
 } | null> {
-  const { data } = await authClient.getSession();
+  const { data, error } = await authClient.getSession({
+    fetchOptions: { signal },
+  });
+
+  if (error && error.status !== 401) {
+    throw new Error("SESSION_CHECK_FAILED");
+  }
 
   if (!data?.user) {
     return null;
@@ -112,10 +128,10 @@ export class ApiRequestError extends Error {
  */
 export type RebuildOutcome = "triggered" | "not-configured" | "failed";
 
-/** 写操作的返回：文章本身 + 这次有没有触发重建（null 表示没触发） */
+/** 文章实时发布；保留 rebuild:null 兼容旧版调用方，不触发整站部署。 */
 export type SaveResult = {
   post: AdminPost;
-  rebuild: RebuildOutcome | null;
+  rebuild: null;
 };
 
 /**
@@ -199,18 +215,7 @@ export const postsApi = {
   },
 };
 
-/**
- * 站点点重建（把数据库里的改动发布到线上）。
- *
- * 【为什么保存之后还要单独点一下】
- *   见 src/lib/rebuild.ts 的文件头。简单说：Netlify 免费套餐每次生产
- *   部署花 15 积分（一个月 300），而"改一篇已发布文章的错别字"不重建
- *   也不会错，只是站点上暂时是旧内容。所以那种改动由作者自己决定
- *   什么时候花这 15 分。
- *
- * @returns 结果。没配 NETLIFY_BUILD_HOOK_URL 时返回 "not-configured" ——
- *          页面据此如实告诉作者"点了也不会重建"，而不是假装成功
- */
+/** 旧版显式部署接口的兼容封装；正常文章编辑流程不再使用。 */
 export const rebuildApi = {
   async trigger(): Promise<RebuildOutcome> {
     const data = await request<{ outcome: RebuildOutcome }>("/api/rebuild", {

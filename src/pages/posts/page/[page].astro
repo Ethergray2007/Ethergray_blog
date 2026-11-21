@@ -1,0 +1,30 @@
+---
+/** 动态分页。删除时删除本文件，再去掉 paginatePosts 与 PostList 中不再使用的部分，更新 README。 */
+import PostList from "../_components/PostList.astro";
+import { listPublicPosts } from "@/lib/publicPosts";
+import {
+  setPublicCache,
+  publicReadError,
+  publicNotFound,
+} from "@/lib/publicCache";
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { paginatePosts } from "@/utils/paginatePosts";
+import config from "@/config";
+export const prerender = false;
+let posts;
+try {
+  posts = await listPublicPosts();
+} catch (error) {
+  return publicReadError("", error);
+}
+const page = paginatePosts(getSortedPosts(posts), Astro.params.page, {
+  pageSize: config.posts.perPage,
+  firstUrl: "/posts/",
+  pagesUrl: "/posts/page",
+});
+if (!page) return publicNotFound();
+if (page.currentPage === 1) return Astro.redirect("/posts/", 301);
+setPublicCache(Astro.response.headers);
+---
+
+<PostList {page} />

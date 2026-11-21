@@ -149,20 +149,15 @@ export interface UIStrings {
 
     searchTitle: string;
     searchDesc: string;
-
-    /**
-     * 开发环境下搜索页里那块提示（Pagefind 还没索引可查）。
-     *
-     * 【为什么要走 i18n，而不是留在 search.astro 的脚本里】
-     * 这个提示是页面里的客户端脚本插进 DOM 的，写死在脚本里就只有中文，
-     * 英文站点会半中半英 —— 和文章页复制按钮、/rss 页复制按钮
-     * 是同一类问题（见 post.copy 上面那段说明）。
-     * 所以由页面用 t.pages.* 渲染进 data-* 属性，脚本再去读。
-     *
-     * 只在开发环境显示 —— 线上搜索框是能用的，不该出现这块提示。
-     */
-    searchDevHintTitle: string;
-    searchDevHintBody: string;
+    searchInputLabel: string;
+    searchPlaceholder: string;
+    searchSubmit: string;
+    searchPrompt: string;
+    searchLoading: string;
+    searchEmpty: string;
+    searchFailed: string;
+    searchResults: string;
+    searchQueryTooLong: string;
 
     /** /now 页面（近况） */
     nowTitle: string;
@@ -282,6 +277,13 @@ export interface UIStrings {
     loginTitle: string;
     signInWithGithub: string;
     githubHint: string;
+    loginDescription: string;
+    loginChecking: string;
+    loginRedirecting: string;
+    loginFailed: string;
+    loginCancelled: string;
+    loginSessionUnavailable: string;
+    loginNoScript: string;
     /** 文章列表 */
     postsTitle: string;
     newPost: string;
@@ -323,6 +325,7 @@ export interface UIStrings {
     savedNeedsRebuild: string;
     /** 保存草稿之后的提示：草稿不会出现在站点上 */
     savedAsDraft: string;
+    savedPublished: string;
     invalidPostId: string;
     titleRequired: string;
     loadFailed: string;

@@ -1,200 +1,148 @@
 /**
- * 订阅源测试（RSS 2.0 与 Atom 1.0）
+ * 动态 RSS / Atom 的内容契约
  * ============================================================
- * 【为什么这个测试值得写】
- * 订阅源出问题的方式很隐蔽：平时一切正常，某天文章标题里出现一个 & 或 <
- * 整个 feed 就变成非法 XML，阅读器直接报错打不开。
- * 而发现它的人是读者，不是你。
- *
- * 【为什么这里不再测转义、也不再自己写 XML 检查器】
- * 生成 XML 的活已经交给 feed 库了（见 src/lib/feed.ts），
- * 转义是它的责任、也有它自己的测试 —— 我们再测一遍既没意义，
- * 它一升级我们的测试还会碎。
- * 我们自己该盯的是**结果**：构建出来的 feed 能不能被真正的解析器读懂。
- *
- * 所以这里：用 fast-xml-parser 解析真实构建产物。
- * 之前那个 60 行的手写"标签配平检查器"已经删掉了 ——
- * XML 的规则比正则能覆盖的多得多，解析器说合法才算数。
- *
- * 跑法：
- *   npm run feed:test
+ * 默认用测试数据运行真实生成函数；传本地地址时还会检查实际动态 HTTP 响应。
+ * 不再把 dist 下缺少预渲染 XML 当作成功，因为动态路由本来就没有这些文件。
+ * 想删除：删本文件及 package.json 的 feed:test 命令、README 对应说明。
+ * 跑法：npm run feed:test -- http://localhost:4321
  * ============================================================
  */
-import { existsSync, readFileSync } from "node:fs";
+import assert from "node:assert/strict";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
+import { buildPostFeed } from "../../src/utils/createPostFeed.ts";
 
-/* ------------------------------------------------------------------
- * 断言工具
- * ----------------------------------------------------------------- */
 let passed = 0;
-const failed: string[] = [];
-
-function check(name: string, ok: boolean, detail = "") {
-  if (ok) {
-    passed++;
-    console.log(`  ✅ ${name}`);
-  } else {
-    failed.push(name);
-    console.log(`  ❌ ${name}${detail ? `\n       ${detail}` : ""}`);
-  }
+const array = <T>(value: T | T[] | undefined): T[] =>
+  value === undefined ? [] : Array.isArray(value) ? value : [value];
+const text = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : value && typeof value === "object" && "#text" in value
+      ? String(value["#text"])
+      : "";
+function check(name: string, run: () => void) {
+  run();
+  passed++;
+  console.log(`  ✅ ${name}`);
+}
+function verify(rssXml: string, atomXml: string, name: string) {
+  check(`${name}：两个订阅源都是有效 XML`, () => {
+    assert.equal(XMLValidator.validate(rssXml), true);
+    assert.equal(XMLValidator.validate(atomXml), true);
+  });
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    parseTagValue: false,
+  });
+  const rss = parser.parse(rssXml).rss;
+  const atom = parser.parse(atomXml).feed;
+  const rssItems = array<Record<string, any>>(rss.channel.item);
+  const atomItems = array<Record<string, any>>(atom.entry);
+  check(`${name}：RSS 版本与 Atom 必填字段完整`, () => {
+    assert.equal(String(rss["@_version"]), "2.0");
+    assert.equal(atom["@_xmlns"], "http://www.w3.org/2005/Atom");
+    assert.ok(atom.id && atom.author.name && atom.generator);
+    assert.match(atom.updated, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+  check(`${name}：条目数量、标题和链接一致`, () => {
+    assert.equal(rssItems.length, atomItems.length);
+    assert.deepEqual(
+      rssItems.map(item => text(item.title)),
+      atomItems.map(item => text(item.title))
+    );
+    assert.deepEqual(
+      rssItems.map(item => item.link),
+      atomItems.map(item => item.link["@_href"])
+    );
+    assert.ok(rssItems.every(item => /^https?:\/\//.test(item.link)));
+  });
+  return { rssItems, atomItems, atom };
 }
 
-/* ==================================================================
- * 1. 真实构建产物
- * ================================================================ */
-console.log("\n=== 1. 真实构建产物 ===");
+const site = {
+  url: "https://blog.example/",
+  title: "订阅测试",
+  description: "测试摘要",
+  author: "测试作者",
+  lang: "zh",
+};
+const original = {
+  id: "alpha",
+  data: {
+    title: "A & B <C>",
+    description: "包含 & 与 < 的摘要",
+    tags: ["Astro", "中文"],
+    pubDatetime: new Date("2026-01-01T00:00:00Z"),
+    modDatetime: new Date("2026-02-01T00:00:00Z"),
+  },
+};
+const older = {
+  id: "beta",
+  data: {
+    title: "更早的文章",
+    description: "较早",
+    tags: [],
+    pubDatetime: new Date("2025-01-01T00:00:00Z"),
+    modDatetime: null,
+  },
+};
+const path = (post: { id: string }) => `/posts/${post.id}/`;
+const feed = buildPostFeed([original, older], site, path);
+const fixture = verify(feed.rss2(), feed.atom1(), "测试数据");
+check("订阅更新时间取全部文章中的最新时间", () =>
+  assert.equal(fixture.atom.updated, "2026-02-01T00:00:00.000Z")
+);
+check("测试文章确实写入订阅而非空结果", () =>
+  assert.equal(fixture.rssItems.length, 2)
+);
+const changed = {
+  ...original,
+  data: { ...original.data, title: "已修改的新标题" },
+};
+const refreshed = verify(
+  buildPostFeed([changed], site, path).rss2(),
+  buildPostFeed([changed], site, path).atom1(),
+  "修改后"
+);
+check("每次调用都使用本次数据，不保留旧文章标题", () => {
+  assert.equal(text(refreshed.rssItems[0].title), "已修改的新标题");
+  assert.equal(refreshed.rssItems.length, 1);
+});
+const empty = verify(
+  buildPostFeed([], site, path).rss2(),
+  buildPostFeed([], site, path).atom1(),
+  "没有公开文章"
+);
+check("公开文章为空时仍生成可订阅的合法空源", () =>
+  assert.equal(empty.rssItems.length, 0)
+);
 
-const files = ["dist/rss.xml", "dist/atom.xml"];
-
-/** 解析过的文档，key 是文件名 */
-const docs = new Map<string, Record<string, any>>();
-
-for (const file of files) {
-  if (!existsSync(file)) {
-    console.log(`  ⏭️  ${file} 不存在（先跑 npm run build）`);
-    continue;
-  }
-
-  const xml = readFileSync(file, "utf8");
-
-  /**
-   * XMLValidator 是"良构"的判定标准：解析不出来就是非法 XML。
-   * 它成功时返回 true，失败时返回带 err 的对象。
-   */
-  const valid = XMLValidator.validate(xml);
-  const ok = valid === true;
-
-  check(
-    `${file} 是良构的 XML`,
-    ok,
-    ok ? "" : JSON.stringify((valid as { err?: unknown }).err ?? valid)
+if (process.argv[2]) {
+  const base = new URL(process.argv[2]);
+  assert.ok(
+    ["localhost", "127.0.0.1"].includes(base.hostname) &&
+      base.protocol === "http:",
+    "运行时验收只访问本地开发地址"
   );
-
-  if (!ok) continue;
-
-  docs.set(file, new XMLParser({ ignoreAttributes: false }).parse(xml));
-}
-
-/* ==================================================================
- * 2. Atom 的必填字段
- * ================================================================ */
-console.log("\n=== 2. Atom 的必填字段 ===");
-
-const atomXml = existsSync("dist/atom.xml")
-  ? readFileSync("dist/atom.xml", "utf8")
-  : "";
-const atom = docs.get("dist/atom.xml")?.feed;
-
-if (atom) {
-  check("声明了 Atom 的命名空间", atomXml.includes('xmlns="http://www.w3.org/2005/Atom"'));
-  check("有 feed 级 id", typeof atom.id === "string" && atom.id.length > 0);
-  check("有 feed 级 updated", typeof atom.updated === "string");
-  check("有 author", atom.author?.name !== undefined);
-  check(
-    "时间是 RFC 3339 格式",
-    typeof atom.updated === "string" &&
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(atom.updated)
-  );
-  check("有 generator", typeof atom.generator === "string");
-} else {
-  console.log("  ⏭️  跳过（dist/atom.xml 不存在）");
-}
-
-/* ==================================================================
- * 3. RSS 的版本与条目
- * ================================================================ */
-console.log("\n=== 3. RSS 2.0 ===");
-
-const rss = docs.get("dist/rss.xml")?.rss;
-
-if (rss) {
-  check("版本是 2.0", String(rss["@_version"]) === "2.0");
-  check("有 channel", rss.channel !== undefined);
-  check("channel 有 title", typeof rss.channel?.title === "string");
-} else {
-  console.log("  ⏭️  跳过（dist/rss.xml 不存在）");
-}
-
-/* ==================================================================
- * 4. 两个订阅源说的是一回事
- * ================================================================ */
-console.log("\n=== 4. 两个订阅源内容一致 ===");
-
-/** 只有一个条目时解析结果不是数组，统一成数组再比 */
-function toArray<T>(value: T | T[] | undefined): T[] {
-  if (value === undefined) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
-const atomEntries = toArray(atom?.entry);
-const rssItems = toArray(rss?.channel?.item);
-
-/**
- * 取解析后的文字。
- *
- * ⚠️ 不能直接当字符串判断：feed 库给 Atom 的 title/summary 加了
- * `type="html"` 并用 CDATA 包起来，解析出来是
- * `{ "@_type": "html", "#text": "实际内容" }` 这种对象。
- * 第一版断言就栽在这里（`typeof === "string"` 永远为 false）。
- */
-function textOf(value: unknown): string {
-  if (typeof value === "string") return value;
-
-  if (value !== null && typeof value === "object" && "#text" in value) {
-    return String((value as Record<string, unknown>)["#text"]);
-  }
-
-  return "";
-}
-
-/** 取 Atom 条目的链接（属性在解析结果里叫 @_href） */
-function hrefOf(value: unknown): string {
-  if (value === null || typeof value !== "object") return "";
-
-  return String((value as Record<string, unknown>)["@_href"] ?? "");
-}
-
-if (atom && rss) {
-  check(
-    "条目数一致",
-    atomEntries.length === rssItems.length,
-    `atom ${atomEntries.length} 条 / rss ${rssItems.length} 条`
-  );
-
-  check(
-    "条目数不为零（真的写进去了）",
-    atomEntries.length > 0,
-    `实际 ${atomEntries.length} 条`
-  );
-
-  /** 每条都得有链接和标题 —— 少一个字段阅读器里就是一条空条目 */
-  check(
-    "Atom 每条都有标题和链接",
-    atomEntries.every(
-      entry => textOf(entry.title).length > 0 && hrefOf(entry.link).length > 0
-    )
-  );
-
-  check(
-    "RSS 每条都有标题和链接",
-    rssItems.every(
-      item => textOf(item.title).length > 0 && textOf(item.link).length > 0
-    )
+  const responses = await Promise.all([
+    fetch(new URL("/rss.xml", base)),
+    fetch(new URL("/atom.xml", base)),
+  ]);
+  check("实际动态订阅路由可访问，且声明服务端缓存", () => {
+    for (const response of responses) {
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("content-type") ?? "", /xml/);
+      assert.ok(response.headers.has("cache-control"));
+    }
+  });
+  verify(
+    await responses[0].text(),
+    await responses[1].text(),
+    "实际 HTTP 响应"
   );
 } else {
-  console.log("  ⏭️  跳过（需要两个文件都存在）");
+  console.log(
+    "  说明：本次验证生成函数；实际动态路由需另传本地 URL 验证，未将其计为通过。"
+  );
 }
-
-/* ==================================================================
- * 汇总
- * ================================================================ */
-console.log(`\n${"=".repeat(52)}`);
-console.log(`通过 ${passed} 项，失败 ${failed.length} 项`);
-
-if (failed.length > 0) {
-  console.log("\n失败的项：");
-  for (const name of failed) console.log(`  · ${name}`);
-  process.exit(1);
-}
-
-console.log("🎉 订阅源正常");
+console.log(`\n订阅测试：${passed} 项通过。`);

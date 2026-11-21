@@ -299,13 +299,12 @@
  *
  * 字号用 clamp，两端参照参考站、下限按本站站名长度回调：
  *   参考站是 ≥1024px 5rem（80px）、以下 2.75rem（44px）两档写死；
- *   这里是 clamp(2.5rem, 6vw, 5rem) —— 上限一样，下限从 44px 降到 40px，
+ *   这里是 clamp(2.5rem, 6vw, 5.5rem)，桌面放大到 88px，下限保留 40px，
  *   因为「Ethergray Blog」比「Fqzlrのblog」长，44px 在 390px 屏上会折行。
  *   中间连续放大，少一次断点处的跳变。
  *
- * 字重 700、行高 1.1、字距 0 —— 都照参考站的 h1。
- * 上一版是 900（最黑）+ -0.02em 字距：在 80px 这个尺寸上
- * 笔画会糊成一片，反而显得笨重。
+ * 保留 700 字重和 1.1 行高，用少量负字距把英文站名收紧；
+ * 不继续加粗，避免大字号下笔画糊成一片。
  *
  * ⚠️ 字体是**写死的白色**，不跟随主题。
  * 首屏背景永远是深色视频，文字必须永远是浅色。
@@ -314,10 +313,10 @@
  */
 .hero-title {
   margin: 0;
-  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
   font-weight: 700;
   line-height: 1.1;
-  letter-spacing: 0;
+  letter-spacing: -0.035em;
   color: #ffffff;
   text-wrap: balance;
 }
@@ -434,11 +433,23 @@
 
 @media (max-width: 40rem) {
   .hero-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    max-width: 22rem;
     gap: 0.5rem;
   }
 
+  /* 三个辅助入口同排，避免手机上最后一个胶囊孤零零地落到第二行。 */
   .hero-link {
-    padding-inline: 0.875rem;
+    gap: 0.25rem;
+    padding-inline: 0.375rem;
+    font-size: 0.75rem;
+  }
+
+  .hero-link svg {
+    width: 1rem;
+    height: 1rem;
   }
 }
 
@@ -545,7 +556,7 @@
  *   · 下滑提示的浮动动画（持续运动，最容易引起不适）
  *   · 按下时的缩放（位移类动效）
  *   · 背景模糊的渐进（滚动时持续变化）
- * 背景视频保留自动播放，只减少这里列出的装饰动效。
+ * 首屏脚本不插入背景视频，只保留静态海报和不动的文字层。
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll-hint {

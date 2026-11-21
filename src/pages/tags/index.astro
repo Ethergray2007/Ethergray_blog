@@ -1,4 +1,7 @@
 ---
+import { listPublicPosts } from "@/lib/publicPosts";
+import { setPublicCache, publicReadError } from "@/lib/publicCache";
+export const prerender = false;
 /**
  * 标签页 /tags
  * ============================================================
@@ -11,7 +14,6 @@
  * 数据来源：src/utils/getUniqueTags.ts 里的 getTagsWithCount()
  * ============================================================
  */
-import { getCollection } from "astro:content";
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -24,7 +26,13 @@ import { getTagsWithCount } from "@/utils/getUniqueTags";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
-const posts = await getCollection("posts");
+let posts: Awaited<ReturnType<typeof listPublicPosts>>;
+try {
+  posts = await listPublicPosts();
+} catch (error) {
+  return publicReadError("", error);
+}
+setPublicCache(Astro.response.headers);
 
 const tags = getTagsWithCount(posts);
 

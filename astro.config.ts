@@ -10,16 +10,7 @@ import tailwindcss from "@tailwindcss/vite";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import mermaid from "astro-mermaid";
-import { unified } from "@astrojs/markdown-remark";
-import rehypeCallouts from "rehype-callouts";
-import rehypeKatex from "rehype-katex";
-import remarkMath from "remark-math";
-import {
-  transformerNotationDiff,
-  transformerNotationHighlight,
-  transformerNotationWordHighlight,
-} from "@shikijs/transformers";
-import { transformerFileName } from "./src/utils/transformers/fileName";
+import { markdownConfig } from "./src/lib/markdownConfig";
 import config from "./astro-paper.config";
 
 /**
@@ -130,8 +121,11 @@ export default defineConfig({
     }),
     mdx(),
     sitemap({
+      customSitemaps: [new URL("sitemap-posts.xml", config.site.url).href],
       filter: page =>
-        config.features?.showArchives !== false || !page.endsWith("/archives/"),
+        !page.includes("/admin") &&
+        (config.features?.showArchives !== false ||
+          !page.endsWith("/archives/")),
     }),
   ],
   i18n: {
@@ -141,46 +135,7 @@ export default defineConfig({
       prefixDefaultLocale: false,
     },
   },
-  markdown: {
-    processor: unified({
-      /**
-       * 数学公式（KaTeX）。
-       *
-       * 需要两个插件配合，缺一不可：
-       *   remark-math   把 $...$ 和 $$...$$ 解析成数学节点
-       *   rehype-katex  把数学节点渲染成 KaTeX 的 HTML
-       *
-       * 为什么在**构建时**渲染成 HTML，而不是浏览器里用 JS 渲染：
-       *   构建时渲染出来的就是纯 HTML + CSS，读者不用额外下载 JS，
-       *   也不会先看到一片公式源码再"跳"成公式。
-       *
-       * 样式在 src/styles/katex.css 里引入（KaTeX 的 CSS 必须加载，
-       * 否则公式会排版错乱）。
-       *
-       * 文章目录（TOC）不在这里做。
-       *
-       * 原来配的是 remarkToc + remarkCollapse，但 remarkCollapse 的触发条件
-       * 是英文标题 "Table of contents"，中文文章永远匹配不上，
-       * 所以目录其实一直没生成过。
-       *
-       * 现在目录由 TableOfContents.astro 自己从正文提取，
-       * 位置、样式、锚点 id 都可控，也不依赖插件的隐藏规则。
-       */
-      remarkPlugins: [remarkMath],
-      rehypePlugins: [rehypeCallouts, rehypeKatex],
-    }),
-    shikiConfig: {
-      themes: { light: "min-light", dark: "night-owl" },
-      defaultColor: false,
-      wrap: false,
-      transformers: [
-        transformerFileName({ style: "v2", hideDot: false }),
-        transformerNotationHighlight(),
-        transformerNotationWordHighlight(),
-        transformerNotationDiff({ matchAlgorithm: "v3" }),
-      ],
-    },
-  },
+  markdown: markdownConfig,
   vite: {
     plugins: [tailwindcss()],
   },
@@ -188,24 +143,57 @@ export default defineConfig({
     {
       name: "Google Sans Code",
       cssVariable: "--font-google-sans-code",
-      provider: fontProviders.google(),
+      provider: fontProviders.local(),
       fallbacks: ["monospace"],
       /**
-       * 只下载真正用到的字重。
-       *
-       * 实际用到的：400 正文、500 font-medium、600 font-semibold、
-       * 700 font-bold、900 font-black。
-       * 原来还配了 300 和 italic，但全站没有任何地方用到，
-       * 白白多下载好几份字体文件。
+       * 字体随仓库提供，避免构建时下载 Google Fonts 的元数据超时。
+       * 浏览器优先用共享的可变 WOFF2；OG 图片仍需各字重的静态 TTF，
+       * 因为 satori 不能正确处理可变字体。来源与删除方法见字体目录 README。
        *
        * 注意：`ttf` 不能删。
        * `src/pages/og.png.ts` 用 satori 生成 OG 图片，而 satori 底层的
        * opentype.js 不认 woff2，只留 woff2 会直接让构建失败：
        * “Unsupported OpenType signature wOF2”。
        */
-      weights: [400, 500, 600, 700, 900],
+      weights: [400, 500, 600, 700],
       styles: ["normal"],
       formats: ["woff2", "ttf"],
+      options: {
+        variants: [
+          {
+            weight: 400,
+            style: "normal",
+            src: [
+              "./src/assets/fonts/google-sans-code-latin.woff2",
+              "./src/assets/fonts/google-sans-code-400.ttf",
+            ],
+          },
+          {
+            weight: 500,
+            style: "normal",
+            src: [
+              "./src/assets/fonts/google-sans-code-latin.woff2",
+              "./src/assets/fonts/google-sans-code-500.ttf",
+            ],
+          },
+          {
+            weight: 600,
+            style: "normal",
+            src: [
+              "./src/assets/fonts/google-sans-code-latin.woff2",
+              "./src/assets/fonts/google-sans-code-600.ttf",
+            ],
+          },
+          {
+            weight: 700,
+            style: "normal",
+            src: [
+              "./src/assets/fonts/google-sans-code-latin.woff2",
+              "./src/assets/fonts/google-sans-code-700.ttf",
+            ],
+          },
+        ],
+      },
     },
   ],
   env: {

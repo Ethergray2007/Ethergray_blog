@@ -60,10 +60,10 @@ interface FeaturesConfig {
       }
     | { enabled: false };
   /**
-   * Search provider. "pagefind" ships in the base template.
-   * Set to false to disable search entirely.
+   * 站内搜索模式。当前使用数据库实时搜索（"live"），
+   * 兼容旧配置值 "pagefind"；设为 false 关闭搜索。
    */
-  search?: "pagefind" | false;
+  search?: "live" | "pagefind" | false;
 }
 
 interface SocialLink {

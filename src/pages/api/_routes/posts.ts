@@ -25,7 +25,6 @@ import { API_ERROR } from "../../../lib/api-errors.ts";
 import {
   notifyNetlifyRebuild,
   type NotifyRebuild,
-  type RebuildOutcome,
 } from "../../../lib/rebuild.ts";
 import { slugifyStr } from "../../../utils/slugify.ts";
 
@@ -141,48 +140,6 @@ function parseId(raw: string | undefined): number | null {
   const id = Number(raw);
 
   return id > 0 ? id : null;
-}
-
-/**
- * 这次改动会不会让**站点上该有哪些页面**发生变化？
- *
- * 【为什么问的是这个，而不是"内容变了没有"】
- *   Netlify 免费套餐**每次生产部署花 15 积分**（一个月 300），
- *   乱触发等于把上线次数烧掉。所以自动重建只留给"不重建就是错的"
- *   那几种情况：
- *
- *     新建并直接发布 / 草稿→已发布    站点上要**多**一个页面  → 重建
- *     已发布→草稿 / 删除已发布的文章   站点上要**少**一个页面  → 重建
- *     改已发布文章的正文、标题、标签    页面还在，只是内容旧了  → 不自动，
- *                                                        交给后台的「立即重建」按钮
- *     草稿之间的来回改                 站点上本来就看不到      → 不触发
- *
- *   第三类是最烧积分的：改五遍错别字就自动建五次 = 75 积分，
- *   而按一次按钮只花 15 分。
- *
- * 【三个分支不能合并成 `before !== after`】
- *   那样"新建一篇草稿"（null → draft）也会算成变化 —— 但它不该重建。
- *
- * @param before 改动前的发布状态。null 表示这是新建
- * @param after  改动后的发布状态。null 表示这是删除
- */
-function changesPublicationStatus(
-  before: string | null,
-  after: string | null
-): boolean {
-  // 新建：只有"直接发布"才要重建，建草稿不用（站点上看不到）
-  if (before === null) {
-    return after === POST_STATUS.published;
-  }
-
-  // 删除：只有删掉的是已发布文章才要重建，删草稿不用
-  if (after === null) {
-    return before === POST_STATUS.published;
-  }
-
-  // 修改：发布状态变了才重建。改正文/标题/标签不算 ——
-  // 那种情况请用后台的「立即重建」按钮
-  return before !== after;
 }
 
 export function postRoutes(
@@ -338,26 +295,10 @@ export function postRoutes(
           };
         }
 
-        /**
-         * 先写库，再通知重建 —— 顺序不能反。
-         *
-         * 反过来的话，Netlify 可能在数据还没落库时就开始构建，
-         * 那次构建出来的页面就少一篇文章（而且没人会发现）。
-         *
-         * rebuild 这个字段会回给前端：后台据此决定提示哪句话 ——
-         * "已请求重建" 还是 "要上线得点「立即重建」"。
-         * 让前端自己推断（比如"状态没变就是没重建"）等于把规则抄两份，
-         * 早晚会不一致。
-         */
-        let rebuild: RebuildOutcome | null = null;
-
-        if (changesPublicationStatus(null, post.status)) {
-          rebuild = await notifyRebuild(`新建了《${post.title}》`);
-        }
-
+        // 页面实时读数据库，文章写入不再触发整站生产部署。
         set.status = 201;
 
-        return { post, rebuild };
+        return { post, rebuild: null };
       })
 
       /** -------------------------------------------------------
@@ -447,15 +388,6 @@ export function postRoutes(
         }
 
         /**
-         * 先记下改之前的状态，用来判断"要不要重建"。
-         *
-         * 多这一次查询是必要的：把一篇已发布的文章收回成草稿时，
-         * 返回的文章是草稿，只看它就会以为"站点上看不出变化" ——
-         * 而线上那篇旧文章其实还在。
-         */
-        const before = await getPostById(db, id);
-
-        /**
          * 只把"确实传了的字段"交给仓库层。
          * 直接传 undefined 会把字段更新成 NULL，那是覆盖而不是局部修改。
          */
@@ -490,17 +422,7 @@ export function postRoutes(
           return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
-        let rebuild: RebuildOutcome | null = null;
-
-        if (changesPublicationStatus(before?.status ?? null, post.status)) {
-          rebuild = await notifyRebuild(
-            post.status === POST_STATUS.published
-              ? `发布了《${post.title}》`
-              : `下线了《${post.title}》`
-          );
-        }
-
-        return { post, rebuild };
+        return { post, rebuild: null };
       })
 
       /** -------------------------------------------------------
@@ -524,9 +446,6 @@ export function postRoutes(
           };
         }
 
-        /* 和 PATCH 一样，先记下删之前的状态：已发布的文章删掉后要从站点上消失 */
-        const before = await getPostById(db, id);
-
         const deleted = await deletePost(db, id);
 
         if (!deleted) {
@@ -534,26 +453,14 @@ export function postRoutes(
           return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
-        let rebuild: RebuildOutcome | null = null;
-
-        if (changesPublicationStatus(before?.status ?? null, null)) {
-          rebuild = await notifyRebuild(`删除了《${before?.title ?? id}》`);
-        }
-
-        return { ok: true, rebuild };
+        return { ok: true, rebuild: null };
       })
 
       /** -------------------------------------------------------
        * 手动触发重建  POST /api/rebuild
        *
-       * 【为什么需要这个接口】
-       *   自动重建只在"站点上该有哪些页面"变化时才触发（见上面的
-       *   changesPublicationStatus）。改一篇**已发布**文章的错别字
-       *   属于"页面还在、内容旧了"，不会自动重建 ——
-       *   因为 Netlify 免费套餐每次生产部署要 15 积分，
-       *   改五遍错别字就自动建五次太贵了。
-       *
-       *   所以那种情况由作者看完满意了，自己按后台的「立即重建」按钮。
+       * 保留旧版调用方的显式部署入口。文章页面已动态读取，正常写作流程
+       * 不再调用它，后台也不再提供这个按钮。
        *
        * 【为什么把结果返回给前端】
        *   没配 NETLIFY_BUILD_HOOK_URL 时，触发是"成功"了但什么都不会发生。

@@ -50,8 +50,8 @@ export default {
     startReading: "Start reading",
     featured: "Featured",
     featuredDesc: "Posts worth reading first",
-    motionTitle: "Motion",
-    motionDesc: "A couple of animated clips.",
+    motionTitle: "A little downtime",
+    motionDesc: "A few favorite scenes between lines of code.",
     browseTitle: "Start here",
     browseDesc: "Browse by content type",
     recentPosts: "Recent Posts",
@@ -76,9 +76,15 @@ export default {
 
     searchTitle: "Search",
     searchDesc: "Search any article ...",
-    searchDevHintTitle: "Development notice",
-    searchDevHintBody:
-      "The Pagefind search index needs one production build first.",
+    searchInputLabel: "Search posts",
+    searchPlaceholder: "Search titles, descriptions, or content",
+    searchSubmit: "Search",
+    searchPrompt: "Enter a keyword to find published posts.",
+    searchLoading: "Searching…",
+    searchEmpty: "No matching posts. Try another keyword.",
+    searchFailed: "Search is temporarily unavailable. Please try again later.",
+    searchResults: "Found {{n}} posts",
+    searchQueryTooLong: "Search keywords must be at most 100 characters.",
 
     nowTitle: "Now",
     nowDesc: "What I'm doing and learning right now.",
@@ -145,6 +151,16 @@ export default {
     loginTitle: "Sign in",
     signInWithGithub: "Sign in with GitHub",
     githubHint: "Only the blog owner's GitHub account can sign in.",
+    loginDescription: "Continue writing and make room for your next idea.",
+    loginChecking: "Checking your session…",
+    loginRedirecting: "Opening GitHub…",
+    loginFailed:
+      "Could not complete sign-in. Use the blog owner's GitHub account, check your connection, and try again.",
+    loginCancelled:
+      "GitHub authorization was not completed. You can sign in again.",
+    loginSessionUnavailable:
+      "Your session could not be checked. You can still try signing in with GitHub.",
+    loginNoScript: "Enable JavaScript in your browser to sign in.",
 
     postsTitle: "Posts",
     newPost: "New post",
@@ -171,13 +187,18 @@ export default {
     saved: "Saved",
     rebuild: "Rebuild now",
     rebuilding: "Requesting...",
-    rebuildOk: "Rebuild requested. Live in about 1–2 minutes.",
+    rebuildOk:
+      "Rebuild request accepted; publication is not yet confirmed. Check Netlify Deploys for a successful deployment, then visit the live site.",
     rebuildNotConfigured:
       "NETLIFY_BUILD_HOOK_URL is not configured, so nothing will rebuild.",
-    rebuildFailed: "Could not reach Netlify. Check the server logs.",
+    rebuildFailed:
+      "Could not confirm that the rebuild request was accepted. Check Netlify Deploys first; if no new deployment appears, retry with “Rebuild now”.",
     savedNeedsRebuild:
       "Saved to the database. Click “Rebuild now” to publish it to the site.",
-    savedAsDraft: "Saved as a draft. Drafts do not appear on the site.",
+    savedAsDraft:
+      "Saved as a draft. Drafts are private; previously published content may take up to about 30 seconds to disappear.",
+    savedPublished:
+      "Saved and published. The site may take up to about 30 seconds to update.",
     invalidPostId: "The post ID in the URL is invalid.",
     titleRequired: "The title cannot be empty.",
     loadFailed: "Could not load the post.",

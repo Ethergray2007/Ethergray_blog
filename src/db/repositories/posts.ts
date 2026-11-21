@@ -14,7 +14,7 @@
  *   "查不到"是正常情况，不是错误；由调用方决定怎么处理。
  * ============================================================
  */
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
 
 /**
  * 注意这里写了 `.ts` 后缀，和项目其他地方（省略后缀）不一样。
@@ -25,6 +25,79 @@ import { and, desc, eq, sql } from "drizzle-orm";
  */
 import type { Db } from "../client.ts";
 import { POST_STATUS, posts, type NewPost, type PostRow } from "../schema.ts";
+
+/** 列表和搜索不下载正文，避免每次打开首页都搬运整个博客。 */
+const metadataColumns = {
+  id: posts.id,
+  slug: posts.slug,
+  title: posts.title,
+  description: posts.description,
+  tags: posts.tags,
+  status: posts.status,
+  featured: posts.featured,
+  publishedAt: posts.publishedAt,
+  createdAt: posts.createdAt,
+  updatedAt: posts.updatedAt,
+};
+export type PostMetadataRow = Omit<PostRow, "body">;
+
+function publiclyVisibleBefore(cutoff: Date) {
+  return and(
+    eq(posts.status, POST_STATUS.published),
+    lt(posts.publishedAt, cutoff)
+  );
+}
+
+export async function listPublicPostMetadata(
+  db: Db,
+  cutoff: Date
+): Promise<PostMetadataRow[]> {
+  return db
+    .select(metadataColumns)
+    .from(posts)
+    .where(publiclyVisibleBefore(cutoff))
+    .orderBy(desc(posts.publishedAt));
+}
+
+export async function getPublicPostBySlug(
+  db: Db,
+  slug: string,
+  cutoff: Date
+): Promise<PostRow | null> {
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(and(publiclyVisibleBefore(cutoff), eq(posts.slug, slug)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function searchPublicPostMetadata(
+  db: Db,
+  keyword: string,
+  cutoff: Date,
+  limit = 20
+): Promise<PostMetadataRow[]> {
+  // LIKE 中的 % 和 _ 原本是通配符；搜索框按字面匹配，且参数始终交给驱动绑定。
+  const escaped = keyword.replace(/[\\%_]/g, "\\$&");
+  const pattern = `%${escaped}%`;
+  return db
+    .select(metadataColumns)
+    .from(posts)
+    .where(
+      and(
+        publiclyVisibleBefore(cutoff),
+        or(
+          ilike(posts.title, pattern),
+          ilike(posts.description, pattern),
+          ilike(posts.body, pattern),
+          sql`array_to_string(${posts.tags}, ' ') ILIKE ${pattern}`
+        )
+      )
+    )
+    .orderBy(desc(posts.publishedAt))
+    .limit(limit);
+}
 
 /**
  * 列出已发布的文章，按发布时间从新到旧。

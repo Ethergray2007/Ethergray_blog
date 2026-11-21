@@ -34,8 +34,8 @@
  *   ⚠️ 这毕竟依赖了 Astro 的内部目录名（.astro/fonts），
  *      将来 Astro 大版本升级时这里可能失效 —— 那时的表现是
  *      构建报"找不到字体文件"，错误信息里会写明路径，能一眼定位。
- *      更彻底的做法是换掉 google provider、把 ttf 提交进仓库，
- *      再用自定义 provider 指过去（见 astro.config.ts 的 fonts 段）。
+ *      目前已换成本地 provider，但 Astro 仍把字体复制到同一缓存目录，
+ *      因此这里仍按 fontData 中的资源名读取，不需要运行时网络请求。
  * ============================================================
  */
 import { readFile } from "node:fs/promises";

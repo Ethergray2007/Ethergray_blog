@@ -1,4 +1,4 @@
-import { defineAstroPaperConfig } from "./src/types/config";
+import { defineAstroPaperConfig } from "./src/types/config.ts";
 
 export default defineAstroPaperConfig({
   site: {
@@ -33,7 +33,7 @@ export default defineAstroPaperConfig({
        */
       url: "/admin/posts/",
     },
-    search: "pagefind",
+    search: "live",
   },
  socials: [
   {

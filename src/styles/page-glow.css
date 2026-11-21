@@ -112,15 +112,18 @@
    *
    * ⚠️ 但光靠径向遮罩还不够：径向在**正下方**衰减得慢，
    * 于是容器底边会出现一条生硬的水平切边（一个矩形的下边）。
-   * 所以再叠一层自下而上的线性遮罩，两层遮罩是**相乘**关系，
-   * 底部那条边才会真正淡掉。
+   * 所以叠上线性遮罩让顶部、底部和右边都淡出。径向遮罩的中心在右上角，
+   * 单靠它反而会让顶边和右边最亮，看起来像被裁成了矩形。
+   * 三层遮罩必须取交集，任何一层透明时都不再显示。
    */
   -webkit-mask-image:
-    linear-gradient(to bottom, #000 45%, transparent 100%),
-    radial-gradient(at 100% 0, #000 10%, transparent 62%);
+    linear-gradient(to bottom, transparent, #000 22%, #000 45%, transparent),
+    radial-gradient(at 100% 0, #000 10%, transparent 62%),
+    linear-gradient(to right, #000 60%, transparent);
   mask-image:
-    linear-gradient(to bottom, #000 45%, transparent 100%),
-    radial-gradient(at 100% 0, #000 10%, transparent 62%);
+    linear-gradient(to bottom, transparent, #000 22%, #000 45%, transparent),
+    radial-gradient(at 100% 0, #000 10%, transparent 62%),
+    linear-gradient(to right, #000 60%, transparent);
 
   /*
    * ⚠️ 多层 mask 默认按 `add`（并集）合成 —— 那等于两层遮罩只要有一层

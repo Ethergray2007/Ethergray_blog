@@ -20,6 +20,9 @@
 import Layout from "@/layouts/Layout.astro";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
+import GitHubIcon from "@/assets/icons/socials/github.svg";
+import ArrowLeft from "@/assets/icons/IconArrowLeft.svg";
+import { getAssetPath } from "@/utils/withBase";
 
 export const prerender = false;
 
@@ -28,65 +31,157 @@ const t = useTranslations(locale);
 
 /**
  * 登录失败时 Better Auth 会把人送回这个页面，并在地址栏带上原因。
- * 在服务端直接读出来渲染，客户端就不用再解析 URL 了。
+ * URL 参数是外部输入，只用它选择本地文案，不直接展示内部错误或任意文字。
  */
-const errorMessage = Astro.url.searchParams.get("error");
+const errorCode = Astro.url.searchParams.get("error");
+const errorMessage = errorCode
+  ? errorCode === "access_denied"
+    ? t.admin.loginCancelled
+    : t.admin.loginFailed
+  : "";
+Astro.response.headers.set("Cache-Control", "private, no-store");
 ---
 
-<Layout title={`${t.admin.loginTitle} | ${config.site.title}`}>
+<Layout
+  title={`${t.admin.loginTitle} | ${config.site.title}`}
+  showBackToTop={false}
+>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
   <main
-    class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16"
+    id="admin-login"
+    class="mx-auto flex min-h-svh max-w-lg flex-col justify-center px-5 py-12 sm:px-8"
+    data-checking={t.admin.loginChecking}
+    data-redirecting={t.admin.loginRedirecting}
+    data-failed={t.admin.loginFailed}
+    data-session-unavailable={t.admin.loginSessionUnavailable}
+    data-idle={t.admin.signInWithGithub}
   >
-    <h1 class="mb-8 text-center text-2xl font-bold">{t.admin.loginTitle}</h1>
-
-    <div class="card bg-base-200 p-6 shadow-sm">
-      {
-        /*
-        登录失败的原因。
-        role="alert" 让屏幕阅读器立刻读出来 —— 无障碍的基本要求。
-      */
-      }
-      {
-        errorMessage && (
-          <p role="alert" class="text-error mb-4 text-center text-sm">
-            {errorMessage}
-          </p>
-        )
-      }
-
-      <button id="github-login" type="button" class="btn btn-primary w-full">
-        {t.admin.signInWithGithub}
+    <a
+      href="/"
+      class="text-base-content-strong focus-visible:outline-primary mb-7 flex w-fit items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4"
+    >
+      <img
+        src={getAssetPath("favicon.png")}
+        width="36"
+        height="36"
+        alt=""
+        class="rounded-full"
+      />
+      <span class="text-sm font-semibold">{config.site.title}</span>
+    </a>
+    <section
+      class="border-base-300 bg-base-100 rounded-box border p-6 sm:p-9"
+      aria-labelledby="login-title"
+    >
+      <div
+        class="bg-primary/10 text-primary mb-6 flex size-12 items-center justify-center rounded-2xl"
+      >
+        <GitHubIcon class="size-6" aria-hidden="true" />
+      </div>
+      <h1 id="login-title" class="text-3xl font-bold tracking-tight">
+        {t.admin.loginTitle}
+      </h1>
+      <p class="text-base-content-strong mt-3 text-sm leading-7">
+        {t.admin.loginDescription}
+      </p>
+      <p
+        id="login-error"
+        role="alert"
+        hidden={!errorMessage}
+        class="border-error/30 bg-error/10 text-error mt-5 rounded-lg border px-4 py-3 text-sm leading-6"
+      >
+        {errorMessage}
+      </p>
+      <button
+        id="github-login"
+        type="button"
+        disabled
+        aria-describedby="login-hint"
+        class="btn btn-primary mt-7 min-h-12 w-full gap-3"
+      >
+        <GitHubIcon class="size-5 shrink-0" aria-hidden="true" />
+        <span id="login-button-text">{t.admin.loginChecking}</span>
       </button>
-
-      <p class="mt-4 text-center text-xs opacity-60">{t.admin.githubHint}</p>
-    </div>
-
-    <p class="mt-6 text-center text-sm">
-      <a href="/" class="link link-hover">{t.notFound.goHome}</a>
-    </p>
+      <p
+        id="login-status"
+        role="status"
+        aria-live="polite"
+        class="text-base-content-muted mt-3 text-sm leading-6"
+      >
+      </p>
+      <p
+        id="login-hint"
+        class="text-base-content-muted border-base-300 mt-6 border-t pt-5 text-xs leading-6"
+      >
+        {t.admin.githubHint}
+      </p>
+      <noscript
+        ><p class="text-error mt-4 text-sm">
+          {t.admin.loginNoScript}
+        </p></noscript
+      >
+    </section>
+    <a
+      href="/"
+      class="text-base-content-muted hover:text-primary focus-visible:outline-primary mt-6 flex w-fit items-center gap-2 rounded-sm text-sm focus-visible:outline-2 focus-visible:outline-offset-4"
+    >
+      <ArrowLeft class="size-4" aria-hidden="true" />{t.notFound.goHome}
+    </a>
   </main>
 </Layout>
 
 <script>
   import { getCurrentUser, signInWithGitHub } from "@/utils/adminApi";
 
-  document
-    .querySelector<HTMLButtonElement>("#github-login")
-    ?.addEventListener("click", () => {
-      /**
-       * 整页跳转到 GitHub，授权完它会把人送回 /admin/posts。
-       * 所以这里不需要 try/catch —— 没有"结果"可以等。
-       */
-      signInWithGitHub("/admin/posts");
+  const root = document.querySelector<HTMLElement>("#admin-login");
+  const button = document.querySelector<HTMLButtonElement>("#github-login");
+  const label = document.querySelector<HTMLElement>("#login-button-text");
+  const status = document.querySelector<HTMLElement>("#login-status");
+  const error = document.querySelector<HTMLElement>("#login-error");
+
+  if (root && button && label && status && error) {
+    const texts = root.dataset;
+    const setBusy = (busy: boolean, text: string) => {
+      button.disabled = busy;
+      button.setAttribute("aria-busy", String(busy));
+      label.textContent = text;
+    };
+
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      error.hidden = true;
+      status.textContent = texts.redirecting ?? "";
+      setBusy(true, texts.redirecting ?? "");
+      try {
+        // SDK 先请求本站再跳转；限时等待，断网后仍能重新点登录。
+        await signInWithGitHub("/admin/posts", AbortSignal.timeout(15_000));
+      } catch {
+        error.textContent = texts.failed ?? "";
+        error.hidden = false;
+        status.textContent = "";
+        setBusy(false, texts.idle ?? "");
+      }
     });
 
-  /**
-   * 已经登录过就直接进后台，不用再点一次。
-   * 失败就忽略 —— 没登录是正常情况。
-   */
-  void getCurrentUser().then(user => {
-    if (user) {
-      location.replace("/admin/posts");
-    }
-  });
+    const checkSession = async () => {
+      // 返回整页缓存时，清掉离开前的“正在前往 GitHub”，避免按钮恢复后提示仍过期。
+      status.textContent = "";
+      setBusy(true, texts.checking ?? "");
+      try {
+        if (await getCurrentUser(AbortSignal.timeout(8_000))) {
+          location.replace("/admin/posts");
+          return;
+        }
+      } catch {
+        status.textContent = texts.sessionUnavailable ?? "";
+      }
+      setBusy(false, texts.idle ?? "");
+    };
+
+    void checkSession();
+    // 从 GitHub 返回时浏览器可能恢复整页缓存，不能保留离开前禁用的按钮。
+    window.addEventListener("pageshow", event => {
+      if (event.persisted) void checkSession();
+    });
+  }
 </script>

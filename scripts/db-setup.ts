@@ -1,23 +1,21 @@
 /**
- * 初始化脚本：建表 + 创建管理员账号
+ * 初始化脚本：检查配置 → 连接数据库 → 应用迁移建表
  * ============================================================
  * 用法：
- *   1. 复制 .env.example 成 .env，填好 DATABASE_URL 和 ADMIN_PASSWORD
- *   2. npm run db:setup
+ *   1. 复制 .env.example 成 .env，填好 DATABASE_URL 和 GitHub 登录相关变量
+ *   2. npm run db:setup（只想建表时加 -- --db-only）
  *
  * 它会做三件事：
- *   1. 检查两个必需的环境变量是否都配了（不配就给出明确提示）
- *   2. 应用数据库迁移（建表）
- *   3. 创建一个管理员账号
+ *   1. 检查必需的环境变量是否都配了（缺什么就给出明确提示）
+ *   2. 测试能否连上 Neon PostgreSQL
+ *   3. 应用 drizzle/ 下的迁移文件建表
  *
- * 【为什么用脚本而不是让你手敲 SQL】
- *   密码必须以**哈希**形式存储。手敲 SQL 很容易把明文存进去，
- *   那是不可逆的错误 —— 一旦存了明文，泄露就是全泄露。
- *   脚本走和线上登录完全相同的哈希逻辑，不可能搞错。
+ * 【为什么不再创建管理员账号或 users 表】
+ *   后台登录已改用 Better Auth 无状态模式 + GitHub OAuth，
+ *   只放行 GITHUB_OWNER_ID 对应的博主账号，数据库里不存用户信息。
  *
  * 【幂等性】
- *   账号已存在时不会重复创建，也不会改密码。
- *   所以这个脚本可以放心重复跑。
+ *   已应用过的迁移不会被重复执行，可以放心重复跑。
  * ============================================================
  */
 import { readFile } from "node:fs/promises";
@@ -64,7 +62,7 @@ async function loadEnvFile(): Promise<void> {
         "请先复制模板：",
         "  Copy-Item .env.example .env",
         "",
-        "然后用编辑器填好 DATABASE_URL 和 ADMIN_PASSWORD。",
+        "然后用编辑器按 .env.example 填好 DATABASE_URL 及登录相关配置。",
         "",
       ].join("\n")
     );

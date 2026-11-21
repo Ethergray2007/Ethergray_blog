@@ -1,4 +1,4 @@
-import type { CollectionEntry } from "astro:content";
+import type { PublicPost } from "@/lib/publicPosts";
 import { postFilter } from "./postFilter";
 import { slugifyStr } from "./slugify";
 
@@ -18,7 +18,7 @@ type Tag = {
  *   不丢的话，这个标签的网址会变成 /tags//，标签页的 getStaticPaths 还会
  *   拿到一个空的 tag 参数 —— 生成畸形路由或者构建告警。
  */
-export function getUniqueTags(posts: CollectionEntry<"posts">[]) {
+export function getUniqueTags(posts: PublicPost[]) {
   return posts
     .filter(postFilter)
     .flatMap(post => post.data.tags)
@@ -93,8 +93,6 @@ export function countTags(tagGroups: string[][]): TagWithCount[] {
  *
  * 这是给页面用的便捷封装：负责过滤草稿，再把标签交给 countTags 统计。
  */
-export function getTagsWithCount(
-  posts: CollectionEntry<"posts">[]
-): TagWithCount[] {
+export function getTagsWithCount(posts: PublicPost[]): TagWithCount[] {
   return countTags(posts.filter(postFilter).map(post => post.data.tags));
 }

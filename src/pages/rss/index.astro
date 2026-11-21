@@ -33,7 +33,8 @@
  *   4. 删掉 README「可选模块」表里那一行
  * ============================================================
  */
-import { getCollection } from "astro:content";
+import { listPublicPosts } from "@/lib/publicPosts";
+import { setPublicCache, publicReadError } from "@/lib/publicCache";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 import Layout from "@/layouts/Layout.astro";
@@ -47,6 +48,8 @@ import { getSortedPosts } from "@/utils/getSortedPosts";
 import { getPostUrl } from "@/utils/getPostPaths";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
+
+export const prerender = false;
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
@@ -68,10 +71,16 @@ const feedUrl = new URL(feedHref, Astro.site).href;
  * 用和首页「最近文章」同一套排序和条数（config.posts.perIndex）——
  * 这一块的承诺是"订阅之后收到的就是这些"，那就该和站内看到的顺序一致。
  */
-const latestPosts = getSortedPosts(await getCollection("posts")).slice(
-  0,
-  config.posts.perIndex
-);
+let latestPosts;
+try {
+  latestPosts = getSortedPosts(await listPublicPosts()).slice(
+    0,
+    config.posts.perIndex
+  );
+} catch (error) {
+  return publicReadError("", error);
+}
+setPublicCache(Astro.response.headers);
 
 /**
  * 推荐的阅读器。

@@ -1,4 +1,7 @@
 ---
+import { listPublicPosts } from "@/lib/publicPosts";
+import { setPublicCache, publicReadError } from "@/lib/publicCache";
+export const prerender = false;
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
@@ -25,7 +28,13 @@ const { posts: postsConfig } = config;
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
-const posts = await getCollection("posts");
+let posts: Awaited<ReturnType<typeof listPublicPosts>>;
+try {
+  posts = await listPublicPosts();
+} catch (error) {
+  return publicReadError("", error);
+}
+setPublicCache(Astro.response.headers);
 const sortedPosts = getSortedPosts(posts);
 
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
@@ -93,117 +102,139 @@ const homePath = getRelativeLocaleUrl(locale, "");
     data-home-path={homePath}
     class="content-shell home-content pt-10 pb-10 sm:pt-14 sm:pb-12 lg:pt-16 lg:pb-16"
   >
-    {/* 海报负责个性，内容区先呈现文章，分类入口和动图放在阅读之后。 */}
+    {/* 海报负责个性，内容区以文章为主；窄屏按文章、分类、动图的顺序阅读。 */}
     <div class="home-columns">
-    <div id="reading" tabindex="-1">
-      <!-- Featured -->
-      {
-        featuredPosts.length > 0 && (
-          <section id="featured" class="mb-10 sm:mb-12">
-            <div class="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <h2 class="section-heading">{t.home.featured}</h2>
+      <div id="reading" tabindex="-1">
+        <!-- Featured -->
+        {
+          featuredPosts.length > 0 && (
+            <section id="featured" class="mb-10 sm:mb-12">
+              <div class="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <h2 class="section-heading">{t.home.featured}</h2>
 
-                <p class="section-lede">{t.home.featuredDesc}</p>
+                  <p class="section-lede">{t.home.featuredDesc}</p>
+                </div>
               </div>
-            </div>
 
-            <ul class="post-list grid grid-cols-1 gap-4 sm:gap-5">
-              {featuredPosts.slice(0, 2).map(data => (
-                <Card variant="h3" {...data} />
-              ))}
-            </ul>
-          </section>
-        )
-      }
+              <ul class="post-list grid grid-cols-1 gap-4 sm:gap-5">
+                {featuredPosts.slice(0, 2).map(data => (
+                  <Card variant="h3" {...data} />
+                ))}
+              </ul>
+            </section>
+          )
+        }
 
-      <!-- Recent Posts -->
-      {
-        recentPosts.length > 0 && (
-          <section id="recent-posts">
-            <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 class="section-heading">{t.home.recentPosts}</h2>
-                <p class="section-lede">{t.home.recentPostsDesc}</p>
+        <!-- Recent Posts -->
+        {
+          recentPosts.length > 0 && (
+            <section id="recent-posts">
+              <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 class="section-heading">{t.home.recentPosts}</h2>
+                  <p class="section-lede">{t.home.recentPostsDesc}</p>
+                </div>
+                <a
+                  href={getRelativeLocaleUrl(locale, "posts")}
+                  class="link link-hover text-primary inline-flex min-h-11 shrink-0 items-center gap-2 text-sm font-semibold"
+                >
+                  {t.home.allPosts}
+                  <IconArrowRight class="size-4 rtl:-rotate-180" />
+                </a>
               </div>
-              <a
-                href={getRelativeLocaleUrl(locale, "posts")}
-                class="link link-hover text-primary inline-flex min-h-11 shrink-0 items-center gap-2 text-sm font-semibold"
-              >
-                {t.home.allPosts}
-                <IconArrowRight class="size-4 rtl:-rotate-180" />
-              </a>
-            </div>
 
-            <ul class="post-list grid gap-4 sm:gap-5">
-              {recentPosts.slice(0, postsConfig.perIndex).map(data => (
-                <Card variant="h3" {...data} />
-              ))}
-            </ul>
-          </section>
-        )
-      }
-    {/* 即使还没有文章，阅读入口也能抵达文章列表。 */}
-    {
-      recentPosts.length === 0 && (
-        <a href={getRelativeLocaleUrl(locale, "posts")} class="btn btn-outline">
-          {t.home.allPosts}
-        </a>
-      )
-    }
-    </div>
-
-    <aside
-      id="browse"
-      aria-labelledby="browse-title"
-    >
-      <div class="mb-5">
-        <h2 id="browse-title" class="section-heading">{t.home.browseTitle}</h2>
-
-        <p class="section-lede">{t.home.browseDesc}</p>
+              <ul class="post-list grid gap-4 sm:gap-5">
+                {recentPosts.slice(0, postsConfig.perIndex).map(data => (
+                  <Card variant="h3" {...data} />
+                ))}
+              </ul>
+            </section>
+          )
+        }
+        {/* 即使还没有文章，阅读入口也能抵达文章列表。 */}
+        {
+          recentPosts.length === 0 && (
+            <a
+              href={getRelativeLocaleUrl(locale, "posts")}
+              class="btn btn-outline"
+            >
+              {t.home.allPosts}
+            </a>
+          )
+        }
       </div>
 
-      {/* 桌面把入口收在文章旁，窄屏回到两列；实色底仍然挡住背景网格。 */}
-      <ul class="browse-links">
-        {
-          browseItems.map(item => (
-            <li class="h-full">
-              <a
-                href={item.href}
-                class="browse-link group"
-              >
-                <span class="browse-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d={item.icon} /></svg>
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="group-hover:text-primary group-focus-visible:text-primary block font-semibold tracking-tight">
-                    {item.label}
-                  </span>
-                </span>
+      <aside id="browse" aria-labelledby="browse-title">
+        <div class="mb-5">
+          <h2 id="browse-title" class="section-heading">
+            {t.home.browseTitle}
+          </h2>
 
-                {/*
+          <p class="section-lede">{t.home.browseDesc}</p>
+        </div>
+
+        {/* 桌面把入口收在文章旁，窄屏回到两列；实色底仍然挡住背景网格。 */}
+        <ul class="browse-links">
+          {
+            browseItems.map(item => (
+              <li class="h-full">
+                <a href={item.href} class="browse-link group">
+                  <span class="browse-icon" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d={item.icon} />
+                    </svg>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="group-hover:text-primary group-focus-visible:text-primary block font-semibold tracking-tight">
+                      {item.label}
+                    </span>
+                  </span>
+
+                  {/*
                   数量。用 tabular-nums 让它等宽 ——
                   否则 1 和 8 宽度不同，右侧会跳。
                 */}
-                <span class="flex shrink-0 items-center gap-2">
-                  <span class="browse-count text-base-content-muted text-sm tabular-nums">
-                    {item.count}
+                  <span class="flex shrink-0 items-center gap-2">
+                    <span class="browse-count text-base-content-muted text-sm tabular-nums">
+                      {item.count}
+                    </span>
                   </span>
-                </span>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-      <a href={getRelativeLocaleUrl(locale, "profile")} class="home-author">
-        <img src={getAssetPath("favicon.png")} width="36" height="36" alt="" class="size-9 rounded-full" loading="lazy" />
-        <span class="min-w-0 flex-1">
-          <span class="text-base-content block text-sm font-semibold">{config.site.author}</span>
-          <span class="text-base-content-muted block text-xs">{t.nav.about}</span>
-        </span>
-        <IconArrowRight class="text-base-content-muted size-4 rtl:-rotate-180" aria-hidden="true" />
-      </a>
-    </aside>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <a href={getRelativeLocaleUrl(locale, "profile")} class="home-author">
+          <img
+            src={getAssetPath("favicon.png")}
+            width="36"
+            height="36"
+            alt=""
+            class="size-9 rounded-full"
+            loading="lazy"
+          />
+          <span class="min-w-0 flex-1">
+            <span class="text-base-content block text-sm font-semibold"
+              >{config.site.author}</span
+            >
+            <span class="text-base-content-muted block text-xs"
+              >{t.nav.about}</span
+            >
+          </span>
+          <IconArrowRight
+            class="text-base-content-muted size-4 rtl:-rotate-180"
+            aria-hidden="true"
+          />
+        </a>
+      </aside>
     </div>
 
     <MotionShowcase />
@@ -222,6 +253,11 @@ const homePath = getRelativeLocaleUrl(locale, "");
     display: grid;
     gap: 2.75rem;
     align-items: start;
+  }
+
+  #browse .section-heading {
+    font-size: 1.25rem;
+    line-height: 1.5;
   }
 
   /* 文章与分类是不同层级：桌面留出一条窄导航栏，避免所有内容都铺成同样的大卡片。 */
@@ -247,7 +283,9 @@ const homePath = getRelativeLocaleUrl(locale, "");
     border: 1px solid var(--color-base-300);
     border-radius: var(--radius-box);
     background: var(--color-base-100);
-    transition: border-color 160ms ease, background-color 160ms ease;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
   }
 
   .browse-link:hover,

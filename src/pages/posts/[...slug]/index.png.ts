@@ -1,35 +1,59 @@
 import type { APIRoute } from "astro";
-import { getCollection } from "astro:content";
+import { getPublicPost } from "@/lib/publicPosts";
+import {
+  setPublicCache,
+  publicReadError,
+  publicNotFound,
+} from "@/lib/publicCache";
 import { fontData } from "astro:assets";
 import satori from "satori";
 import sharp from "sharp";
 import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
-import { getPostSlug } from "@/utils/getPostPaths";
-import { readFontFile } from "@/utils/readFontFile";
 import config from "@/config";
-import { postFilter } from "@/utils/postFilter";
+export const prerender = false;
 
-export async function getStaticPaths() {
-  if (!config.features.dynamicOgImage) {
-    return [];
-  }
+/** 同一个函数实例内缓存已验证的 TrueType 字体二进制，避免每次生成分享图都重复发起同站 HTTP 请求 */
+const fontBufferCache = new Map<string, Promise<ArrayBuffer>>();
 
-  const posts = await getCollection("posts").then(p =>
-    // 图片和正文必须使用同一发布规则，否则未来文章的标题图片会提前公开。
-    p.filter(post => postFilter(post) && !post.data.ogImage)
-  );
+function loadFontOnce(path: string, requestUrl: string): Promise<ArrayBuffer> {
+  const cached = fontBufferCache.get(path);
+  if (cached) return cached;
 
-  return posts.map(post => ({
-    params: { slug: getPostSlug(post.id, post.filePath) },
-    props: post,
-  }));
+  const loading = (async () => {
+    const response = await fetch(new URL(path, requestUrl), {
+      signal: AbortSignal.timeout(10_000),
+    });
+    const data = await response.arrayBuffer();
+    if (!response.ok || data.byteLength < 4) {
+      throw new Error("Invalid TrueType font response");
+    }
+    const signature = new DataView(data).getUint32(0);
+    if (signature !== 0x00010000) {
+      throw new Error("Invalid TrueType font response");
+    }
+    return data;
+  })().catch(error => {
+    // 失败的 Promise 不能留在缓存里，否则整个函数实例都会持续失败
+    fontBufferCache.delete(path);
+    throw error;
+  });
+
+  fontBufferCache.set(path, loading);
+  return loading;
 }
 
-export const GET: APIRoute = async ({ props }) => {
+export const GET: APIRoute = async ({ params, request }) => {
   if (!config.features.dynamicOgImage) {
     return new Response(null, { status: 404, statusText: "Not found" });
   }
 
+  let post;
+  try {
+    post = await getPublicPost(params.slug ?? "");
+  } catch (error) {
+    return publicReadError("", error);
+  }
+  if (!post || post.data.ogImage) return publicNotFound();
   const fonts = fontData["--font-google-sans-code"];
   const regularFontPath = getFontPathByWeight(fonts, 400);
   const boldFontPath = getFontPathByWeight(fonts, 700);
@@ -38,16 +62,18 @@ export const GET: APIRoute = async ({ props }) => {
     throw new Error("Cannot find the font path.");
   }
 
-  /**
-   * 从磁盘读，不用 fetch —— 原因见 src/utils/readFontFile.ts 的文件头。
-   * 简短版：OG 图是预渲染的，构建时没人在服务那个字体地址，
-   * fetch 拿回来的是一张 HTML 错误页，satori 会报一个看不懂的
-   * RangeError。
-   */
-  const [regularData, boldData] = await Promise.all([
-    readFontFile(regularFontPath),
-    readFontFile(boldFontPath),
-  ]);
+  // 动态路由运行于部署后的函数，构建机的字体缓存并不存在。
+  // 字体随站点静态资源发布，此时本站字体 URL 已能访问；禁止把 HTML 错误页交给 satori。
+  let regularData: ArrayBuffer;
+  let boldData: ArrayBuffer;
+  try {
+    [regularData, boldData] = await Promise.all([
+      loadFontOnce(regularFontPath, request.url),
+      loadFontOnce(boldFontPath, request.url),
+    ]);
+  } catch (error) {
+    return publicReadError("", error);
+  }
 
   const svg = await satori(
     {
@@ -115,7 +141,7 @@ export const GET: APIRoute = async ({ props }) => {
                           maxHeight: "84%",
                           overflow: "hidden",
                         },
-                        children: props.data.title,
+                        children: post.data.title,
                       },
                     },
                     {
@@ -148,7 +174,7 @@ export const GET: APIRoute = async ({ props }) => {
                                       overflow: "hidden",
                                       fontWeight: "bold",
                                     },
-                                    children: props.data.author,
+                                    children: post.data.author,
                                   },
                                 },
                               ],
@@ -195,7 +221,7 @@ export const GET: APIRoute = async ({ props }) => {
 
   const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
 
-  return new Response(new Uint8Array(pngBuffer), {
-    headers: { "Content-Type": "image/png" },
-  });
+  const headers = new Headers({ "Content-Type": "image/png" });
+  setPublicCache(headers);
+  return new Response(new Uint8Array(pngBuffer), { headers });
 };

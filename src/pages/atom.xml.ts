@@ -16,11 +16,19 @@
  * ============================================================
  */
 import { createFeed } from "@/lib/feed";
+import { setPublicCache, publicReadError } from "@/lib/publicCache";
+
+export const prerender = false;
 
 export async function GET() {
-  const feed = await createFeed();
-
-  return new Response(feed.atom1(), {
-    headers: { "content-type": "application/atom+xml; charset=utf-8" },
-  });
+  try {
+    const feed = await createFeed();
+    const headers = new Headers({
+      "content-type": "application/atom+xml; charset=utf-8",
+    });
+    setPublicCache(headers);
+    return new Response(feed.atom1(), { headers });
+  } catch (error) {
+    return publicReadError("", error);
+  }
 }

@@ -8,11 +8,11 @@ Personal blog built with **Astro**.
 
 ## ✨ Features / 特性
 
-- ⚡ Fast and lightweight static site
-- 📝 文章正文用 Markdown 写（存在数据库里，不在 git 的 .md 文件里）
+- ⚡ 动静结合：友链/说说/项目等页面静态预渲染，文章与搜索实时读库 + CDN 短缓存
+- 📝 文章正文用 Markdown 写（存在数据库里，后台保存无需重新构建整站）
 - 🎨 Responsive design
 - 🌙 Light / Dark mode
-- 🔎 Static search
+- 🔎 Live database search（支持标题、摘要、正文与标签实时检索）
 - 📱 Mobile-friendly
 - 🚀 Automatic deployment with Netlify
 - 🧩 Built with Tailwind CSS
@@ -50,20 +50,20 @@ RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xm
 
 ## 🛠️ Tech Stack / 技术栈
 
-- **Framework:** Astro 7（页面在构建时生成静态 HTML）
+- **Framework:** Astro 7（静态页构建预渲染，文章阅读页与后台按需服务端渲染）
 - **API:** Elysia 1.4（跑在 Astro 的 `/api/*` 路由里，不是独立服务）
 - **Database:** Neon PostgreSQL + Drizzle ORM（走 Neon HTTP 驱动）
 - **Auth:** Better Auth 1.7（GitHub 登录，无状态模式）
 - **Styling:** Tailwind CSS 4 + daisyUI 5（设计 token 只在 `src/styles/theme.css`）
 - **Language:** TypeScript 6
-- **Search:** Pagefind（构建时生成索引）
+- **Search:** 数据库实时搜索（`/search` + `/api/public-search`，参数化查询公开文章）
 - **Package Manager:** npm
 - **Deployment:** Netlify（develop = Deploy Preview，main = 生产）
 - **Version Control:** Git + GitHub
 
-⚠️ 这个项目**不只是静态站点**：访客读的是构建产物，但后台写作和登录走
-运行时 API（见下面「数据库」和「在线写作后台」两节）。技术栈只列 Astro
-会让人以为没有后端。
+⚠️ 这个项目**不只是静态站点**：友链、说说、项目、关于页是构建时静态产物，
+但文章阅读页、实时搜索、RSS/Atom、动态站点地图和写作后台都走运行时服务端渲染
+（见下面「数据库」和「在线写作后台」两节）。技术栈只列 Astro 会让人以为没有后端。
 
 ## 📁 Project Structure / 项目结构
 
@@ -121,7 +121,7 @@ RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xm
 | 品牌标识              | `src/components/BrandMark.astro`                                                                                                     | 删这个文件，再把 Header / Footer 里的 `<BrandMark />` 换回一行纯文字                                                       |
 | 回到顶部按钮          | `src/components/BackToTop.astro`<br>`src/styles/back-to-top.css`                                                                     | 照 `BackToTop.astro` 文件头写的 3 步做                                                                                     |
 | 评论区（Giscus）      | `src/pages/posts/[...slug]/_components/GiscusComments.astro`<br>`astro-paper.config.ts` 的 `comments`                                | 删这个文件，再删文章页里的 `<GiscusComments />` 那一行和文章页顶部的 import；删 `astro-paper.config.ts` 里的 `comments` 段 |
-| Pagefind 搜索         | `src/pages/search.astro`<br>`astro-paper.config.ts` 的 `features.search`                                                             | 改成 `search: false`，页面自动跳 404                                                                                       |
+| 实时文章搜索          | `src/pages/search.astro`<br>`src/pages/api/public-search.ts`<br>`src/utils/publicSearch.ts`<br>`astro-paper.config.ts` 的 `features.search` | 改成 `search: false`，页面自动跳 404；彻底删除可按 `search.astro` 文件头操作                                              |
 | 归档页                | `src/pages/archives/`                                                                                                                | `features.showArchives` 改成 `false`                                                                                       |
 | 动态 OG 图            | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                                    | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                                     |
 | 主题切换              | `src/scripts/theme.ts`                                                                                                               | `features.lightAndDarkMode` 改成 `false`                                                                                   |
@@ -131,13 +131,20 @@ RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xm
 | 后台浏览器回归        | `practice/tests/admin-browser.ts`                                                                                                  | 删这个文件，再删 `package.json` 里的 `admin:browser:test` 命令和下方运行说明                                               |
 | 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts` | 先删 `PostLayout.astro` 的 JSON-LD script 和对应 import，再删本文件及公开页面回归中的对应测试 |
 | 公开页面浏览器回归 | `practice/tests/public-browser.ts` | 删本文件、`package.json` 的 `public:browser:test` 命令和下方运行说明 |
-| 文章存数据库          | `src/db/loaders/posts.ts`<br>`src/content.config.ts` 里的 `loader`<br>`scripts/import-posts.ts`                                      | 照 `src/db/loaders/posts.ts` 文件头写的 3 步做（换成 `glob()` + 把文章放回 `src/content/posts/`，那个目录现在没有，要自己建） |
-| 保存后自动重建        | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                           | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                                  |
+| 动态文章发布与缓存    | `src/lib/publicPosts.ts`<br>`src/lib/publicCache.ts`<br>`src/lib/postMarkdown.ts`<br>`src/lib/markdownConfig.ts`<br>`src/lib/postSchema.ts`<br>`src/db/loaders/posts.ts` | 将阅读页面切回静态内容集合后再按各文件头步骤移除                                                                           |
+| 动态分页与列表        | `src/pages/posts/index.astro`<br>`src/pages/posts/page/[page].astro`<br>`src/pages/posts/_components/PostList.astro`<br>`src/utils/paginatePosts.ts` | 删以上文件和 `practice/tests/pagination.ts`                                                                                |
+| 动态文章站点地图      | `src/pages/sitemap-posts.xml.ts`<br>`astro.config.ts` 的 `customSitemaps`                                                            | 从 `astro.config.ts` 移除 `customSitemaps`，再删本文件                                                                     |
+| 旧版手动重建兼容接口  | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                           | 照 `src/lib/rebuild.ts` 文件头写的 3 步做（文章写入已不再自动触发重建）                                                    |
+| 本地代码字体 | `src/assets/fonts/`、`astro.config.ts` | 先替换字体配置，再删除字体目录；具体见目录内 README |
+| 日常维护指南 | `docs/MAINTENANCE.md` | 删文件及本表登记、下方学习资料链接 |
+| 动态发布方案与验证 | `docs/DYNAMIC-PUBLISHING.md` | 删文件及本表登记、下方学习资料链接；临时原型可独立移除 |
 | 练习册                | `practice/`                                                                                                                          | 整个目录删掉，再删 `package.json` 里的 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
 | 学习路线              | `docs/LEARNING-ROADMAP.md`                                                                                                           | 只删这一个文件。⚠️ 不要整个删掉 `docs/` —— 里面还有部署指南和素材说明                                                     |
 
 ## 📚 学习资料 / Learning
 
+- [日常维护指南](docs/MAINTENANCE.md) —— 改文字、改样式、发布文章和验证上线
+- [动态发布方案与验证](docs/DYNAMIC-PUBLISHING.md) —— 省去每次发文章的部署开销，含隔离验证结果与迁移边界
 - [学习路线：TypeScript → Astro](docs/LEARNING-ROADMAP.md) —— 每个知识点对应仓库里的哪个文件
 - [部署指南](docs/DEPLOYMENT.md) —— 环境变量、连接池、区域选择（要点都查过官方文档）
 - [TypeScript 练习册](practice/README.md) —— 8 节课，能自动判分
@@ -160,119 +167,69 @@ npm run db:test        # 跑数据层测试
 npm run posts:import   # 把 Markdown 文章导入数据库（要自己准备好这些文件）
 ```
 
-### 文章存在数据库里
+### 文章存在数据库里（动态发布）
 
 **文章不在 git 里了，在数据库的 `posts` 表里。** 在后台写完点保存，
-内容就进库了，不用改代码、不用提交。
+内容直接进库，不用改代码、不用提交，也**不再触发整站生产重建**。
 
-页面**仍然**是构建时生成的静态 HTML —— 这点没变，读者那边一点没变慢。
-实现方式是给 Astro 的文章集合换了一个「数据来源」：
+阅读端按内容类型分工：
 
 ```text
-以前：  glob()  从 src/content/posts/*.md 读
-现在：  postsFromDatabase()  从数据库的 posts 表读   ← src/db/loaders/posts.ts
+友链 / 说说 / 项目 / 关于  → 构建时生成静态 HTML（src/content/）
+首页 / 文章 / 分页 / 标签 / 归档 / RSS / 搜索 / 动态站点地图
+                           → 请求时通过 src/lib/publicPosts.ts 实时查库
 ```
 
-上层代码**一行都没改**：`getCollection("posts")`、`render(post)`、
-`post.data.xxx` 全都照旧，公式、代码高亮、目录也跟着照旧。
-因为 Astro 的 Content Layer 本来就允许集合的数据来自任何地方。
+为了兼顾实时性与响应速度，公开文章页和订阅源使用统一缓存策略
+（见 `src/lib/publicCache.ts`）：
+
+- 浏览器：`Cache-Control: public, max-age=0, must-revalidate`
+- Netlify CDN：`Netlify-CDN-Cache-Control: public, s-maxage=30, must-revalidate`
+- 数据库或渲染故障：返回 `503` + `Cache-Control: no-store`，绝不把故障缓存成空站点或 404
+- 正文 Markdown 编译结果按正文 SHA-256 做进程内 LRU 缓存（`src/lib/postMarkdown.ts`），但不缓存文章公开状态
+
+这意味着：发布、修改、下线或删除文章后，**最多约 30 秒**前台就会同步更新，
+不再每次消耗 Netlify 的 15 积分生产部署额度。
 
 **代价有两个，都要知道：**
 
 ```text
-1. 构建需要能连上数据库
-   npm run build 和 npx astro check 都会去读文章，
-   所以本地要 .env、Netlify 要环境变量、GitHub Actions 要配 secret
-   （名字都叫 DATABASE_URL）。
+1. 运行时需要能连上数据库
+   文章阅读页与后台接口在每次未命中缓存的请求时都会访问 Neon，
+   所以本地 `.env` 与 Netlify 环境变量都需要配置 DATABASE_URL。
 
 2. 内容不再有 git 历史
    改错了没法 git diff / git revert，只能靠数据库自己的备份。
 ```
 
-**改完文章怎么上线**：靠环境变量 `NETLIFY_BUILD_HOOK_URL`，
-后台会通知 Netlify 重新构建（约 1~2 分钟生效）。
-但**不是每次保存都触发** ——
+连接串放在环境变量 `DATABASE_URL` 里：
 
-> ⚠️ Netlify 免费套餐每次生产部署花 **15 积分**，一个月只有 300 分。
-> 所以自动重建只留给"不重建就是错的"那几种情况。
+| 在哪           | 干什么用的                       | 怎么配                                                                        |
+| -------------- | -------------------------------- | ----------------------------------------------------------------------------- |
+| 本地 `.env`    | `npm run dev` / 数据库迁移与脚本 | 项目根目录建 `.env`，写入 `DATABASE_URL=postgresql://...`                     |
+| GitHub Actions | CI 流水线（可选）                | 仓库 → Settings → Secrets and variables → Actions → **New repository secret** |
+| Netlify        | 线上动态阅读页**和**后台接口     | Site configuration → Environment variables，勾上 **Contains secret values**   |
 
-| 操作                           | 自动重建                    | 为什么                                                     |
-| ------------------------------ | --------------------------- | ---------------------------------------------------------- |
-| 新建并直接发布 / 草稿→已发布   | ✅                          | 站点上要**多**一个页面                                     |
-| 已发布→草稿 / 删除已发布的文章 | ✅                          | 站点上要**少**一个页面                                     |
-| 改已发布文章的正文/标题/标签   | ❌ 用后台的「立即重建」按钮 | 页面还在，只是内容旧了。改五遍错别字就自动建五次 = 75 积分 |
-| 草稿的任何改动                 | ❌                          | 站点上本来就看不到                                         |
+⚠️ **在 GitHub 加了 secret 不等于 Netlify 也有**，反过来也一样。
+Netlify 免费套餐只有 `All scopes` 一种选择，配上后构建和 Functions 都能读到。
 
-保存之后后台会**明确告诉你**这次改动到线上了没有（"已请求重建" 还是
-"要点「立即重建」"），不用自己记规则。
-
-没配 `NETLIFY_BUILD_HOOK_URL` 也能用，只是改完文章要等下一次推送代码才生效；
-后台会如实显示"没配置，点了也不会重建"。
-
-配它的时候有两个坑：
-
-```text
-□ 建 hook 时**分支要选生产分支**（main）。
-  选成 develop 的话触发的是免费的预览部署 —— 文章不会出现在正式站点上。
-
-□ 本地 .env 里**不要填**这个变量，只在 Netlify 的环境变量里配。
-  本地填了的话，开发时随手点一下保存就会真的触发一次线上生产构建（15 积分）。
-```
-
-**为什么不做成"保存即生效"**（把文章页改成按需渲染）：
-搜索索引（Pagefind）是构建时产物，运行时渲染出来的文章**搜不到**。
-也就是说"保存即生效"本来就做不到 —— 想要搜索就躲不掉重新构建。
-既然躲不掉，就让页面继续是静态 HTML，把好处留着。
-
-**本地开发遇到怪事，先删 `.astro/` 再重启**：
-
-```powershell
-Remove-Item -Recurse -Force .astro   # 集合数据的缓存
-npm run dev
-```
-
-改了数据来源（`src/content.config.ts` 的 loader、或 `src/db/loaders/posts.ts`）
-之后，`.astro/data-store.json` 这个缓存**不一定会重建**。症状很误导人：
-页面渲染出来的是旧数据，看起来像"代码写错了"。实测过一次 ——
-数据库里文章的 id 是 10，页面上「编辑本页」却是 `/admin/posts/undefined`。
-生产构建每次都是全新的，不受影响。
-
-连接串放在环境变量 `DATABASE_URL` 里。**三个地方都要配，它们是互不相干的**：
-
-| 在哪           | 干什么用的                     | 怎么配                                                                        |
-| -------------- | ------------------------------ | ----------------------------------------------------------------------------- |
-| 本地 `.env`    | `npm run dev` / `build` / 脚本 | 项目根目录建 `.env`，写入 `DATABASE_URL=postgresql://...`                     |
-| GitHub Actions | CI 里的类型检查和构建          | 仓库 → Settings → Secrets and variables → Actions → **New repository secret** |
-| Netlify        | 线上构建**和**线上接口         | Site configuration → Environment variables，勾上 **Contains secret values**   |
-
-⚠️ **在 GitHub 加了 secret 不等于 Netlify 也有**，反过来也一样。这个坑踩过：
-线上部署报"缺少环境变量 DATABASE_URL"，而 GitHub 的 CI 是绿的。
-
-**怎么确认是 Netlify 这边的问题**：看构建日志里 `Resolved config` 那段的
-`environment` 列表——如果只有一个 `NODE_VERSION`，就是这个原因。
-
-**不用纠结「范围 / Scopes」**：Netlify 免费套餐只有 `All scopes` 一种选择，
-按用途限制范围（比如只给 Functions）是付费功能。配上了就能被构建读到。
-
-**`npm run db:test` 不需要配置任何东西** —— 它用 PGlite（进程内的
-PostgreSQL）现场建一个空库、跑迁移、跑测试，全程不联网、不碰线上数据。
-
-想一次跑完全部测试，用总入口：
+**`npm test` 不需要配置任何东西** —— 数据层与动态数据测试都用 PGlite（进程内的
+PostgreSQL）现场建空库、跑迁移、跑断言，全程不联网、不碰线上数据：
 
 ```bash
-npm test   # 依次跑 7 组，前一组挂了就停
+npm test   # 依次跑 10 组离线测试，前一组挂了就停
 ```
 
-它跑的是 `db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
-`notes:test`、`projects:test` —— 全部不需要联网、不需要 `.env`，
-所以在任何机器上克隆下来就能跑。
+它依次覆盖：`db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
+`notes:test`、`projects:test`、`dynamic:data:test`、`dynamic:discovery:test`、
+`pagination:test` —— 克隆下来无需 `.env` 即可直接跑通。
+如需验收本地运行中的真实 HTTP 路由（`/api/public-search`、`/sitemap-posts.xml`、
+`/rss.xml`、`/atom.xml`），可另启动 `npm run dev` 并传入本地地址：
 
-**一个容易误判的地方**：`npm test` 全绿**不等于**所有检查都真的跑过。
-`feed:test` 里有一组"真实构建产物"检查（`dist/rss.xml`、`dist/atom.xml`），
-`dist/` 不存在时它会打印 `⏭️ 不存在（先跑 npm run build）` 然后跳过 ——
-这是有意的（不该逼着人先构建才能跑测试），但意味着**刚克隆下来跑
-`npm test` 看到的绿色，少了那几条**。想验全就按 `npm run build` → `npm test`
-的顺序跑，或者看输出里有没有那行 `⏭️`。
+```bash
+node practice/tests/dynamic-discovery.ts http://localhost:4321
+node practice/tests/feed.ts http://localhost:4321
+```
 
 ### 第一次配置
 
@@ -318,8 +275,8 @@ http://localhost:4321/admin
   [Astro 官方文档推荐](https://docs.astro.build/en/guides/authentication/)的方案，
   用的是它的**无状态模式**：登录状态存在加密 Cookie 里，服务端验证时不查库
 
-后台页面是**按需渲染**的（`prerender = false`），而博客正文页仍然是
-构建时生成的静态 HTML —— 读者访问的部分没有变慢。
+后台页面是**按需渲染**的（`prerender = false`），不接入公开缓存；
+文章阅读页同样按需读库，但通过 Netlify CDN 30 秒缓存兼顾速度与实时性。
 
 后台使用整页导航，不接入公开页面的 `ClientRouter`。否则往返列表与编辑页后，
 已执行的模块脚本不会重新初始化，表格可能一直显示「加载中」，保存按钮也可能失效。
@@ -361,28 +318,26 @@ npm run api:test       # 跑 API 测试（用内存数据库，62 项断言）
 
 ### 接口一览
 
-| 方法     | 路径             | 说明                         | 需要登录 |
-| -------- | ---------------- | ---------------------------- | -------- |
-| `GET`    | `/api/health`    | 健康检查，用来确认服务端能跑 | 否       |
-| `*`      | `/api/session/*` | 登录相关（Better Auth 提供） | 部分     |
-| `POST`   | `/api/logout`    | 登出，清除登录状态           | 否       |
-| `GET`    | `/api/me`        | 当前登录用户                 | 是       |
-| `GET`    | `/api/posts`     | 全部文章（含草稿）           | 是       |
-| `GET`    | `/api/posts/:id` | 单篇文章                     | 是       |
-| `POST`   | `/api/posts`     | 新建                         | 是       |
-| `PATCH`  | `/api/posts/:id` | 修改（只改传了的字段）       | 是       |
-| `DELETE` | `/api/posts/:id` | 删除                         | 是       |
-| `POST`   | `/api/rebuild`   | 手动触发一次站点重建         | 是       |
+| 方法     | 路径                 | 说明                                          | 需要登录 |
+| -------- | -------------------- | --------------------------------------------- | -------- |
+| `GET`    | `/api/health`        | 健康检查，用来确认服务端能跑                  | 否       |
+| `GET`    | `/api/public-search` | 公开文章实时搜索（`?q=关键词&lang=zh`）       | 否       |
+| `*`      | `/api/session/*`     | 登录相关（Better Auth 提供）                  | 部分     |
+| `POST`   | `/api/logout`        | 登出，清除登录状态                            | 否       |
+| `GET`    | `/api/me`            | 当前登录用户                                  | 是       |
+| `GET`    | `/api/posts`         | 全部文章（含草稿）                            | 是       |
+| `GET`    | `/api/posts/:id`     | 单篇文章                                      | 是       |
+| `POST`   | `/api/posts`         | 新建                                          | 是       |
+| `PATCH`  | `/api/posts/:id`     | 修改（只改传了的字段）                        | 是       |
+| `DELETE` | `/api/posts/:id`     | 删除                                          | 是       |
+| `POST`   | `/api/rebuild`       | 旧版兼容接口：显式请求一次 Netlify Build Hook | 是       |
 
-写操作的返回值里带一个 `rebuild` 字段，说明**这次改动有没有触发重建**：
+文章页面已改为动态读取，写操作的返回值仍保留兼容字段 `"rebuild": null`，
+不再自动触发整站部署：
 
 ```json
-{ "post": { "...": "..." }, "rebuild": "triggered" }
+{ "post": { "...": "..." }, "rebuild": null }
 ```
-
-取值是 `"triggered"`、`"not-configured"`（没配 Build Hook）、`"failed"`，
-或者 `null`（这次改动不需要自动重建，比如改了已发布文章的正文）。
-后台用它决定提示哪句话 —— 见「改完文章怎么上线」那节。
 
 ### 错误格式
 
@@ -406,7 +361,7 @@ npm run api:test       # 跑 API 测试（用内存数据库，62 项断言）
 | `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID                                                                     |
 | `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的密钥                                                                           |
 | `GITHUB_OWNER_ID`        | 只允许这个 GitHub 用户登录                                                                        |
-| `NETLIFY_BUILD_HOOK_URL` | 保存文章后自动触发重建（见「数据库」那节）                                                        |
+| `NETLIFY_BUILD_HOOK_URL` | 可选：仅旧版 `POST /api/rebuild` 兼容接口使用，日常写文章不需要配                                 |
 
 ⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 和 `NETLIFY_BUILD_HOOK_URL`
 泄露都会出事（前两个能冒充你登录，最后一个谁拿到都能触发构建）。

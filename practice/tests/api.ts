@@ -165,7 +165,10 @@ check(
   "DELETE /api/posts/1 未登录返回 401",
   (await asGuest("DELETE", "/api/posts/1")).status === 401
 );
-check("GET /api/me 未登录返回 401", (await asGuest("GET", "/api/me")).status === 401);
+check(
+  "GET /api/me 未登录返回 401",
+  (await asGuest("GET", "/api/me")).status === 401
+);
 
 /**
  * 顺序检查：未登录 + 数据格式错误时，应该先回 401 而不是 422。
@@ -245,7 +248,8 @@ check(
 );
 check(
   "标题超长返回 422",
-  (await asUser("POST", "/api/posts", { title: "字".repeat(300) })).status === 422
+  (await asUser("POST", "/api/posts", { title: "字".repeat(300) })).status ===
+    422
 );
 check(
   "不支持的文章状态返回 422",
@@ -276,7 +280,9 @@ const concurrentCreates = await Promise.all([
     slug: concurrentSlug,
   }),
 ]);
-const concurrentStatuses = concurrentCreates.map(result => result.status).sort();
+const concurrentStatuses = concurrentCreates
+  .map(result => result.status)
+  .sort();
 check(
   "并发创建相同 slug 返回一个 201 和一个 409",
   concurrentStatuses[0] === 201 && concurrentStatuses[1] === 409,
@@ -285,8 +291,7 @@ check(
 check(
   "并发 slug 冲突返回统一错误码",
   concurrentCreates.some(
-    result =>
-      result.status === 409 && result.body?.code === "SLUG_TAKEN"
+    result => result.status === 409 && result.body?.code === "SLUG_TAKEN"
   )
 );
 
@@ -301,8 +306,7 @@ const updateRacePosts = await Promise.all([
   }),
 ]);
 const updateRaceIds = updateRacePosts.map(
-  result =>
-    (result.body?.post as { id?: number } | undefined)?.id
+  result => (result.body?.post as { id?: number } | undefined)?.id
 );
 const concurrentUpdates =
   updateRaceIds[0] !== undefined && updateRaceIds[1] !== undefined
@@ -335,8 +339,14 @@ check(
   "内容正确",
   (one.body?.post as { body?: string } | undefined)?.body === "正文内容"
 );
-check("不存在的 id 返回 404", (await asUser("GET", "/api/posts/99999")).status === 404);
-check("非数字 id 返回 400", (await asUser("GET", "/api/posts/abc")).status === 400);
+check(
+  "不存在的 id 返回 404",
+  (await asUser("GET", "/api/posts/99999")).status === 404
+);
+check(
+  "非数字 id 返回 400",
+  (await asUser("GET", "/api/posts/abc")).status === 400
+);
 
 /**
  * ⚠️ 这几条是踩坑之后补的回归测试。
@@ -416,7 +426,9 @@ const published = await asUser("PATCH", `/api/posts/${postId}`, {
   status: "published",
 });
 
-const publishedPost = published.body?.post as Record<string, unknown> | undefined;
+const publishedPost = published.body?.post as
+  | Record<string, unknown>
+  | undefined;
 check("改为已发布", publishedPost?.status === "published");
 check(
   "自动补上了发布时间",
@@ -434,8 +446,14 @@ check(
  * ================================================================ */
 console.log("\n=== 7. 删除 ===");
 
-check("删除成功", (await asUser("DELETE", `/api/posts/${postId}`)).status === 200);
-check("删除后查不到", (await asUser("GET", `/api/posts/${postId}`)).status === 404);
+check(
+  "删除成功",
+  (await asUser("DELETE", `/api/posts/${postId}`)).status === 200
+);
+check(
+  "删除后查不到",
+  (await asUser("GET", `/api/posts/${postId}`)).status === 404
+);
 check(
   "重复删除返回 404",
   (await asUser("DELETE", `/api/posts/${postId}`)).status === 404
@@ -447,7 +465,11 @@ check(
 console.log("\n=== 8. 路由与错误处理 ===");
 
 const noRoute = await asUser("GET", "/api/不存在的接口");
-check("不存在的接口返回 404 而不是 500", noRoute.status === 404, `实际 ${noRoute.status}`);
+check(
+  "不存在的接口返回 404 而不是 500",
+  noRoute.status === 404,
+  `实际 ${noRoute.status}`
+);
 check(
   "错误格式统一",
   typeof noRoute.body?.error === "string" &&
@@ -501,143 +523,95 @@ const badJson = await authedApp.handle(
     body: "{不是合法的 JSON",
   })
 );
-check("请求体不是合法 JSON 时返回 400", badJson.status === 400, `实际 ${badJson.status}`);
+check(
+  "请求体不是合法 JSON 时返回 400",
+  badJson.status === 400,
+  `实际 ${badJson.status}`
+);
 
 /* ==================================================================
- * 10. 文章改动与站点重建
+ * 10. 动态发布不触发整站部署
  * ================================================================ */
-console.log("\n=== 10. 文章改动与站点重建 ===");
+console.log("\n=== 10. 动态发布不触发整站部署 ===");
 
 /**
- * 页面是构建时生成的静态 HTML，所以文章有变动时要通知 Netlify 重建一次。
- *
- * 但**不能什么操作都触发**：Netlify 免费套餐每次生产部署花 15 积分
- * （一个月 300），而构建还要一两分钟。规则是"只有站点上该有哪些页面
- * 变了才自动重建"—— 见 posts.ts 里的 changesPublicationStatus。
- *
- * 每条断言前都清空记录，这样看到的就只是**这一次**操作的结果。
+ * spy 保留真实的重建通知入口：任一常规写操作误调用它都会被计数，
+ * 不能只检查返回的 rebuild:null 就认定没有发生付费部署。
  */
-rebuildCalls.length = 0;
+function checkNoDeployment(
+  name: string,
+  result: ApiResponse,
+  expectedStatus: number
+) {
+  check(
+    name,
+    result.status === expectedStatus &&
+      result.body?.rebuild === null &&
+      rebuildCalls.length === 0,
+    "状态 " +
+      result.status +
+      "，通知 " +
+      rebuildCalls.length +
+      " 次，返回 " +
+      JSON.stringify(result.body)
+  );
+}
 
+rebuildCalls.length = 0;
 const draftOne = await asUser("POST", "/api/posts", { title: "只是草稿" });
 const draftOneId = (draftOne.body?.post as { id?: number } | undefined)?.id;
+checkNoDeployment("新建草稿不触发部署", draftOne, 201);
 
-check(
-  "新建草稿不触发重建",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
+checkNoDeployment(
+  "修改草稿不触发部署",
+  await asUser("PATCH", "/api/posts/" + draftOneId, { title: "修改草稿" }),
+  200
 );
-
-rebuildCalls.length = 0;
-
-await asUser("PATCH", `/api/posts/${draftOneId}`, { title: "改个标题，还是草稿" });
-
-check(
-  "改草稿不触发重建",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
+checkNoDeployment(
+  "发布草稿不触发部署",
+  await asUser("PATCH", "/api/posts/" + draftOneId, { status: "published" }),
+  200
 );
-
-rebuildCalls.length = 0;
-
-await asUser("PATCH", `/api/posts/${draftOneId}`, { status: "published" });
-
-check(
-  "草稿改成已发布要触发重建",
-  rebuildCalls.length === 1,
-  `实际触发 ${rebuildCalls.length} 次`
+checkNoDeployment(
+  "修改已发布文章不触发部署",
+  await asUser("PATCH", "/api/posts/" + draftOneId, {
+    title: "修改公开文章",
+    body: "新正文",
+    tags: ["新标签"],
+  }),
+  200
 );
-
-rebuildCalls.length = 0;
-
-await asUser("PATCH", `/api/posts/${draftOneId}`, {
-  title: "已发布的文章改标题",
-  body: "顺便改正文",
-});
-
-/**
- * 这条是本节最**省钱**的一条。
- *
- * 改一篇已发布文章的正文，站点上的页面还在、只是内容旧了 ——
- * 不重建也不会"错"，只是暂时不同步。而如果这里自动重建，
- * 改五遍错别字就是 5 × 15 = 75 积分。所以交给后台的
- * 「立即重建」按钮，作者满意了再花那 15 分。
- */
-check(
-  "改已发布文章的内容不触发重建（交给手动按钮）",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
+checkNoDeployment(
+  "已发布文章收回草稿不触发部署",
+  await asUser("PATCH", "/api/posts/" + draftOneId, { status: "draft" }),
+  200
 );
-
-rebuildCalls.length = 0;
-
-await asUser("PATCH", `/api/posts/${draftOneId}`, { status: "draft" });
-
-/**
- * 这条是本节的**重点**。
- *
- * 把已发布的文章收回成草稿时，接口返回的是草稿 —— 只看返回结果，
- * 会以为"站点上看不出变化"。但线上那篇旧文章还在，
- * 必须重建才能让它消失。
- */
-check(
-  "已发布的收回成草稿也要触发重建",
-  rebuildCalls.length === 1,
-  `实际触发 ${rebuildCalls.length} 次`
+checkNoDeployment(
+  "删除草稿不触发部署",
+  await asUser("DELETE", "/api/posts/" + draftOneId),
+  200
 );
-
-rebuildCalls.length = 0;
-
-await asUser("DELETE", `/api/posts/${draftOneId}`);
-
-check(
-  "删除草稿不触发重建",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
-);
-
-rebuildCalls.length = 0;
 
 const publishedOne = await asUser("POST", "/api/posts", {
   title: "直接发布的一篇",
   status: "published",
 });
-const publishedOneId = (
-  publishedOne.body?.post as { id?: number } | undefined
-)?.id;
-
-check(
-  "新建时直接发布要触发重建",
-  rebuildCalls.length === 1,
-  `实际触发 ${rebuildCalls.length} 次`
+const publishedOneId = (publishedOne.body?.post as { id?: number } | undefined)
+  ?.id;
+checkNoDeployment("新建并直接发布不触发部署", publishedOne, 201);
+checkNoDeployment(
+  "删除已发布文章不触发部署",
+  await asUser("DELETE", "/api/posts/" + publishedOneId),
+  200
 );
 
-rebuildCalls.length = 0;
+await asGuest("POST", "/api/posts", {
+  title: "未授权发布",
+  status: "published",
+});
+check("未登录写操作不触发部署", rebuildCalls.length === 0);
 
-await asUser("DELETE", `/api/posts/${publishedOneId}`);
-
-check(
-  "删除已发布的文章要触发重建",
-  rebuildCalls.length === 1,
-  `实际触发 ${rebuildCalls.length} 次`
-);
-
-rebuildCalls.length = 0;
-
-await asGuest("POST", "/api/posts", { title: "偷偷发的", status: "published" });
-
-check(
-  "未登录的写操作不触发重建",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
-);
-
-/* ------------------------------------------------------------------
- * 手动重建：POST /api/rebuild
- *
- * 这是"改一篇已发布文章的错别字"之后唯一的出路 —— 那种改动不会自动
- * 重建（太贵），要作者自己按按钮。
- * ----------------------------------------------------------------- */
+/* 保留旧版显式部署接口的权限与行为；文章编辑界面不会再调用它。 */
 rebuildCalls.length = 0;
 
 const manualRebuild = await asUser("POST", "/api/rebuild");

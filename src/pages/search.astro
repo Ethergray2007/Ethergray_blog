@@ -1,381 +1,261 @@
 ---
+/**
+ * 实时文章搜索
+ * ============================================================
+ * GET 表单可在没有 JavaScript 时使用，脚本只增强等待状态与结果刷新。
+ * 想删除：删此页面、api/public-search.ts、utils/publicSearch.ts，
+ * 再移除页眉搜索入口、i18n 搜索文案与 README 登记。
+ * ============================================================
+ */
 import { getRelativeLocaleUrl } from "astro:i18n";
-import "@pagefind/default-ui/css/ui.css";
-
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import Main from "@/components/Main.astro";
 import Footer from "@/components/Footer.astro";
-
+import { searchPublicPosts } from "@/lib/publicPosts";
+import { logPublicReadError } from "@/lib/publicCache";
+import { getPostUrl } from "@/utils/getPostPaths";
 import { getAssetPath } from "@/utils/withBase";
+import {
+  parseSearchQuery,
+  SEARCH_RESULT_LIMIT,
+  toPublicSearchResult,
+  type PublicSearchResult,
+} from "@/utils/publicSearch";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
+export const prerender = false;
 const locale = Astro.currentLocale ?? config.site.lang;
-
-// Redirect to 404 page if `search` feature is not enabled
-const notFoundUrl = getRelativeLocaleUrl(locale, "404");
-
-if (config.features.search !== "pagefind" && notFoundUrl) {
-  return Astro.rewrite(notFoundUrl);
-}
-
-const backUrl = config.features.showBackButton
-  ? `${Astro.url.pathname}`
-  : getRelativeLocaleUrl(locale, "");
-
-const pagefindBundlePath = getAssetPath("pagefind/");
-
 const t = useTranslations(locale);
+const notFoundUrl = getRelativeLocaleUrl(locale, "404");
+if (config.features.search === false && notFoundUrl)
+  return Astro.rewrite(notFoundUrl);
+
+const { query, error } = parseSearchQuery(Astro.url.searchParams.get("q"));
+let results: PublicSearchResult[] = [];
+let message = t.pages.searchPrompt;
+// 搜索 URL 含关键词，每次都查公开数据，不把旧结果缓存成文章发布后的搜索快照。
+Astro.response.headers.set("Cache-Control", "no-store");
+if (error) {
+  Astro.response.status = 400;
+  message = t.pages.searchQueryTooLong;
+} else if (query) {
+  try {
+    results = (await searchPublicPosts(query, SEARCH_RESULT_LIMIT)).map(post =>
+      toPublicSearchResult(post, getPostUrl(post.id, post.filePath, locale))
+    );
+    message = results.length
+      ? t.pages.searchResults.replace("{{n}}", String(results.length))
+      : t.pages.searchEmpty;
+  } catch (readError) {
+    logPublicReadError(readError);
+    Astro.response.status = 503;
+    message = t.pages.searchFailed;
+  }
+}
 ---
 
 <Layout title={`${t.pages.searchTitle} | ${config.site.title}`}>
   <Header />
-
   <Breadcrumb />
-
   <Main pageTitle={t.pages.searchTitle} pageDesc={t.pages.searchDesc}>
-    <section aria-labelledby="search-section-title">
-      <h2 id="search-section-title" class="sr-only">
-        {t.pages.searchTitle}
-      </h2>
-
-      <div class="card card-border bg-base-100 shadow-sm">
-        <div class="card-body p-4 sm:p-6">
-          <div
-            id="pagefind-search"
-            transition:persist
-            data-backurl={backUrl}
-            data-bundle-path={pagefindBundlePath}
-            data-dev-hint-title={import.meta.env.DEV
-              ? t.pages.searchDevHintTitle
-              : null}
-            data-dev-hint-body={import.meta.env.DEV
-              ? t.pages.searchDevHintBody
-              : null}
+    <section
+      id="live-search"
+      aria-labelledby="search-section-title"
+      data-endpoint={getAssetPath("api/public-search")}
+      data-locale={locale}
+      data-prompt={t.pages.searchPrompt}
+      data-loading={t.pages.searchLoading}
+      data-empty={t.pages.searchEmpty}
+      data-failed={t.pages.searchFailed}
+      data-count={t.pages.searchResults}
+      data-too-long={t.pages.searchQueryTooLong}
+    >
+      <h2 id="search-section-title" class="sr-only">{t.pages.searchTitle}</h2>
+      <form
+        id="search-form"
+        method="get"
+        role="search"
+        class="border-base-300 bg-base-100 rounded-box border p-5 sm:p-6"
+      >
+        <label
+          for="search-query"
+          class="text-base-content-strong mb-3 block text-sm font-semibold"
+          >{t.pages.searchInputLabel}</label
+        >
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <input
+            id="search-query"
+            name="q"
+            type="search"
+            maxlength="100"
+            value={query.slice(0, 100)}
+            placeholder={t.pages.searchPlaceholder}
+            aria-describedby="search-status"
+            class="input input-bordered min-h-12 w-full min-w-0 flex-1 text-base"
+          />
+          <button
+            id="search-submit"
+            type="submit"
+            class="btn btn-primary min-h-12 sm:px-7"
+            >{t.pages.searchSubmit}</button
           >
-          </div>
         </div>
-      </div>
+      </form>
+      <p
+        id="search-status"
+        role="status"
+        aria-live="polite"
+        class="text-base-content-muted mt-5 text-sm leading-7"
+      >
+        {message}
+      </p>
+      <ul id="search-results" class="mt-3 space-y-3">
+        {
+          results.map(result => (
+            <li class="border-base-300 bg-base-100 rounded-box border p-5 sm:p-6">
+              <>
+                <h3 class="text-lg leading-7 font-semibold">
+                  <a
+                    href={result.url}
+                    class="text-primary rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4"
+                  >
+                    {result.title}
+                  </a>
+                </h3>
+                <p class="text-base-content-strong mt-2 text-sm leading-7">
+                  {result.description}
+                </p>
+              </>
+            </li>
+          ))
+        }
+      </ul>
     </section>
   </Main>
-
   <Footer />
 </Layout>
 
 <script>
-  /**
-   * 开发环境那块提示的文字，由页面渲染进 data-* 属性。
-   *
-   * 【为什么不直接写在下面】
-   * 这个 script 是在浏览器里跑的，读不到服务端渲染时用的 t 对象。
-   * 写死中文的话英文站点会半中半英 —— 和文章页复制按钮
-   *（CopyCodeButton.astro）、/rss 页复制按钮是同一套办法。
-   */
-  function getDevHint(container: HTMLElement) {
-    return {
-      title: container.dataset.devHintTitle || "Development notice",
-      body:
-        container.dataset.devHintBody ||
-        "The Pagefind search index needs one production build first.",
-    };
-  }
+  import {
+    MAX_SEARCH_QUERY_LENGTH,
+    type PublicSearchResult,
+  } from "@/utils/publicSearch";
 
-  /**
-   * 转成能塞进 innerHTML 的文本。
-   *
-   * 文案本身来自我们自己的 i18n 文件，正常不会带这些字符；
-   * 但这段是拼 HTML 字符串，先转义一下更稳妥 ——
-   * 将来谁在文案里写个 & 或者 < 都不会把这块结构弄坏。
-   */
-  function escapeHtml(text: string): string {
-    return text.replace(
-      /[&<>"']/g,
-      char =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[char] ?? char
-    );
-  }
-
+  let activeRequest: AbortController | undefined;
   function initSearch() {
-    const pageFindSearch =
-      document.querySelector<HTMLElement>("#pagefind-search");
+    const root = document.querySelector<HTMLElement>("#live-search");
+    if (!root || root.dataset.initialized) return;
+    const form = root.querySelector<HTMLFormElement>("#search-form");
+    const input = root.querySelector<HTMLInputElement>("#search-query");
+    const button = root.querySelector<HTMLButtonElement>("#search-submit");
+    const status = root.querySelector<HTMLElement>("#search-status");
+    const list = root.querySelector<HTMLUListElement>("#search-results");
+    if (!form || !input || !button || !status || !list) return;
+    root.dataset.initialized = "true";
+    let generation = 0;
 
-    if (!pageFindSearch) {
-      return;
-    }
+    const showResults = (results: PublicSearchResult[]) => {
+      list.replaceChildren();
+      for (const result of results) {
+        const target = new URL(result.url, location.origin);
+        if (target.origin !== location.origin) continue;
+        const item = document.createElement("li");
+        item.className =
+          "border-base-300 bg-base-100 rounded-box border p-5 sm:p-6";
+        const heading = document.createElement("h3");
+        heading.className = "text-lg leading-7 font-semibold";
+        const link = document.createElement("a");
+        link.href = target.href;
+        link.className =
+          "text-primary rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4";
+        link.textContent = result.title;
+        const description = document.createElement("p");
+        description.className =
+          "text-base-content-strong mt-2 text-sm leading-7";
+        description.textContent = result.description;
+        heading.append(link);
+        item.append(heading, description);
+        list.append(item);
+      }
+    };
 
-    const bundlePath = pageFindSearch.dataset.bundlePath;
-
-    if (!bundlePath) {
-      return;
-    }
-
-    // Prevent duplicate initialization
-    if (pageFindSearch.querySelector("form")) {
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-
-    const onIdle = window.requestIdleCallback || (cb => setTimeout(cb, 1));
-
-    onIdle(async () => {
-      /*
-       * Pagefind needs a generated search index.
-       * Show a message in development mode.
-       *
-       * 文案来自页面的 data-* 属性（见上面 getDevHint 的说明），
-       * 兜底那两句只在属性缺失时才用得上。
-       */
-      if (import.meta.env.DEV) {
-        const hint = getDevHint(pageFindSearch);
-
-        pageFindSearch.innerHTML = `
-          <div class="alert alert-warning">
-            <div>
-              <strong>${escapeHtml(hint.title)}</strong>
-              <p class="mt-1">
-                ${escapeHtml(hint.body)}
-              </p>
-            </div>
-          </div>
-
-          <div class="mockup-code mt-4">
-            <pre><code>npm run build</code></pre>
-          </div>
-        `;
-
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const query = input.value.trim();
+      const current = ++generation;
+      activeRequest?.abort();
+      activeRequest = new AbortController();
+      button.disabled = false;
+      root.setAttribute("aria-busy", "false");
+      const pageUrl = new URL(location.href);
+      if (query) pageUrl.searchParams.set("q", query);
+      else pageUrl.searchParams.delete("q");
+      history.replaceState(
+        history.state,
+        "",
+        pageUrl.pathname + pageUrl.search
+      );
+      sessionStorage.setItem("backUrl", pageUrl.pathname + pageUrl.search);
+      showResults([]);
+      if (!query || query.length > MAX_SEARCH_QUERY_LENGTH) {
+        status.textContent = query
+          ? (root.dataset.tooLong ?? "")
+          : (root.dataset.prompt ?? "");
         return;
       }
-
-      // @ts-expect-error — Missing types for @pagefind/default-ui package.
-      const { PagefindUI } = await import("@pagefind/default-ui");
-
-      const search = new PagefindUI({
-        element: "#pagefind-search",
-        bundlePath,
-        showImages: false,
-        showSubResults: true,
-
-        processTerm: function (term: string) {
-          params.set("q", term);
-
-          history.replaceState(history.state, "", "?" + params.toString());
-
-          const currentBackUrl =
-            pageFindSearch.dataset.backurl ?? window.location.pathname;
-
-          sessionStorage.setItem(
-            "backUrl",
-            `${currentBackUrl}?${params.toString()}`
-          );
-
-          return term;
-        },
-      });
-
-      // If search param exists, trigger search
-      const query = params.get("q");
-
-      if (query) {
-        search.triggerSearch(query);
-      }
-
-      // Reset search param if search input is cleared
-      const searchInput = document.querySelector<HTMLInputElement>(
-        ".pagefind-ui__search-input"
-      );
-
-      const clearButton = document.querySelector<HTMLButtonElement>(
-        ".pagefind-ui__search-clear"
-      );
-
-      searchInput?.addEventListener("input", resetSearchParam);
-
-      clearButton?.addEventListener("click", resetSearchParam);
-
-      function resetSearchParam(event: Event) {
-        const target = event.target as HTMLInputElement | null;
-
-        if (target?.value.trim() === "") {
-          history.replaceState(history.state, "", window.location.pathname);
+      button.disabled = true;
+      root.setAttribute("aria-busy", "true");
+      status.textContent = root.dataset.loading ?? "";
+      try {
+        const endpoint = new URL(root.dataset.endpoint ?? "", location.origin);
+        endpoint.searchParams.set("q", query);
+        endpoint.searchParams.set("lang", root.dataset.locale ?? "zh");
+        const response = await fetch(endpoint, {
+          signal: AbortSignal.any([
+            activeRequest.signal,
+            AbortSignal.timeout(10_000),
+          ]),
+        });
+        if (!response.ok) throw new Error("SEARCH_FAILED");
+        const data = (await response.json()) as {
+          results: PublicSearchResult[];
+        };
+        // 旧查询即使晚到，也不能覆盖新关键词的结果或离开后重建的页面。
+        if (current !== generation || !root.isConnected) return;
+        showResults(data.results);
+        status.textContent = data.results.length
+          ? (root.dataset.count ?? "").replace(
+              "{{n}}",
+              String(data.results.length)
+            )
+          : (root.dataset.empty ?? "");
+      } catch (error) {
+        if (
+          current === generation &&
+          root.isConnected &&
+          !(error instanceof DOMException && error.name === "AbortError")
+        )
+          status.textContent = root.dataset.failed ?? "";
+      } finally {
+        if (current === generation && root.isConnected) {
+          button.disabled = false;
+          root.setAttribute("aria-busy", "false");
         }
       }
     });
+    input.addEventListener("input", () => {
+      ++generation;
+      activeRequest?.abort();
+      button.disabled = false;
+      root.setAttribute("aria-busy", "false");
+      showResults([]);
+      status.textContent = root.dataset.prompt ?? "";
+    });
   }
-
-  document.addEventListener("astro:after-swap", () => {
-    const pagefindSearch =
-      document.querySelector<HTMLElement>("#pagefind-search");
-
-    // If Pagefind has already been initialized, do nothing.
-    if (pagefindSearch && pagefindSearch.querySelector("form")) {
-      return;
-    }
-
-    initSearch();
-  });
-
+  document.addEventListener("astro:before-swap", () => activeRequest?.abort());
+  document.addEventListener("astro:page-load", initSearch);
   initSearch();
 </script>
-
-<style is:global>
-  #pagefind-search {
-    width: 100%;
-
-    /*
-     * Pagefind theme
-     * Keep these variables connected to DaisyUI.
-     */
-    --pagefind-ui-font: var(--font-app);
-    --pagefind-ui-text: var(--color-base-content);
-    --pagefind-ui-background: var(--color-base-100);
-    --pagefind-ui-border: var(--color-base-300);
-    --pagefind-ui-primary: var(--color-primary);
-    --pagefind-ui-tag: var(--color-base-200);
-
-    --pagefind-ui-border-radius: 0.65rem;
-    --pagefind-ui-border-width: 1px;
-
-    --pagefind-ui-image-border-radius: 0.875rem;
-    --pagefind-ui-image-box-ratio: 3 / 2;
-  }
-
-  /* Search form */
-  #pagefind-search .pagefind-ui__form {
-    margin-bottom: 1.5rem;
-  }
-
-  /* Search input */
-  #pagefind-search .pagefind-ui__search-input {
-    width: 100%;
-    min-height: 3rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 0.65rem;
-    background: var(--color-base-100);
-    color: var(--color-base-content);
-    font-size: 1rem;
-    transition:
-      border-color 150ms ease,
-      box-shadow 150ms ease;
-  }
-
-  #pagefind-search .pagefind-ui__search-input:hover {
-    border-color: color-mix(
-      in oklab,
-      var(--color-primary) 35%,
-      var(--color-base-300)
-    );
-  }
-
-  #pagefind-search .pagefind-ui__search-input:focus {
-    border-color: var(--color-primary);
-    outline: 2px solid
-      color-mix(in oklab, var(--color-primary) 20%, transparent);
-    outline-offset: 1px;
-  }
-
-  #pagefind-search .pagefind-ui__search-input::placeholder {
-    color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
-  }
-
-  /* Search icon */
-  #pagefind-search .pagefind-ui__form::before {
-    background-color: var(--color-base-content);
-  }
-
-  /* Clear button */
-  #pagefind-search .pagefind-ui__search-clear {
-    color: var(--color-base-content);
-  }
-
-  /* Result count */
-  #pagefind-search .pagefind-ui__result-count {
-    margin-bottom: 1rem;
-    color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
-    font-size: 0.875rem;
-  }
-
-  /* Result */
-  #pagefind-search .pagefind-ui__result {
-    margin: 0;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--color-base-300);
-  }
-
-  #pagefind-search .pagefind-ui__result:last-of-type {
-    border-bottom: 0;
-  }
-
-  /* Result title */
-  #pagefind-search .pagefind-ui__result-title {
-    margin-bottom: 0.35rem;
-  }
-
-  #pagefind-search .pagefind-ui__result-title a {
-    color: var(--color-primary);
-    font-weight: 600;
-    text-decoration: none;
-    text-underline-offset: 4px;
-  }
-
-  #pagefind-search .pagefind-ui__result-title a:hover {
-    text-decoration-line: underline;
-    text-decoration-style: dashed;
-  }
-
-  #pagefind-search .pagefind-ui__result-title a:focus-visible {
-    outline: 2px dashed var(--color-primary);
-    outline-offset: 2px;
-  }
-
-  /* Result excerpt */
-  #pagefind-search .pagefind-ui__result-excerpt {
-    color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
-    line-height: 1.75;
-  }
-
-  /* Result tags */
-  #pagefind-search .pagefind-ui__result-tag {
-    border: 1px solid var(--color-base-300);
-    border-radius: 999px;
-    background: var(--color-base-200);
-    color: var(--color-base-content);
-  }
-
-  /* Nested results */
-  #pagefind-search .pagefind-ui__result-nested {
-    border-inline-start-color: var(--color-base-300);
-  }
-
-  #pagefind-search
-    .pagefind-ui__result-nested
-    .pagefind-ui__result-link::before {
-    font-family: system-ui;
-    color: var(--color-primary);
-  }
-
-  /* Mobile */
-  @media (max-width: 639px) {
-    #pagefind-search .pagefind-ui__search-input {
-      min-height: 2.875rem;
-      font-size: 16px;
-    }
-
-    #pagefind-search .pagefind-ui__result-title a {
-      font-size: 1rem;
-    }
-
-    #pagefind-search .pagefind-ui__result-excerpt {
-      font-size: 0.875rem;
-      line-height: 1.7;
-    }
-  }
-</style>

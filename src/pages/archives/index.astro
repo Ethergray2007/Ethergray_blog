@@ -1,6 +1,8 @@
 ---
+import { listPublicPosts } from "@/lib/publicPosts";
+import { setPublicCache, publicReadError } from "@/lib/publicCache";
+export const prerender = false;
 import { getRelativeLocaleUrl } from "astro:i18n";
-import { getCollection } from "astro:content";
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -28,7 +30,13 @@ if (!config.features.showArchives && notFoundUrl) {
 
 const t = useTranslations(locale);
 
-const posts = await getCollection("posts");
+let posts: Awaited<ReturnType<typeof listPublicPosts>>;
+try {
+  posts = await listPublicPosts();
+} catch (error) {
+  return publicReadError("", error);
+}
+setPublicCache(Astro.response.headers);
 const filteredPosts = posts.filter(postFilter);
 
 const monthFormatter = new Intl.DateTimeFormat(locale, {

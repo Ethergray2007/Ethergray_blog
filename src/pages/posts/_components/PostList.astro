@@ -1,6 +1,6 @@
 ---
-import type { GetStaticPaths } from "astro";
-import { getCollection } from "astro:content";
+import type { Page } from "astro";
+import type { PublicPost } from "@/lib/publicPosts";
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -10,17 +10,11 @@ import Card from "@/components/Card.astro";
 import Footer from "@/components/Footer.astro";
 import Pagination from "@/components/Pagination.astro";
 
-import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
-export const getStaticPaths = (async ({ paginate }) => {
-  const posts = await getCollection("posts", ({ data }) => !data.draft);
-
-  return paginate(getSortedPosts(posts), {
-    pageSize: config.posts.perPage,
-  });
-}) satisfies GetStaticPaths;
+/** 动态列表只负责渲染。删除时移除 /posts 与分页路由里的本组件，并移除 README 登记。 */
+type Props = { page: Page<PublicPost> };
 
 const { page } = Astro.props;
 

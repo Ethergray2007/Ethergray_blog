@@ -1,0 +1,29 @@
+---
+/** 文章列表入口。删除动态列表时删除本文件和 page/[page].astro，再移除 README 的模块登记。 */
+import PostList from "./_components/PostList.astro";
+import { listPublicPosts } from "@/lib/publicPosts";
+import {
+  setPublicCache,
+  publicReadError,
+  publicNotFound,
+} from "@/lib/publicCache";
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { paginatePosts } from "@/utils/paginatePosts";
+import config from "@/config";
+export const prerender = false;
+let posts;
+try {
+  posts = await listPublicPosts();
+} catch (error) {
+  return publicReadError("", error);
+}
+const page = paginatePosts(getSortedPosts(posts), undefined, {
+  pageSize: config.posts.perPage,
+  firstUrl: "/posts/",
+  pagesUrl: "/posts/page",
+});
+if (!page) return publicNotFound();
+setPublicCache(Astro.response.headers);
+---
+
+<PostList {page} />
