@@ -8,7 +8,7 @@
 
 - 公开读取统一收敛到 `src/lib/publicPosts.ts`（列表查询只取元数据列、单篇才读正文），未在页面里再套一层 `getLiveCollection` / `getLiveEntry`，已移除无人调用的 `src/live.config.ts`，保持单一数据入口。
 - 首页、文章列表与分页（`/posts/`、`/posts/page/[page]`）、正文、文章 OG 图、标签、归档、RSS/Atom、动态站点地图（`/sitemap-posts.xml`）及实时搜索（`/search`、`/api/public-search`）均已切换为按需 SSR + 统一公开缓存/503 错误日志。
-- 文章增删改查 API 不再触发 Netlify Build Hook（返回值 `rebuild: null`），`POST /api/rebuild` 仅保留作兼容接口。
+- 文章增删改查 API 不再触发 Netlify Build Hook，已彻底移除旧版 `src/lib/rebuild.ts` 与 `POST /api/rebuild` 接口。
 - 新增的 3 组动态测试（`dynamic:data:test`、`dynamic:discovery:test`、`pagination:test`）已并入 `npm test`。
 
 目标是让文章的发布、修改、下线不再触发一次整站生产部署。代码升级仍需要部署，访问请求、流量、函数运行和数据库仍可能计费，不能把这个目标解释成“全站无限免费”。

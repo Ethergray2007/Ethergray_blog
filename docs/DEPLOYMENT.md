@@ -200,7 +200,7 @@ Netlify 后台改：**Cloud compute → Functions → Region**，然后重新部
   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_OWNER_ID
 □ 推送到 main 之前，先在 develop 的预览站上验证
 □ 本地跑过四条检查（format:check / astro check / eslint / build）
-  + `npm test`（七组：db / api / auth / feed / friends / notes / projects）
+  + `npm test`（十组离线测试）
 ```
 
 ---

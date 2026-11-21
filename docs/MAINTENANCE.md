@@ -19,25 +19,21 @@
 
 入口是 `/admin`，只使用博客主人的 GitHub 账号。已有登录会直接进入文章列表；获取授权地址失败后按钮会恢复，可以重试。取消授权后也会回到登录页。
 
-如果持续无法登录，先检查网络，再按 `docs/DEPLOYMENT.md` 核对 GitHub OAuth 回调地址和 Netlify 环境变量。登录界面在 `src/pages/admin/index.astro`，请求封装在 `src/utils/adminApi.ts`，认证规则在 `src/lib/auth.ts`；不要为了消除提示而放宽主人身份检查。
+如果持续无法登录，先检查网络，再按 `docs/DEPLOYMENT.md` 核对 GitHub OAuth 回调地址和 Netlify 环境变量（特别是 `BETTER_AUTH_SECRET` 至少 32 个字符）。登录界面在 `src/pages/admin/index.astro`，请求封装在 `src/utils/adminApi.ts`，认证规则在 `src/lib/auth.ts`；不要为了消除提示而放宽主人身份检查。
 
 验证命令是 `npm run auth:test` 和 `npm run admin:browser:test`。浏览器测试需要本地开发服务器，并用模拟接口验证交互；它不能证明真实 GitHub OAuth 或线上配置已通过。
 
 ## 改完文章怎么确认上线
 
-文章后台先写数据库，公开页面是在构建时生成的。保存成功不能证明正式站点已经更新。
+文章存储在 Neon 数据库中，阅读页面按需读取并配合 Netlify CDN 30 秒缓存（见 `src/lib/publicCache.ts`），**不再触发整站重新构建**。
 
-| 操作                                     | 当前代码的行为               | 你需要确认什么                                                |
-| ---------------------------------------- | ---------------------------- | ------------------------------------------------------------- |
-| 保存草稿                                 | 不触发重建，公开站点不显示   | 后台重新打开仍能读到内容                                      |
-| 新建并发布、切换发布状态、删除已发布文章 | 请求自动重建                 | Netlify 的 Deploys 页面出现新部署并成功                       |
-| 修改已发布文章的正文、标题、标签         | 保存后需要手动点「立即重建」 | 确认全部修改完成，再统一重建                                  |
-| 提示未配置 Build Hook                    | 不会请求 Netlify             | 在 Netlify 配置 `NETLIFY_BUILD_HOOK_URL`，不要放进本地 `.env` |
-| 请求失败或超时                           | 接收结果不确定               | 先检查 Deploys；已有新部署就等待，没有再重试                  |
+| 操作                         | 当前代码的行为                             | 你需要确认什么                                        |
+| ---------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| 保存草稿                     | 仅写入数据库，公开站点、搜索和订阅均不显示 | 后台重新打开仍能读到内容                              |
+| 新建并发布 / 改文章 / 改标签 | 写入数据库后立即生效，不消耗部署额度       | 最多等待约 30 秒刷新公开页面、`/search` 与 `/rss.xml` |
+| 已发布收回草稿 / 删除文章    | 立即对数据库不可见，旧缓存最多约 30 秒过期 | 最多约 30 秒后正文返回 404，列表与搜索同步消失        |
 
-重建请求成功只代表请求被接收。必须等 Netlify 部署成功，再打开正式文章网址，核对修改过的一句话。此项目尚无自动查询部署完成状态的功能。
-
-对应代码：`src/pages/api/_routes/posts.ts` 决定何时重建，`src/lib/rebuild.ts` 发请求，`src/pages/admin/posts/[id].astro` 显示结果。
+对应代码：`src/pages/api/_routes/posts.ts` 处理后台读写，`src/lib/publicPosts.ts` 统一过滤公开文章，`src/pages/admin/posts/[id].astro` 显示保存与公开提示。
 
 ## 本地检查与排错
 
@@ -48,20 +44,21 @@ npm run format:check
 npx astro check
 npx eslint .
 npm run build
+npm test
 ```
 
-构建仍要读取 Neon 数据库。本机需要代理时，在当前终端设置：
+离线构建和 10 组测试均**不依赖联网或 `.env`**。只有启动 `npm run dev` 访问真实 Neon 数据库，或 `git push` 到 GitHub 时需要网络/代理：
 
 ```powershell
 $env:NODE_USE_ENV_PROXY = "1"
-$env:HTTPS_PROXY = "http://127.0.0.1:7892"
-$env:HTTP_PROXY = "http://127.0.0.1:7892"
+$env:HTTPS_PROXY = "http://127.0.0.1:7890"
+$env:HTTP_PROXY  = "http://127.0.0.1:7890"
 ```
 
-`NODE_USE_ENV_PROXY` 要求 Node 24+。字体已经随仓库提供，字体加载不再需要 Google 网络；数据库请求仍需要网络。遇到数据库 `fetch failed`，先检查 Node 网络与代理。
+`NODE_USE_ENV_PROXY` 要求 Node 24+。遇到 `npm run dev` 读数据库报 `fetch failed`，先检查 Node 网络与代理端口。
 
-改后台行为时补跑 `npm run api:test`。浏览器回归需要先单独运行 `npm run dev`，再在另一终端运行 `npm run admin:browser:test` 和 `npm run public:browser:test`；这些浏览器测试拦截 API，不会真实保存文章或触发重建。
+浏览器回归需要先单独运行 `npm run dev`，再在另一终端运行 `npm run admin:browser:test` 和 `npm run public:browser:test`；这些浏览器测试拦截 API，不会真实写入数据库。
 
 ## 提交与发布
 
-检查 `git status --porcelain`，只暂存本次改动。提交前运行 `npm run commit:check -- "fix: 具体修改说明"`。推送 `main` 会影响正式站点，按项目规则先由你确认发布范围。
+检查 `git status --porcelain`，只暂存本次改动。提交前运行 `npm run commit:check -- "fix: 具体修改说明"`。平时先推 `develop` 在 `https://develop--ethergray.netlify.app` 验收，确认无误再合并推送 `main`。

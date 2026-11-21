@@ -185,19 +185,18 @@ npm run public:browser:test
 
 所有 `/api/*` 由 [Elysia](https://elysiajs.com/) 在 Astro API 路由内统一分发，登录相关接口由 Better Auth 挂载于 `/api/session/*`。
 
-| 方法     | 路径                 | 说明                                           | 需要登录 |
-| -------- | -------------------- | ---------------------------------------------- | -------- |
-| `GET`    | `/api/health`        | 健康检查（确认服务端函数正常运行）             | 否       |
-| `GET`    | `/api/public-search` | 公开文章实时搜索（`?q=关键词&lang=zh`）        | 否       |
-| `*`      | `/api/session/*`     | 登录与会话接口（Better Auth 提供）             | 部分     |
-| `POST`   | `/api/logout`        | 登出并清除会话 Cookie                          | 否       |
-| `GET`    | `/api/me`            | 获取当前登录博主信息                           | 是       |
-| `GET`    | `/api/posts`         | 获取全部文章（含草稿）                         | 是       |
-| `GET`    | `/api/posts/:id`     | 获取单篇文章详情                               | 是       |
-| `POST`   | `/api/posts`         | 新建文章（返回值带兼容字段 `"rebuild": null`） | 是       |
-| `PATCH`  | `/api/posts/:id`     | 局部更新文章                                   | 是       |
-| `DELETE` | `/api/posts/:id`     | 删除文章                                       | 是       |
-| `POST`   | `/api/rebuild`       | 旧版兼容接口：显式请求一次 Netlify Build Hook  | 是       |
+| 方法     | 路径                 | 说明                                    | 需要登录 |
+| -------- | -------------------- | --------------------------------------- | -------- |
+| `GET`    | `/api/health`        | 健康检查（确认服务端函数正常运行）      | 否       |
+| `GET`    | `/api/public-search` | 公开文章实时搜索（`?q=关键词&lang=zh`） | 否       |
+| `*`      | `/api/session/*`     | 登录与会话接口（Better Auth 提供）      | 部分     |
+| `POST`   | `/api/logout`        | 登出并清除会话 Cookie                   | 否       |
+| `GET`    | `/api/me`            | 获取当前登录博主信息                    | 是       |
+| `GET`    | `/api/posts`         | 获取全部文章（含草稿）                  | 是       |
+| `GET`    | `/api/posts/:id`     | 获取单篇文章详情                        | 是       |
+| `POST`   | `/api/posts`         | 新建文章                                | 是       |
+| `PATCH`  | `/api/posts/:id`     | 局部更新文章                            | 是       |
+| `DELETE` | `/api/posts/:id`     | 删除文章                                | 是       |
 
 所有接口错误统一返回：
 
@@ -211,16 +210,15 @@ npm run public:browser:test
 
 完整说明与示例见 `.env.example` 和 [部署指南](docs/DEPLOYMENT.md)：
 
-| 变量                     | 用途                                                            | 配置位置                        |
-| ------------------------ | --------------------------------------------------------------- | ------------------------------- |
-| `DATABASE_URL`           | Neon PostgreSQL 连接串（使用带 `-pooler` 的 Pooled 地址）       | 本地 `.env`、Netlify（CI 可选） |
-| `BETTER_AUTH_SECRET`     | 会话 JWE 加密密钥（至少 32 字符，缺失将拒绝启动）               | 本地 `.env`、Netlify            |
-| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID（本地与线上各建一个）             | 本地 `.env`、Netlify            |
-| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的 Client Secret                               | 本地 `.env`、Netlify            |
-| `GITHUB_OWNER_ID`        | 唯一允许登录后台的 GitHub 数字 ID                               | 本地 `.env`、Netlify            |
-| `NETLIFY_BUILD_HOOK_URL` | 可选：仅旧版 `POST /api/rebuild` 兼容接口使用，日常写作无需配置 | 仅 Netlify（勿填进本地 `.env`） |
+| 变量                   | 用途                                                      | 配置位置                        |
+| ---------------------- | --------------------------------------------------------- | ------------------------------- |
+| `DATABASE_URL`         | Neon PostgreSQL 连接串（使用带 `-pooler` 的 Pooled 地址） | 本地 `.env`、Netlify（CI 可选） |
+| `BETTER_AUTH_SECRET`   | 会话 JWE 加密密钥（至少 32 字符，缺失将拒绝启动）         | 本地 `.env`、Netlify            |
+| `GITHUB_CLIENT_ID`     | GitHub OAuth App 的 Client ID（本地与线上各建一个）       | 本地 `.env`、Netlify            |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App 的 Client Secret                         | 本地 `.env`、Netlify            |
+| `GITHUB_OWNER_ID`      | 唯一允许登录后台的 GitHub 数字 ID                         | 本地 `.env`、Netlify            |
 
-> ⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 与 `NETLIFY_BUILD_HOOK_URL` 属于高敏凭据，切勿提交到仓库；在 GitHub Actions 里配了 secret 不会自动同步到 Netlify，两处需分别维护。
+> ⚠️ `BETTER_AUTH_SECRET` 与 `GITHUB_CLIENT_SECRET` 属于高敏凭据，切勿提交到仓库；在 GitHub Actions 里配了 secret 不会自动同步到 Netlify，两处需分别维护。
 
 ---
 
@@ -245,44 +243,43 @@ npm run public:browser:test
 
 每个功能都按自包含原则组织，删除时照下表操作即可。文章页返回顶部按钮统一由 `Layout.astro` 渲染，`showBackButton` 控制文章页开关。
 
-| 功能                     | 相关文件                                                                                                                                                                 | 怎么删                                                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| 文章目录                 | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                                                                                            | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                                    |
-| 数学公式                 | `src/styles/katex.css`<br>`src/lib/markdownConfig.ts` 里的 `remarkMath` / `rehypeKatex`                                                                                  | 删 `katex.css` 和 `global.css` 里 import 它那行；删共享 Markdown 配置里两个插件；卸载 `remark-math rehype-katex katex` |
-| 图表 Mermaid             | `astro.config.ts` 的 `mermaid()` 集成<br>`src/lib/markdownConfig.ts` 的 `remarkMermaid`                                                                                  | 删集成与 `remarkMermaid` 插件；卸载 `astro-mermaid`                                                                    |
-| RSS / Atom 订阅          | `src/lib/feed.ts`<br>`src/utils/createPostFeed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`                                                                  | 照 `src/lib/feed.ts` 文件头步骤移除                                                                                    |
-| 订阅页 `/rss`            | `src/pages/rss/index.astro`                                                                                                                                              | 照该文件文件头写的 4 步做                                                                                              |
-| 友链页                   | `src/pages/friends.astro`<br>`src/pages/friends/_components/FriendCard.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`                                     | 照 `getFriends.ts` 文件头写的 6 步做；卡片组件一并删除                                                                 |
-| 说说 `/notes`            | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                                                                                               | 照 `getNotes.ts` 文件头写的 6 步做                                                                                     |
-| 项目 `/projects`         | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`                                                                                      | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 独立数据）                                               |
-| 近况页 `/now`            | `src/pages/now.astro`                                                                                                                                                    | 删这个文件，再从 `Header.astro` 的 `moreItems` 里删掉对应项                                                            |
-| 代码块复制               | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                                                                                             | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                                 |
-| 氛围层（网格 + 光晕）    | `src/styles/atmosphere.css`                                                                                                                                              | 删文件、`global.css` 的 `@import` 与 `Layout.astro` 的 `.atmosphere` 容器                                              |
-| 列表页极光射线           | `src/components/PageGlow.astro`<br>`src/styles/page-glow.css`                                                                                                            | 删这两个文件、`Main.astro` 的引用和 `global.css` 的 `@import`                                                          |
-| 首屏 Hero（全屏海报）    | `src/components/Hero.astro`<br>`src/styles/hero.css`<br>`public/hero-bg.jpg` / `.mp4` / `.webm`                                                                          | 照 `Hero.astro` 文件头写的 4 步做（删完回到纯列表首页）                                                                |
-| 页眉玻璃导航             | `src/styles/nav.css`                                                                                                                                                     | 照 `nav.css` 文件头写的 3 步做（删后退回不透明吸顶导航）                                                               |
-| 品牌标识                 | `src/components/BrandMark.astro`                                                                                                                                         | 删文件，把 Header / Footer 里的 `<BrandMark />` 换回纯文字                                                             |
-| 回到顶部按钮             | `src/components/BackToTop.astro`<br>`src/styles/back-to-top.css`                                                                                                         | 照 `BackToTop.astro` 文件头写的 3 步做                                                                                 |
-| 评论区（Giscus）         | `src/pages/posts/[...slug]/_components/GiscusComments.astro`<br>`astro-paper.config.ts` 的 `comments`                                                                    | 删组件、文章页引用和配置中的 `comments` 段                                                                             |
-| 实时文章搜索             | `src/pages/search.astro`<br>`src/pages/api/public-search.ts`<br>`src/utils/publicSearch.ts`<br>`astro-paper.config.ts` 的 `features.search`                              | 改成 `search: false`，页面自动跳 404；彻底删除照 `search.astro` 文件头操作                                             |
-| 归档页                   | `src/pages/archives/`                                                                                                                                                    | `features.showArchives` 改成 `false`                                                                                   |
-| 动态 OG 图               | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                                                                        | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                                 |
-| 主题切换                 | `src/scripts/theme.ts`                                                                                                                                                   | `features.lightAndDarkMode` 改成 `false`                                                                               |
-| 分享按钮                 | `astro-paper.config.ts` 的 `shareLinks`                                                                                                                                  | 把数组清空：`shareLinks: []`                                                                                           |
-| 编辑本页链接             | `astro-paper.config.ts` 的 `features.editPost`                                                                                                                           | 改成 `{ enabled: false }`                                                                                              |
-| 在线写作后台             | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                                                            | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                    |
-| 后台浏览器回归           | `practice/tests/admin-browser.ts`                                                                                                                                        | 删文件、`package.json` 的 `admin:browser:test` 与文档说明                                                              |
-| 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts`                                                                                                                                           | 先删 `PostLayout.astro` 的 JSON-LD script 和 import，再删本文件及对应回归测试                                          |
-| 公开页面浏览器回归       | `practice/tests/public-browser.ts`                                                                                                                                       | 删文件、`package.json` 的 `public:browser:test` 与文档说明                                                             |
-| 动态文章发布与缓存       | `src/lib/publicPosts.ts`<br>`src/lib/publicCache.ts`<br>`src/lib/postMarkdown.ts`<br>`src/lib/markdownConfig.ts`<br>`src/lib/postSchema.ts`<br>`src/db/loaders/posts.ts` | 将阅读页面切回静态内容集合后再按各文件头步骤移除                                                                       |
-| 动态分页与列表           | `src/pages/posts/index.astro`<br>`src/pages/posts/page/[page].astro`<br>`src/pages/posts/_components/PostList.astro`<br>`src/utils/paginatePosts.ts`                     | 删以上文件和 `practice/tests/pagination.ts`                                                                            |
-| 动态文章站点地图         | `src/pages/sitemap-posts.xml.ts`<br>`astro.config.ts` 的 `customSitemaps`                                                                                                | 从 `astro.config.ts` 移除 `customSitemaps`，再删本文件                                                                 |
-| 旧版手动重建兼容接口     | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                                                               | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                              |
-| 本地代码字体             | `src/assets/fonts/`、`astro.config.ts`                                                                                                                                   | 先替换字体配置，再删除字体目录（详情见目录内 README）                                                                  |
-| 日常维护指南             | `docs/MAINTENANCE.md`                                                                                                                                                    | 删文件及本表登记、下方学习资料链接                                                                                     |
-| 动态发布方案与验证       | `docs/DYNAMIC-PUBLISHING.md`                                                                                                                                             | 删文件及本表登记、下方学习资料链接                                                                                     |
-| 练习册                   | `practice/`                                                                                                                                                              | 删整个目录，再删 `package.json` 里 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
-| 学习路线                 | `docs/LEARNING-ROADMAP.md`                                                                                                                                               | 只删这个文件（⚠️ 勿整删 `docs/`，里面还有部署与维护文档）                                                              |
+| 功能                     | 相关文件                                                                                                                                                                 | 怎么删                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 文章目录                 | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                                                                                            | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                            |
+| 数学公式                 | `src/styles/katex.css`（文章页按需加载）<br>`src/lib/markdownConfig.ts` 里的 `remarkMath` / `rehypeKatex`                                                                | 删 `katex.css` 和文章页里 import 它那行；删共享 Markdown 配置里两个插件；卸载 `remark-math rehype-katex katex` |
+| 图表 Mermaid             | `astro.config.ts` 的 `mermaid()` 集成<br>`src/lib/markdownConfig.ts` 的 `remarkMermaid`                                                                                  | 删集成与 `remarkMermaid` 插件；卸载 `astro-mermaid`                                                            |
+| RSS / Atom 订阅          | `src/lib/feed.ts`<br>`src/utils/createPostFeed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`                                                                  | 照 `src/lib/feed.ts` 文件头步骤移除                                                                            |
+| 订阅页 `/rss`            | `src/pages/rss/index.astro`                                                                                                                                              | 照该文件文件头写的 4 步做                                                                                      |
+| 友链页                   | `src/pages/friends.astro`<br>`src/pages/friends/_components/FriendCard.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`                                     | 照 `getFriends.ts` 文件头写的 6 步做；卡片组件一并删除                                                         |
+| 说说 `/notes`            | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                                                                                               | 照 `getNotes.ts` 文件头写的 6 步做                                                                             |
+| 项目 `/projects`         | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`                                                                                      | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 独立数据）                                       |
+| 近况页 `/now`            | `src/pages/now.astro`                                                                                                                                                    | 删这个文件，再从 `Header.astro` 的 `moreItems` 里删掉对应项                                                    |
+| 代码块复制               | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                                                                                             | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                         |
+| 氛围层（网格 + 光晕）    | `src/styles/atmosphere.css`                                                                                                                                              | 删文件、`global.css` 的 `@import` 与 `Layout.astro` 的 `.atmosphere` 容器                                      |
+| 列表页极光射线           | `src/components/PageGlow.astro`<br>`src/styles/page-glow.css`（按需加载）                                                                                                | 删这两个文件和 `Main.astro` 的引用                                                                             |
+| 首屏 Hero（全屏海报）    | `src/components/Hero.astro`<br>`src/styles/hero.css`<br>`public/hero-bg.jpg` / `.mp4` / `.webm`                                                                          | 照 `Hero.astro` 文件头写的 4 步做（删完回到纯列表首页）                                                        |
+| 页眉玻璃导航             | `src/styles/nav.css`                                                                                                                                                     | 照 `nav.css` 文件头写的 3 步做（删后退回不透明吸顶导航）                                                       |
+| 品牌标识                 | `src/components/BrandMark.astro`                                                                                                                                         | 删文件，把 Header / Footer 里的 `<BrandMark />` 换回纯文字                                                     |
+| 回到顶部按钮             | `src/components/BackToTop.astro`<br>`src/styles/back-to-top.css`                                                                                                         | 照 `BackToTop.astro` 文件头写的 3 步做                                                                         |
+| 评论区（Giscus）         | `src/pages/posts/[...slug]/_components/GiscusComments.astro`<br>`astro-paper.config.ts` 的 `comments`                                                                    | 删组件、文章页引用和配置中的 `comments` 段                                                                     |
+| 实时文章搜索             | `src/pages/search.astro`<br>`src/pages/api/public-search.ts`<br>`src/utils/publicSearch.ts`<br>`astro-paper.config.ts` 的 `features.search`                              | 改成 `search: false`，页面自动跳 404；彻底删除照 `search.astro` 文件头操作                                     |
+| 归档页                   | `src/pages/archives/`                                                                                                                                                    | `features.showArchives` 改成 `false`                                                                           |
+| 动态 OG 图               | `src/lib/ogImage.ts`<br>`src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                                                | `features.dynamicOgImage` 改成 `false`，再删这三个文件                                                         |
+| 主题切换                 | `src/scripts/theme.ts`                                                                                                                                                   | `features.lightAndDarkMode` 改成 `false`                                                                       |
+| 分享按钮                 | `astro-paper.config.ts` 的 `shareLinks`                                                                                                                                  | 把数组清空：`shareLinks: []`                                                                                   |
+| 编辑本页链接             | `astro-paper.config.ts` 的 `features.editPost`                                                                                                                           | 改成 `{ enabled: false }`                                                                                      |
+| 在线写作后台             | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                                                            | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                            |
+| 后台浏览器回归           | `practice/tests/admin-browser.ts`                                                                                                                                        | 删文件、`package.json` 的 `admin:browser:test` 与文档说明                                                      |
+| 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts`                                                                                                                                           | 先删 `PostLayout.astro` 的 JSON-LD script 和 import，再删本文件及对应回归测试                                  |
+| 公开页面浏览器回归       | `practice/tests/public-browser.ts`                                                                                                                                       | 删文件、`package.json` 的 `public:browser:test` 与文档说明                                                     |
+| 动态文章发布与缓存       | `src/lib/publicPosts.ts`<br>`src/lib/publicCache.ts`<br>`src/lib/postMarkdown.ts`<br>`src/lib/markdownConfig.ts`<br>`src/lib/postSchema.ts`<br>`src/db/loaders/posts.ts` | 将阅读页面切回静态内容集合后再按各文件头步骤移除                                                               |
+| 动态分页与列表           | `src/pages/posts/index.astro`<br>`src/pages/posts/page/[page].astro`<br>`src/pages/posts/_components/PostList.astro`<br>`src/utils/paginatePosts.ts`                     | 删以上文件和 `practice/tests/pagination.ts`                                                                    |
+| 动态文章站点地图         | `src/pages/sitemap-posts.xml.ts`<br>`astro.config.ts` 的 `customSitemaps`                                                                                                | 从 `astro.config.ts` 移除 `customSitemaps`，再删本文件                                                         |
+| 本地代码字体             | `src/assets/fonts/`、`astro.config.ts`                                                                                                                                   | 先替换字体配置，再删除字体目录（详情见目录内 README）                                                          |
+| 日常维护指南             | `docs/MAINTENANCE.md`                                                                                                                                                    | 删文件及本表登记、下方学习资料链接                                                                             |
+| 动态发布方案与验证       | `docs/DYNAMIC-PUBLISHING.md`                                                                                                                                             | 删文件及本表登记、下方学习资料链接                                                                             |
+| 练习册                   | `practice/`                                                                                                                                                              | 删整个目录，再删 `package.json` 里 `learn` / `learn:check` / `learn:answers` 三个脚本                          |
+| 学习路线                 | `docs/LEARNING-ROADMAP.md`                                                                                                                                               | 只删这个文件（⚠️ 勿整删 `docs/`，里面还有部署与维护文档）                                                      |
 
 ---
 
