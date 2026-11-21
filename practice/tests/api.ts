@@ -29,7 +29,6 @@ import { applyMigrations } from "../../src/db/migrate-for-test.ts";
 import * as schema from "../../src/db/schema.ts";
 import { createApi } from "../../src/pages/api/_routes/index.ts";
 import type { ResolveUser } from "../../src/pages/api/_routes/auth.ts";
-import type { NotifyRebuild } from "../../src/lib/rebuild.ts";
 
 /* ------------------------------------------------------------------
  * 测试替身
@@ -49,20 +48,6 @@ const alwaysLoggedIn: ResolveUser = async () => FAKE_USER;
 /** 「永远未登录」，用来验证访问控制 */
 const neverLoggedIn: ResolveUser = async () => null;
 
-/**
- * 「只记录、不请求」的重建通知。
- *
- * ⚠️ 必须显式传进去。默认实现会去 POST 环境变量里的 Netlify Build Hook ——
- *    如果开发者本地正好配了那个变量，跑一次测试就会触发一串真实构建。
- *    测试不该有这种副作用。
- */
-const rebuildCalls: string[] = [];
-const spyNotifyRebuild: NotifyRebuild = async reason => {
-  rebuildCalls.push(reason);
-
-  return "triggered";
-};
-
 /* ------------------------------------------------------------------
  * 准备数据库和两个应用实例
  * ----------------------------------------------------------------- */
@@ -78,8 +63,8 @@ await applyMigrations(client);
  *
  * 分开建比在一个应用里切换更清楚，也不会互相干扰。
  */
-const authedApp = createApi(db, alwaysLoggedIn, spyNotifyRebuild);
-const anonApp = createApi(db, neverLoggedIn, spyNotifyRebuild);
+const authedApp = createApi(db, alwaysLoggedIn);
+const anonApp = createApi(db, neverLoggedIn);
 
 /* ------------------------------------------------------------------
  * 断言与请求工具
@@ -530,123 +515,43 @@ check(
 );
 
 /* ==================================================================
- * 10. 动态发布不触发整站部署
+ * 10. 动态发布与旧重建接口清理
  * ================================================================ */
-console.log("\n=== 10. 动态发布不触发整站部署 ===");
-
-/**
- * spy 保留真实的重建通知入口：任一常规写操作误调用它都会被计数，
- * 不能只检查返回的 rebuild:null 就认定没有发生付费部署。
- */
-function checkNoDeployment(
-  name: string,
-  result: ApiResponse,
-  expectedStatus: number
-) {
-  check(
-    name,
-    result.status === expectedStatus &&
-      result.body?.rebuild === null &&
-      rebuildCalls.length === 0,
-    "状态 " +
-      result.status +
-      "，通知 " +
-      rebuildCalls.length +
-      " 次，返回 " +
-      JSON.stringify(result.body)
-  );
-}
-
-rebuildCalls.length = 0;
-const draftOne = await asUser("POST", "/api/posts", { title: "只是草稿" });
-const draftOneId = (draftOne.body?.post as { id?: number } | undefined)?.id;
-checkNoDeployment("新建草稿不触发部署", draftOne, 201);
-
-checkNoDeployment(
-  "修改草稿不触发部署",
-  await asUser("PATCH", "/api/posts/" + draftOneId, { title: "修改草稿" }),
-  200
-);
-checkNoDeployment(
-  "发布草稿不触发部署",
-  await asUser("PATCH", "/api/posts/" + draftOneId, { status: "published" }),
-  200
-);
-checkNoDeployment(
-  "修改已发布文章不触发部署",
-  await asUser("PATCH", "/api/posts/" + draftOneId, {
-    title: "修改公开文章",
-    body: "新正文",
-    tags: ["新标签"],
-  }),
-  200
-);
-checkNoDeployment(
-  "已发布文章收回草稿不触发部署",
-  await asUser("PATCH", "/api/posts/" + draftOneId, { status: "draft" }),
-  200
-);
-checkNoDeployment(
-  "删除草稿不触发部署",
-  await asUser("DELETE", "/api/posts/" + draftOneId),
-  200
-);
+console.log("\n=== 10. 动态发布与旧重建接口清理 ===");
 
 const publishedOne = await asUser("POST", "/api/posts", {
-  title: "直接发布的一篇",
+  title: "动态发布验证篇",
   status: "published",
 });
 const publishedOneId = (publishedOne.body?.post as { id?: number } | undefined)
   ?.id;
-checkNoDeployment("新建并直接发布不触发部署", publishedOne, 201);
-checkNoDeployment(
-  "删除已发布文章不触发部署",
-  await asUser("DELETE", "/api/posts/" + publishedOneId),
-  200
+check(
+  "新建已发布文章返回 201 且不再携带冗余 rebuild 字段",
+  publishedOne.status === 201 && !("rebuild" in (publishedOne.body ?? {})),
+  JSON.stringify(publishedOne.body)
 );
 
-await asGuest("POST", "/api/posts", {
-  title: "未授权发布",
-  status: "published",
+const patchedOne = await asUser("PATCH", "/api/posts/" + publishedOneId, {
+  title: "动态发布更新篇",
 });
-check("未登录写操作不触发部署", rebuildCalls.length === 0);
-
-/* 保留旧版显式部署接口的权限与行为；文章编辑界面不会再调用它。 */
-rebuildCalls.length = 0;
-
-const manualRebuild = await asUser("POST", "/api/rebuild");
-
 check(
-  "手动重建接口能触发一次",
-  manualRebuild.status === 200 && rebuildCalls.length === 1,
-  `状态 ${manualRebuild.status}，触发 ${rebuildCalls.length} 次`
+  "修改文章返回 200 且不携带冗余 rebuild 字段",
+  patchedOne.status === 200 && !("rebuild" in (patchedOne.body ?? {})),
+  JSON.stringify(patchedOne.body)
 );
 
-/**
- * 接口必须把结果回给前端。
- *
- * 没配 NETLIFY_BUILD_HOOK_URL 时，触发是"成功"了但什么都不会发生。
- * 前端要靠这个字段如实告诉作者，否则他会一直刷新等一个不会来的部署。
- */
+const deletedOne = await asUser("DELETE", "/api/posts/" + publishedOneId);
 check(
-  "手动重建会把结果返回给前端",
-  manualRebuild.body?.outcome === "triggered",
-  `实际返回 ${JSON.stringify(manualRebuild.body)}`
+  "删除文章返回 200 且不携带冗余 rebuild 字段",
+  deletedOne.status === 200 && !("rebuild" in (deletedOne.body ?? {})),
+  JSON.stringify(deletedOne.body)
 );
 
-rebuildCalls.length = 0;
-
-const guestRebuild = await asGuest("POST", "/api/rebuild");
-
+const removedRebuild = await asUser("POST", "/api/rebuild");
 check(
-  "手动重建未登录返回 401",
-  guestRebuild.status === 401,
-  `实际 ${guestRebuild.status}`
-);
-check(
-  "未登录时手动重建不会真的触发",
-  rebuildCalls.length === 0,
-  `实际触发 ${rebuildCalls.length} 次`
+  "已下线的 /api/rebuild 返回 404",
+  removedRebuild.status === 404,
+  `实际 ${removedRebuild.status}`
 );
 
 /* ==================================================================

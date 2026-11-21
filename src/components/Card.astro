@@ -12,11 +12,11 @@ type Props = {
   variant?: "h2" | "h3";
 } & PublicPost;
 
-const { variant: Heading = "h2", id, data, filePath } = Astro.props;
+const { variant: Heading = "h2", id, data } = Astro.props;
 
 const { title, description, tags, ...props } = data;
 
-const postUrl = getPostUrl(id, filePath, Astro.currentLocale);
+const postUrl = getPostUrl(id, Astro.currentLocale);
 ---
 
 <li class="my-4 min-w-0 list-none sm:my-5">

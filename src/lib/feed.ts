@@ -14,7 +14,5 @@ import config from "@/config";
 
 export async function createFeed() {
   const posts = getSortedPosts(await listPublicPosts());
-  return buildPostFeed(posts, config.site, post =>
-    getPostUrl(post.id, post.filePath)
-  );
+  return buildPostFeed(posts, config.site, post => getPostUrl(post.id));
 }

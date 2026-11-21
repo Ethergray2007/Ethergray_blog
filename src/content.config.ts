@@ -2,16 +2,6 @@ import { defineCollection } from "astro:content";
 import { z } from "astro/zod";
 import { glob } from "astro/loaders";
 
-/**
- * 文章原来存放的目录。
- *
- * ⚠️ 文章已经搬进数据库了（见下面 posts 集合的 loader），这个常量现在
- *    只剩一个用处：getPostPaths.ts 用它从 filePath 里剥掉目录前缀。
- *    而数据库来的文章没有 filePath，那段逻辑实际上不会生效 ——
- *    留着是为了万一改回 Markdown 存文章时，那几个文件不用动。
- */
-export const BLOG_PATH = "src/content/posts";
-
 // 文章改为请求时实时查库，统一入口见 src/lib/publicPosts.ts。
 
 /**
@@ -27,7 +17,7 @@ export const BLOG_PATH = "src/content/posts";
  * 直接写在文件里即可，不用改任何代码。
  */
 const friends = defineCollection({
-  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/content/friends" }),
+  loader: glob({ pattern: "**/[^_]*.md", base: "./src/content/friends" }),
   schema: z.object({
     /** 站点名称 */
     title: z.string(),
@@ -68,7 +58,7 @@ const friends = defineCollection({
  * 然后就不写了。
  */
 const notes = defineCollection({
-  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/content/notes" }),
+  loader: glob({ pattern: "**/[^_]*.md", base: "./src/content/notes" }),
   schema: z.object({
     /** 发布时间 */
     date: z.date(),
@@ -95,7 +85,7 @@ const notes = defineCollection({
  */
 const projects = defineCollection({
   loader: glob({
-    pattern: "**/[^_]*.{md,mdx}",
+    pattern: "**/[^_]*.md",
     base: "./src/content/projects",
   }),
   schema: z.object({

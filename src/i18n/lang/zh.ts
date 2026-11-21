@@ -185,7 +185,7 @@ export default {
     fieldDescription: "摘要",
     fieldBody: "正文（Markdown）",
     fieldTags: "标签",
-    tagsHint: "用英文逗号分隔，例如：Astro, 笔记",
+    tagsHint: "用逗号分隔（中英文均可），例如：Astro, 笔记",
     fieldStatus: "状态",
     statusDraft: "草稿",
     statusPublished: "已发布",
@@ -193,15 +193,6 @@ export default {
     save: "保存",
     saving: "保存中……",
     saved: "已保存",
-    rebuild: "立即重建",
-    rebuilding: "正在请求……",
-    rebuildOk:
-      "重建请求已接收，尚未确认上线。请在 Netlify 的 Deploys 页面确认部署成功后，再查看正式站点。",
-    rebuildNotConfigured: "没有配置 NETLIFY_BUILD_HOOK_URL，点了也不会重建。",
-    rebuildFailed:
-      "未能确认重建请求已接收。请先查看 Netlify 的 Deploys 页面；没有新部署时，再点「立即重建」重试。",
-    savedNeedsRebuild:
-      "已保存到数据库。要让它出现在站点上，点右边的「立即重建」。",
     savedAsDraft:
       "已保存为草稿。草稿不公开，已上线的旧内容最多约 30 秒后隐藏。",
     savedPublished: "已保存并公开，站点最多约 30 秒后更新。",
@@ -211,13 +202,11 @@ export default {
     retryLoad: "重新加载文章",
     unsavedChanges: "有未保存的修改，离开前请保存。",
     saveFailed: "保存文章失败。",
-    rebuildRequestFailed: "重建请求失败。",
     apiBadRequest: "提交的数据不正确，请检查后重试。",
     apiNotFound: "找不到这篇文章，请刷新页面后重试。",
     apiSlugTaken: "这个网址标识已被占用，请换一个。",
     apiInternal: "服务器暂时出错，请稍后重试。",
     apiRequestFailed: "请求失败，请稍后重试。",
-    rebuildHint: "每次重建消耗 Netlify 15 积分",
     backToList: "返回列表",
     logout: "登出",
 

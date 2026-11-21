@@ -307,22 +307,6 @@ export interface UIStrings {
     save: string;
     saving: string;
     saved: string;
-
-    /**
-     * 重建站点（把数据库里的改动发布到线上）。
-     *
-     * 【为什么需要一个按钮，而不是保存就自动上线】
-     *   Netlify 免费套餐每次生产部署花 15 积分（一个月 300）。
-     *   改一篇已发布文章的错别字如果也自动重建，改五遍就是 75 积分。
-     *   所以这种改动要作者自己确认满意了再按按钮。
-     */
-    rebuild: string;
-    rebuilding: string;
-    rebuildOk: string;
-    rebuildNotConfigured: string;
-    rebuildFailed: string;
-    /** 保存之后的提醒：这次的改动不会自动上线 */
-    savedNeedsRebuild: string;
     /** 保存草稿之后的提示：草稿不会出现在站点上 */
     savedAsDraft: string;
     savedPublished: string;
@@ -333,14 +317,11 @@ export interface UIStrings {
     /** 浏览器的离开确认用系统文案，这句只用于页面内的未保存状态。 */
     unsavedChanges: string;
     saveFailed: string;
-    rebuildRequestFailed: string;
     apiBadRequest: string;
     apiNotFound: string;
     apiSlugTaken: string;
     apiInternal: string;
     apiRequestFailed: string;
-    /** 按钮旁那行小字，写明点一下要花多少积分 */
-    rebuildHint: string;
 
     backToList: string;
     logout: string;

@@ -26,7 +26,7 @@ import { createAuthClient } from "better-auth/client";
  * basePath 必须和 src/lib/auth.ts 里的 basePath 一致，
  * 否则请求会打到不存在的地址上。
  */
-export const authClient = createAuthClient({
+const authClient = createAuthClient({
   basePath: "/api/session",
 });
 
@@ -118,20 +118,9 @@ export class ApiRequestError extends Error {
   }
 }
 
-/**
- * 触发重建的结果。
- *
- * 和后端 src/lib/rebuild.ts 的 RebuildOutcome 一一对应 ——
- * 但**不能直接 import 那个文件**：它在服务端跑，里面有 process.env
- * 和 console，打进浏览器包既没用又难看。所以这里另写一份类型，
- * 两边改动时要一起改。
- */
-export type RebuildOutcome = "triggered" | "not-configured" | "failed";
-
-/** 文章实时发布；保留 rebuild:null 兼容旧版调用方，不触发整站部署。 */
-export type SaveResult = {
+/** 写文章接口的返回形状（文章实时读取，不再触发整站重建） */
+type SaveResult = {
   post: AdminPost;
-  rebuild: null;
 };
 
 /**
@@ -212,16 +201,5 @@ export const postsApi = {
   /** 删除 */
   async remove(id: number): Promise<void> {
     await request(`/api/posts/${id}`, { method: "DELETE" });
-  },
-};
-
-/** 旧版显式部署接口的兼容封装；正常文章编辑流程不再使用。 */
-export const rebuildApi = {
-  async trigger(): Promise<RebuildOutcome> {
-    const data = await request<{ outcome: RebuildOutcome }>("/api/rebuild", {
-      method: "POST",
-    });
-
-    return data.outcome;
   },
 };

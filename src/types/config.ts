@@ -59,11 +59,8 @@ interface FeaturesConfig {
         url: string;
       }
     | { enabled: false };
-  /**
-   * 站内搜索模式。当前使用数据库实时搜索（"live"），
-   * 兼容旧配置值 "pagefind"；设为 false 关闭搜索。
-   */
-  search?: "live" | "pagefind" | false;
+  /** 站内搜索模式。当前使用数据库实时搜索（"live"）；设为 false 关闭搜索。 */
+  search?: "live" | false;
 }
 
 interface SocialLink {

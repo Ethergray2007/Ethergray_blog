@@ -185,16 +185,6 @@ export default {
     save: "Save",
     saving: "Saving...",
     saved: "Saved",
-    rebuild: "Rebuild now",
-    rebuilding: "Requesting...",
-    rebuildOk:
-      "Rebuild request accepted; publication is not yet confirmed. Check Netlify Deploys for a successful deployment, then visit the live site.",
-    rebuildNotConfigured:
-      "NETLIFY_BUILD_HOOK_URL is not configured, so nothing will rebuild.",
-    rebuildFailed:
-      "Could not confirm that the rebuild request was accepted. Check Netlify Deploys first; if no new deployment appears, retry with “Rebuild now”.",
-    savedNeedsRebuild:
-      "Saved to the database. Click “Rebuild now” to publish it to the site.",
     savedAsDraft:
       "Saved as a draft. Drafts are private; previously published content may take up to about 30 seconds to disappear.",
     savedPublished:
@@ -205,13 +195,11 @@ export default {
     retryLoad: "Retry loading the post",
     unsavedChanges: "You have unsaved changes. Save before leaving.",
     saveFailed: "Could not save the post.",
-    rebuildRequestFailed: "Could not request a rebuild.",
     apiBadRequest: "The submitted data is invalid. Check it and try again.",
     apiNotFound: "The post was not found. Refresh the page and try again.",
     apiSlugTaken: "This URL slug is already in use. Choose another one.",
     apiInternal: "The server encountered an error. Please try again later.",
     apiRequestFailed: "The request failed. Please try again later.",
-    rebuildHint: "Each rebuild costs Netlify 15 credits",
     backToList: "Back to list",
     logout: "Sign out",
 

@@ -21,7 +21,6 @@ import { postSchema, type PublicPostData } from "./postSchema.ts";
 export type PublicPost = {
   id: string;
   collection: "posts";
-  filePath?: undefined;
   body?: string;
   data: PublicPostData;
 };

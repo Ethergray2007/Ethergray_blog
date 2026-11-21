@@ -44,7 +44,7 @@ if (error) {
 } else if (query) {
   try {
     results = (await searchPublicPosts(query, SEARCH_RESULT_LIMIT)).map(post =>
-      toPublicSearchResult(post, getPostUrl(post.id, post.filePath, locale))
+      toPublicSearchResult(post, getPostUrl(post.id, locale))
     );
     message = results.length
       ? t.pages.searchResults.replace("{{n}}", String(results.length))

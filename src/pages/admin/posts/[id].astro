@@ -311,13 +311,17 @@ const pageTitle = isNew ? t.admin.newPostTitle : t.admin.editTitle;
   /** 把表单内容收集成一个对象 */
   function collectForm(): Record<string, unknown> {
     /**
-     * 标签按英文逗号分隔，顺便去掉空项和首尾空格。
-     * 这样"a, b, , c"会变成 ["a","b","c"]，不会存进空标签。
+     * 同时兼容中英文逗号分隔，顺便去掉空项、首尾空格与重复标签。
+     * 避免中文输入法误敲全角逗号把多个标签粘成一个。
      */
-    const tags = (tagsInput?.value ?? "")
-      .split(",")
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+    const tags = [
+      ...new Set(
+        (tagsInput?.value ?? "")
+          .split(/[,，]/)
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+      ),
+    ];
 
     return {
       title: titleInput?.value.trim() ?? "",

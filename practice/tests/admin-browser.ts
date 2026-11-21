@@ -153,7 +153,6 @@ async function fixture(browser: Browser) {
     records.set(id, saved as ReturnType<typeof post>);
     await json(request.method() === "POST" ? 201 : 200, {
       post: saved,
-      rebuild: null,
     });
   });
 

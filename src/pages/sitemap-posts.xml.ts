@@ -32,10 +32,7 @@ export const GET: APIRoute = async () => {
   try {
     const posts = await listPublicPosts();
     const entries = posts.map(post => {
-      const location = new URL(
-        getPostUrl(post.id, post.filePath),
-        config.site.url
-      ).href;
+      const location = new URL(getPostUrl(post.id), config.site.url).href;
       const modified = new Date(
         post.data.modDatetime ?? post.data.pubDatetime
       ).toISOString();

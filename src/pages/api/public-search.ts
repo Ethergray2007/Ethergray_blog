@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ url }) => {
     return Response.json(
       {
         results: posts.map(post =>
-          toPublicSearchResult(post, getPostUrl(post.id, post.filePath, locale))
+          toPublicSearchResult(post, getPostUrl(post.id, locale))
         ),
       },
       { headers }

@@ -22,10 +22,6 @@ import {
 } from "../../../db/repositories/posts.ts";
 import { POST_STATUS, type PostRow } from "../../../db/schema.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
-import {
-  notifyNetlifyRebuild,
-  type NotifyRebuild,
-} from "../../../lib/rebuild.ts";
 import { slugifyStr } from "../../../utils/slugify.ts";
 
 import {
@@ -39,6 +35,8 @@ import {
   readJsonBody,
   updatePostSchema,
   validate,
+  type CreatePostBody,
+  type UpdatePostBody,
 } from "./validation.ts";
 
 /**
@@ -142,10 +140,7 @@ function parseId(raw: string | undefined): number | null {
   return id > 0 ? id : null;
 }
 
-export function postRoutes(
-  resolveUser: ResolveUser = resolveUserFromSession,
-  notifyRebuild: NotifyRebuild = notifyNetlifyRebuild
-) {
+export function postRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
   /**
    * 取当前登录用户，未登录返回 null。
    *
@@ -246,15 +241,7 @@ export function postRoutes(
           return { error: invalid, code: API_ERROR.badRequest };
         }
 
-        const body = parsed.data as {
-          title: string;
-          description?: string;
-          body?: string;
-          tags?: string[];
-          status?: string;
-          featured?: boolean;
-          slug?: string;
-        };
+        const body = parsed.data as CreatePostBody;
 
         const slug = body.slug?.trim() ? toSlug(body.slug) : toSlug(body.title);
 
@@ -298,7 +285,7 @@ export function postRoutes(
         // 页面实时读数据库，文章写入不再触发整站生产部署。
         set.status = 201;
 
-        return { post, rebuild: null };
+        return { post };
       })
 
       /** -------------------------------------------------------
@@ -341,15 +328,7 @@ export function postRoutes(
           return { error: invalid, code: API_ERROR.badRequest };
         }
 
-        const body = parsed.data as Partial<{
-          title: string;
-          description: string;
-          body: string;
-          tags: string[];
-          status: string;
-          featured: boolean;
-          slug: string;
-        }>;
+        const body = parsed.data as UpdatePostBody;
 
         /**
          * 后台的「网址标识」是**每次保存都跟着表单一起发**的（留空时发空串），
@@ -422,7 +401,7 @@ export function postRoutes(
           return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
-        return { post, rebuild: null };
+        return { post };
       })
 
       /** -------------------------------------------------------
@@ -453,29 +432,7 @@ export function postRoutes(
           return { error: "找不到该文章。", code: API_ERROR.notFound };
         }
 
-        return { ok: true, rebuild: null };
-      })
-
-      /** -------------------------------------------------------
-       * 手动触发重建  POST /api/rebuild
-       *
-       * 保留旧版调用方的显式部署入口。文章页面已动态读取，正常写作流程
-       * 不再调用它，后台也不再提供这个按钮。
-       *
-       * 【为什么把结果返回给前端】
-       *   没配 NETLIFY_BUILD_HOOK_URL 时，触发是"成功"了但什么都不会发生。
-       *   必须如实告诉作者，否则他会一直刷新等一个不会来的部署。
-       * ----------------------------------------------------- */
-      .post("/rebuild", async rawCtx => {
-        const user = await requireUser(rawCtx);
-
-        if (!user) {
-          return unauthorized();
-        }
-
-        const outcome = await notifyRebuild("后台手动重建");
-
-        return { outcome };
+        return { ok: true };
       })
   );
 }
