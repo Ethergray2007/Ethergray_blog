@@ -36,7 +36,9 @@ process.env.GITHUB_CLIENT_SECRET = "test-client-secret";
 process.env.GITHUB_OWNER_ID = OWNER_ID;
 process.env.BETTER_AUTH_URL = "http://localhost:4321";
 
-const { auth } = await import("../../src/lib/auth.ts");
+const { createAuth, requireAuthSecret } =
+  await import("../../src/lib/auth.ts");
+const auth = createAuth();
 
 /* ------------------------------------------------------------------
  * 断言工具
@@ -163,6 +165,51 @@ try {
   );
 } finally {
   process.env.GITHUB_OWNER_ID = originalOwnerId;
+}
+
+const originalSecret = process.env.BETTER_AUTH_SECRET;
+
+try {
+  delete process.env.BETTER_AUTH_SECRET;
+  let missingError = "";
+  try {
+    requireAuthSecret();
+  } catch (error) {
+    missingError = error instanceof Error ? error.message : String(error);
+  }
+  check(
+    "BETTER_AUTH_SECRET 没配 → 明确抛错（不退化到公开默认密钥）",
+    missingError.includes("BETTER_AUTH_SECRET"),
+    missingError
+  );
+
+  process.env.BETTER_AUTH_SECRET = "too-short-secret";
+  let shortError = "";
+  try {
+    requireAuthSecret();
+  } catch (error) {
+    shortError = error instanceof Error ? error.message : String(error);
+  }
+  check(
+    "BETTER_AUTH_SECRET 少于 32 字符 → 拒绝",
+    shortError.includes("32"),
+    shortError
+  );
+
+  process.env.BETTER_AUTH_SECRET = "better-auth-secret-12345678901234567890";
+  let defaultSecretError = "";
+  try {
+    createAuth();
+  } catch (error) {
+    defaultSecretError = error instanceof Error ? error.message : String(error);
+  }
+  check(
+    "使用公开默认密钥 → createAuth 拒绝启动",
+    defaultSecretError.includes("公开默认密钥"),
+    defaultSecretError
+  );
+} finally {
+  process.env.BETTER_AUTH_SECRET = originalSecret;
 }
 
 /* ==================================================================

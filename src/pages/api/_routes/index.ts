@@ -56,7 +56,7 @@ export function createApi(
       .decorate("db", db)
 
       /** 统一错误处理 */
-      .onError(({ code, error, set }) => {
+      .onError(({ code, error, request, set }) => {
         /**
          * 路由不存在。
          * Elysia 默认把 NOT_FOUND 也当 500，那会让调用方以为服务器挂了。
@@ -118,6 +118,16 @@ export function createApi(
          *   （npm run api:test 是用 node 直接执行的，那里没有 import.meta.env）。
          */
         const isDev = !import.meta.env?.PROD;
+
+        // 线上 Functions 日志是唯一的排错渠道；500 必须把原始错误写进服务端日志。
+        let pathname = request.url;
+        try {
+          pathname = new URL(request.url).pathname;
+        } catch {
+          // 保留原始 URL 字符串
+        }
+        // eslint-disable-next-line no-console -- 线上服务端 500 兜底日志，用于 Netlify Functions 排错
+        console.error(`[api] 500 ${request.method} ${pathname}`, error);
 
         set.status = 500;
 

@@ -22,7 +22,7 @@
  */
 import { Elysia } from "elysia";
 
-import { auth } from "../../../lib/auth.ts";
+import { getAuth } from "../../../lib/auth.ts";
 import { API_ERROR } from "../../../lib/api-errors.ts";
 
 import { asContext, type ApiContext } from "./context.ts";
@@ -56,7 +56,9 @@ export type ResolveUser = (ctx: ApiContext) => Promise<CurrentUser | null>;
  * 无状态模式下它只解 Cookie、不查数据库，所以这个调用很便宜。
  */
 export const resolveUserFromSession: ResolveUser = async ctx => {
-  const session = await auth.api.getSession({ headers: ctx.request.headers });
+  const session = await getAuth().api.getSession({
+    headers: ctx.request.headers,
+  });
 
   if (!session) {
     return null;
@@ -97,7 +99,7 @@ export function authRoutes(resolveUser: ResolveUser = resolveUserFromSession) {
       .post("/logout", async rawCtx => {
         const { request } = asContext(rawCtx);
 
-        return auth.api.signOut({
+        return getAuth().api.signOut({
           headers: request.headers,
           asResponse: true,
         });

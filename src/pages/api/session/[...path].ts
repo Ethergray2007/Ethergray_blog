@@ -28,13 +28,13 @@
  */
 import type { APIRoute } from "astro";
 
-import { auth } from "../../../lib/auth.ts";
+import { getAuth } from "../../../lib/auth.ts";
 
 /**
  * 必须在每次请求时执行 —— 登录是动态的，不能预渲染。
- * 博客正文页仍然是构建时生成的静态 HTML，不受影响。
+ * 静态内容页仍然是构建时生成的静态 HTML，不受影响。
  */
 export const prerender = false;
 
 /** 所有方法都交给 Better Auth，由它按路径分派 */
-export const ALL: APIRoute = ({ request }) => auth.handler(request);
+export const ALL: APIRoute = ({ request }) => getAuth().handler(request);
