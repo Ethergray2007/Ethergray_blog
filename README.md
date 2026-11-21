@@ -1,368 +1,296 @@
 # EtherGray Blog
 
-一个基于 **Astro** 构建的个人博客。
+一个基于 **Astro 7** 构建的个人博客，同时也是面向工程实践的 **TypeScript + 全栈 Astro 学习项目**。
 
-Personal blog built with **Astro**.
+🌐 **正式站点**：[https://ethergray.netlify.app/](https://ethergray.netlify.app/) · **开发预览**：`develop--ethergray.netlify.app`（需团队登录） · **开发约定**：[AGENTS.md](AGENTS.md)
 
-🌐 **Blog / 博客：** [Ethergray Blog](https://ethergray.netlify.app/)
+---
 
-## ✨ Features / 特性
+## ✨ 核心特性
 
-- ⚡ 动静结合：友链/说说/项目等页面静态预渲染，文章与搜索实时读库 + CDN 短缓存
-- 📝 文章正文用 Markdown 写（存在数据库里，后台保存无需重新构建整站）
-- 🎨 Responsive design
-- 🌙 Light / Dark mode
-- 🔎 Live database search（支持标题、摘要、正文与标签实时检索）
-- 📱 Mobile-friendly
-- 🚀 Automatic deployment with Netlify
-- 🧩 Built with Tailwind CSS
+- **动静结合架构**：友链、说说、项目、关于页等构建时预渲染为静态 HTML；文章阅读、分页、标签、归档、RSS/Atom、动态站点地图与搜索实时查库，配合 Netlify CDN 30 秒短缓存。
+- **动态发布，无需重跑部署**：文章存放在 Neon PostgreSQL 的 `posts` 表中，后台保存后约 30 秒内前台自动更新，不再每次消耗 Netlify 生产部署额度。
+- **数据库实时搜索**：内置 `/search` 与 `/api/public-search`，支持标题、摘要、正文与标签的参数化实时检索，支持无 JavaScript 降级。
+- **无状态 GitHub OAuth 写作后台**：基于 Better Auth 无状态加密 Cookie（JWE）与 `GITHUB_OWNER_ID` 单博主白名单，不建 `users` 表、不存密码，自带加载防误提交与未保存离开提醒。
+- **完整的写作排版支持**：Shiki 双主题代码高亮、KaTeX 数学公式、Mermaid 图表、Obsidian 风格提示块、自动目录、图片灯箱、动态 OG 分享图、Giscus 评论。
+- **单一设计 Token 系统**：Tailwind CSS 4 + daisyUI 5（关闭内置配色层），浅色 / 深色主题与对比度全部收敛在 `src/styles/theme.css`。
+- **可删、可测、可学习**：每个功能均做成自包含模块并附带删除步骤；10 组核心测试基于 PGlite 内存库零网络运行；仓库内置 8 课可自动判分的 TypeScript 练习册。
 
-## 视觉与导航约定
+---
 
-保留粉紫强调色与动漫海报，海报表达个性，正文通过字号、留白和内容建立层级。
-参考站分工：
+## 🛠️ 技术栈与架构
 
-- [Elysia 中文网](https://elysia.nodejs.cn/)：品牌色、轻量氛围与明确主动作。
-- [fqzlr 博客](https://blog.fqzlr.top/)：海报首屏、友链横向卡片和个人空间的表达。
+| 层次         | 方案                                  | 说明                                                                                      |
+| ------------ | ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 前端与渲染   | **Astro 7** + **TypeScript 6**        | `output: "static"` 混合模式：静态集合预渲染，文章链路与后台 `prerender = false`           |
+| 后端接口     | **Elysia 1.4**                        | 挂载在 `src/pages/api/[...path].ts`，同仓同部署、无跨域                                   |
+| 数据库与 ORM | **Neon PostgreSQL** + **Drizzle ORM** | 生产使用 `@neondatabase/serverless` HTTP 驱动；本地测试使用内存版 PGlite                  |
+| 认证鉴权     | **Better Auth 1.7**                   | 无状态 JWE Cookie + GitHub OAuth + 单博主白名单                                           |
+| 样式体系     | **Tailwind CSS 4** + **daisyUI 5**    | `themes: false`，所有颜色 / 圆角 / 字体定义在 `src/styles/theme.css`                      |
+| 搜索与订阅   | **实时 SQL 搜索** + **RSS / Atom**    | `/api/public-search` 参数化检索；`/rss.xml`、`/atom.xml` 与 `/sitemap-posts.xml` 实时输出 |
+| 部署与 CI    | **Netlify** + **GitHub Actions**      | `main` = 生产站点，`develop` = 分支预览站（Branch deploy）                                |
 
-首页顺序为海报 → 文章（最多两篇精选、最近文章）→ 四项轻量内容导航 → 动图。
-首屏「开始阅读」跳到文章区；「全部文章」紧挨最近文章，
-没有普通文章时仍提供文章列表入口。动图不隔开阅读动作。
-
-普通文章、项目容器使用主题背景与细描边；容器内有多个链接时，
-悬停和键盘反馈只放在对应链接上。日期使用普通文字，标签保持可点击的胶囊。
-圆角沿用主题的 rounded-box，不为每种卡片另设阴影或品牌色。
-
-文章卡片把标题与日期归为一组，摘要独立，标签用细线分隔并靠底对齐。
-首页列表间距由 grid 的 gap 控制，抵消 Card 在其他列表页使用的外边距，
-避免精选卡片两列排列时上下间距叠加。四项内容导航保留数量，
-通过细描边、小箭头和链接自身的悬停 / 键盘焦点反馈标明入口。
-
-公共页面标题保持纯色，不叠加文字光晕；长标题和摘要允许换行。
-页脚使用与正文相同的 content-shell 基线，手机居中堆叠，宽屏左右排列。
-
-友链使用实色横向卡片、圆角方形头像和轻量标签，整张卡片只有一个链接。
-卡片填满网格列，悬停与键盘聚焦都提供主色反馈；头像加载失败时显示站名首字。
-
-「关于我」指向已有个人主页 /profile；/about 保留为「本站与致谢」。
-RSS 入口先到 /rss 说明页，原始订阅地址仍为 /rss.xml 和 /atom.xml。
-修改这些入口时，同步页眉、首屏、面包屑和中英文文案。
-
-## 🛠️ Tech Stack / 技术栈
-
-- **Framework:** Astro 7（静态页构建预渲染，文章阅读页与后台按需服务端渲染）
-- **API:** Elysia 1.4（跑在 Astro 的 `/api/*` 路由里，不是独立服务）
-- **Database:** Neon PostgreSQL + Drizzle ORM（走 Neon HTTP 驱动）
-- **Auth:** Better Auth 1.7（GitHub 登录，无状态模式）
-- **Styling:** Tailwind CSS 4 + daisyUI 5（设计 token 只在 `src/styles/theme.css`）
-- **Language:** TypeScript 6
-- **Search:** 数据库实时搜索（`/search` + `/api/public-search`，参数化查询公开文章）
-- **Package Manager:** npm
-- **Deployment:** Netlify（develop = Deploy Preview，main = 生产）
-- **Version Control:** Git + GitHub
-
-⚠️ 这个项目**不只是静态站点**：友链、说说、项目、关于页是构建时静态产物，
-但文章阅读页、实时搜索、RSS/Atom、动态站点地图和写作后台都走运行时服务端渲染
-（见下面「数据库」和「在线写作后台」两节）。技术栈只列 Astro 会让人以为没有后端。
-
-## 📁 Project Structure / 项目结构
-
-/ 仓库根目录
-├── public/ 静态资源（图片、视频、favicon）
-├── docs/ 学习路线 / 部署指南 / 素材说明
-├── practice/ TypeScript 练习册（\_ 开头的临时脚本不进 git）
-├── scripts/ 一次性脚本（建库、导入旧文章、提交信息检查）
-├── drizzle/ SQL 迁移文件（**要提交**，线上靠它建表）
-├── src/
-│ ├── assets/ 参与构建的图片与图标
-│ ├── components/ 可复用组件
-│ ├── content/ 友链 / 说说 / 项目（Markdown 文件）
-│ │ ⚠️ 没有 posts/ —— 文章在数据库的 posts 表里
-│ ├── db/ 表结构、仓库函数、Neon HTTP 驱动
-│ ├── i18n/ 文案（types.ts + lang/zh.ts + lang/en.ts）
-│ ├── layouts/ 页面布局
-│ ├── lib/ 认证、订阅源、重建通知这类服务端逻辑
-│ ├── pages/ 文件路径 = 网址。index.astro → /
-│ ├── scripts/ 只在浏览器里跑的小脚本
-│ ├── styles/ 全局样式与设计 token
-│ ├── types/ 站点配置的类型定义
-│ └── utils/ 纯函数
-│
-├── astro.config.ts Astro 配置
-├── astro-paper.config.ts 站点配置（站名、每页篇数、功能开关）
-├── drizzle.config.ts drizzle-kit 配置（迁移）
-├── package.json 依赖与命令
-└── tsconfig.json TypeScript 配置
-
-````
-
-## 🧩 可选模块 / Optional modules
-
-每个功能都做成**自包含**的：删除时不需要动别的地方，照着下表删就行。
-
-文章页的返回顶部按钮统一由 `Layout.astro` 渲染，`showBackButton` 控制文章页是否显示；其他页面沿用全局按钮。
-
-| 功能                  | 相关文件                                                                                                                             | 怎么删                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| 文章目录              | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                                                        | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                                        |
-| 数学公式              | `src/styles/katex.css`<br>`astro.config.ts` 里的 `remarkMath` / `rehypeKatex`                                                        | 删 `katex.css` 和 `global.css` 里 import 它那行；删配置里两个插件；卸载 `remark-math rehype-katex katex`                   |
-| 图表 Mermaid          | `astro.config.ts` 里的 `mermaid()` 集成                                                                                              | 删那个集成和它的 import；卸载 `astro-mermaid mermaid`                                                                      |
-| RSS / Atom 订阅       | `src/lib/feed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`                                                               | 照 `src/lib/feed.ts` 文件头写的 4 步做                                                                                     |
-| 订阅页 /rss           | `src/pages/rss/index.astro`                                                                                                          | 照该文件文件头写的 4 步做                                                                                                  |
-| 友链页                | `src/pages/friends.astro`<br>`src/pages/friends/_components/FriendCard.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/` | 照 `getFriends.ts` 文件头写的 6 步做；卡片组件在那个目录里一起删掉                                                         |
-| 说说 /notes           | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                                                           | 照 `getNotes.ts` 文件头写的 6 步做                                                                                         |
-| 项目 /projects        | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`                                                  | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 里那份独立数据）                                             |
-| 近况页 /now           | `src/pages/now.astro`                                                                                                                | 删这个文件，再从 `Header.astro` 的 `moreItems` 里删掉那一行（桌面下拉和移动抽屉共用它）                                    |
-| 代码块复制            | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                                                         | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                                     |
-| 氛围层（网格 + 光晕） | `src/styles/atmosphere.css`                                                                                                          | 删这个文件，再删 `global.css` 里的 `@import "./atmosphere.css"` 和 `Layout.astro` 里的 `<div class="atmosphere">` 那一段   |
-| 列表页极光射线        | `src/components/PageGlow.astro`<br>`src/styles/page-glow.css`                                                                        | 删这两个文件，再删 `Main.astro` 里的 import 和 `<PageGlow />`，以及 `global.css` 里的 `@import "./page-glow.css"`          |
-| 首屏 Hero（全屏海报） | `src/components/Hero.astro`<br>`src/styles/hero.css`<br>`public/hero-bg.jpg` / `.mp4` / `.webm`                                      | 照 `Hero.astro` 文件头写的 4 步做（删完回到"纯列表首页"）                                                                  |
-| 页眉玻璃导航          | `src/styles/nav.css`                                                                                                                 | 照 `nav.css` 文件头写的 3 步做。只删文件、留着那几个 class 不会坏：导航仍然吸顶，只是退回不透明底色                        |
-| 品牌标识              | `src/components/BrandMark.astro`                                                                                                     | 删这个文件，再把 Header / Footer 里的 `<BrandMark />` 换回一行纯文字                                                       |
-| 回到顶部按钮          | `src/components/BackToTop.astro`<br>`src/styles/back-to-top.css`                                                                     | 照 `BackToTop.astro` 文件头写的 3 步做                                                                                     |
-| 评论区（Giscus）      | `src/pages/posts/[...slug]/_components/GiscusComments.astro`<br>`astro-paper.config.ts` 的 `comments`                                | 删这个文件，再删文章页里的 `<GiscusComments />` 那一行和文章页顶部的 import；删 `astro-paper.config.ts` 里的 `comments` 段 |
-| 实时文章搜索          | `src/pages/search.astro`<br>`src/pages/api/public-search.ts`<br>`src/utils/publicSearch.ts`<br>`astro-paper.config.ts` 的 `features.search` | 改成 `search: false`，页面自动跳 404；彻底删除可按 `search.astro` 文件头操作                                              |
-| 归档页                | `src/pages/archives/`                                                                                                                | `features.showArchives` 改成 `false`                                                                                       |
-| 动态 OG 图            | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                                    | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                                     |
-| 主题切换              | `src/scripts/theme.ts`                                                                                                               | `features.lightAndDarkMode` 改成 `false`                                                                                   |
-| 分享按钮              | `astro-paper.config.ts` 的 `shareLinks`                                                                                              | 把数组清空：`shareLinks: []`                                                                                               |
-| 编辑本页链接          | `astro-paper.config.ts` 的 `features.editPost`                                                                                       | 改成 `{ enabled: false }`                                                                                                  |
-| 在线写作后台          | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                        | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                        |
-| 后台浏览器回归        | `practice/tests/admin-browser.ts`                                                                                                  | 删这个文件，再删 `package.json` 里的 `admin:browser:test` 命令和下方运行说明                                               |
-| 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts` | 先删 `PostLayout.astro` 的 JSON-LD script 和对应 import，再删本文件及公开页面回归中的对应测试 |
-| 公开页面浏览器回归 | `practice/tests/public-browser.ts` | 删本文件、`package.json` 的 `public:browser:test` 命令和下方运行说明 |
-| 动态文章发布与缓存    | `src/lib/publicPosts.ts`<br>`src/lib/publicCache.ts`<br>`src/lib/postMarkdown.ts`<br>`src/lib/markdownConfig.ts`<br>`src/lib/postSchema.ts`<br>`src/db/loaders/posts.ts` | 将阅读页面切回静态内容集合后再按各文件头步骤移除                                                                           |
-| 动态分页与列表        | `src/pages/posts/index.astro`<br>`src/pages/posts/page/[page].astro`<br>`src/pages/posts/_components/PostList.astro`<br>`src/utils/paginatePosts.ts` | 删以上文件和 `practice/tests/pagination.ts`                                                                                |
-| 动态文章站点地图      | `src/pages/sitemap-posts.xml.ts`<br>`astro.config.ts` 的 `customSitemaps`                                                            | 从 `astro.config.ts` 移除 `customSitemaps`，再删本文件                                                                     |
-| 旧版手动重建兼容接口  | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                           | 照 `src/lib/rebuild.ts` 文件头写的 3 步做（文章写入已不再自动触发重建）                                                    |
-| 本地代码字体 | `src/assets/fonts/`、`astro.config.ts` | 先替换字体配置，再删除字体目录；具体见目录内 README |
-| 日常维护指南 | `docs/MAINTENANCE.md` | 删文件及本表登记、下方学习资料链接 |
-| 动态发布方案与验证 | `docs/DYNAMIC-PUBLISHING.md` | 删文件及本表登记、下方学习资料链接；临时原型可独立移除 |
-| 练习册                | `practice/`                                                                                                                          | 整个目录删掉，再删 `package.json` 里的 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
-| 学习路线              | `docs/LEARNING-ROADMAP.md`                                                                                                           | 只删这一个文件。⚠️ 不要整个删掉 `docs/` —— 里面还有部署指南和素材说明                                                     |
-
-## 📚 学习资料 / Learning
-
-- [日常维护指南](docs/MAINTENANCE.md) —— 改文字、改样式、发布文章和验证上线
-- [动态发布方案与验证](docs/DYNAMIC-PUBLISHING.md) —— 省去每次发文章的部署开销，含隔离验证结果与迁移边界
-- [学习路线：TypeScript → Astro](docs/LEARNING-ROADMAP.md) —— 每个知识点对应仓库里的哪个文件
-- [部署指南](docs/DEPLOYMENT.md) —— 环境变量、连接池、区域选择（要点都查过官方文档）
-- [TypeScript 练习册](practice/README.md) —— 8 节课，能自动判分
-
-```bash
-npm run learn          # 看题目
-npm run learn:check    # 判你的答案
-npm run learn:answers  # 判标准答案（用来确认练习册本身没坏）
-````
-
-## 🗄️ 数据库 / Database
-
-用 PostgreSQL + Drizzle ORM。表结构定义在 `src/db/schema.ts`。
-
-```bash
-npm run db:generate    # 改完 schema 后生成迁移文件
-npm run db:migrate     # 把迁移应用到数据库
-npm run db:studio      # 打开可视化界面查看数据
-npm run db:test        # 跑数据层测试
-npm run posts:import   # 把 Markdown 文章导入数据库（要自己准备好这些文件）
+```mermaid
+flowchart LR
+  StaticMD["src/content/\n友链 · 说说 · 项目"] --> StaticPages["静态预渲染页\n/friends /notes /projects /about /profile /now"]
+  Admin["/admin 写作后台\n(GitHub OAuth)"] --> API["Elysia /api/posts"]
+  API --> DB[("Neon PostgreSQL\nposts 表")]
+  DB --> PublicData["src/lib/publicPosts.ts\n统一过滤草稿与定时发布"]
+  PublicData --> PublicPages["动态公开页\n首页 · 文章 · 分页 · 标签 · 归档\nRSS/Atom · 动态 Sitemap"]
+  PublicData --> Search["/search & /api/public-search"]
+  PublicData --> MD["src/lib/postMarkdown.ts\nSHA-256 进程内 LRU 缓存"]
+  MD --> PublicPages
+  PublicPages --> Cache["src/lib/publicCache.ts\nCDN 30s 缓存 / 故障 503"]
 ```
 
-### 文章存在数据库里（动态发布）
+> **提示**：本项目**不是纯静态站点**——友链、说说、项目、关于页走静态预渲染，而文章阅读页、实时搜索、订阅源、动态站点地图与写作后台均运行在 Netlify SSR Function 中。
 
-**文章不在 git 里了，在数据库的 `posts` 表里。** 在后台写完点保存，
-内容直接进库，不用改代码、不用提交，也**不再触发整站生产重建**。
+---
 
-阅读端按内容类型分工：
+## 🚀 快速开始
 
-```text
-友链 / 说说 / 项目 / 关于  → 构建时生成静态 HTML（src/content/）
-首页 / 文章 / 分页 / 标签 / 归档 / RSS / 搜索 / 动态站点地图
-                           → 请求时通过 src/lib/publicPosts.ts 实时查库
+环境要求：**Node.js >= 22.12.0**（推荐 Node 24）。
+
+### 1. 安装依赖与初始化配置
+
+```powershell
+npm install
+Copy-Item .env.example .env   # 按注释填写 DATABASE_URL 及登录相关变量
+npm run db:setup              # 检查配置 → 连接 Neon → 应用迁移建表
 ```
 
-为了兼顾实时性与响应速度，公开文章页和订阅源使用统一缓存策略
-（见 `src/lib/publicCache.ts`）：
-
-- 浏览器：`Cache-Control: public, max-age=0, must-revalidate`
-- Netlify CDN：`Netlify-CDN-Cache-Control: public, s-maxage=30, must-revalidate`
-- 数据库或渲染故障：返回 `503` + `Cache-Control: no-store`，绝不把故障缓存成空站点或 404
-- 正文 Markdown 编译结果按正文 SHA-256 做进程内 LRU 缓存（`src/lib/postMarkdown.ts`），但不缓存文章公开状态
-
-这意味着：发布、修改、下线或删除文章后，**最多约 30 秒**前台就会同步更新，
-不再每次消耗 Netlify 的 15 积分生产部署额度。
-
-**代价有两个，都要知道：**
-
-```text
-1. 运行时需要能连上数据库
-   文章阅读页与后台接口在每次未命中缓存的请求时都会访问 Neon，
-   所以本地 `.env` 与 Netlify 环境变量都需要配置 DATABASE_URL。
-
-2. 内容不再有 git 历史
-   改错了没法 git diff / git revert，只能靠数据库自己的备份。
-```
-
-连接串放在环境变量 `DATABASE_URL` 里：
-
-| 在哪           | 干什么用的                       | 怎么配                                                                        |
-| -------------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| 本地 `.env`    | `npm run dev` / 数据库迁移与脚本 | 项目根目录建 `.env`，写入 `DATABASE_URL=postgresql://...`                     |
-| GitHub Actions | CI 流水线（可选）                | 仓库 → Settings → Secrets and variables → Actions → **New repository secret** |
-| Netlify        | 线上动态阅读页**和**后台接口     | Site configuration → Environment variables，勾上 **Contains secret values**   |
-
-⚠️ **在 GitHub 加了 secret 不等于 Netlify 也有**，反过来也一样。
-Netlify 免费套餐只有 `All scopes` 一种选择，配上后构建和 Functions 都能读到。
-
-**`npm test` 不需要配置任何东西** —— 数据层与动态数据测试都用 PGlite（进程内的
-PostgreSQL）现场建空库、跑迁移、跑断言，全程不联网、不碰线上数据：
-
-```bash
-npm test   # 依次跑 10 组离线测试，前一组挂了就停
-```
-
-它依次覆盖：`db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、
-`notes:test`、`projects:test`、`dynamic:data:test`、`dynamic:discovery:test`、
-`pagination:test` —— 克隆下来无需 `.env` 即可直接跑通。
-如需验收本地运行中的真实 HTTP 路由（`/api/public-search`、`/sitemap-posts.xml`、
-`/rss.xml`、`/atom.xml`），可另启动 `npm run dev` 并传入本地地址：
-
-```bash
-node practice/tests/dynamic-discovery.ts http://localhost:4321
-node practice/tests/feed.ts http://localhost:4321
-```
-
-### 第一次配置
-
-```bash
-Copy-Item .env.example .env   # 按文件里的说明填
-npm run db:setup              # 检查配置 → 连库 → 建表
-```
-
-`npm run db:setup` 会先检查配置是否齐全，缺什么就明确告诉你缺什么。
-**可以重复运行**，已经建好的表不会被重建。
-
-只想建表、GitHub 还没配好时，用这个（会跳过 GitHub 相关检查）：
+- `npm run db:setup` 支持重复运行，已应用的迁移不会重复执行。
+- 如果只想先建表、暂未配置 GitHub OAuth，可运行：
 
 ```bash
 npm run db:setup -- --db-only
 ```
 
-## ✍️ 在线写作后台
+### 2. 启动本地开发
 
-启动 `npm run dev`，访问：
-
-```text
-http://localhost:4321/admin
+```bash
+npm run dev
 ```
 
-**用 GitHub 账号登录**，不需要密码。
+打开 `http://localhost:4321` 浏览前台，访问 `http://localhost:4321/admin` 登录后台。
+
+### 3. 常用命令一览
+
+| 命令                                                               | 用途                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `npm run dev`                                                      | 启动本地开发服务器                                         |
+| `npm run build`                                                    | 类型检查并执行生产构建（先停止 `dev`，避免争用 `.astro/`） |
+| `npm run preview`                                                  | 预览已构建的 `dist/` 产物                                  |
+| `npm run format:check` / `npm run format`                          | Prettier 格式检查 / 自动格式化                             |
+| `npx astro check`                                                  | Astro 与 TypeScript 类型检查                               |
+| `npm run lint`                                                     | ESLint 静态检查                                            |
+| `npm test`                                                         | 跑完 10 组离线测试（PGlite 内存库，不联网、不需要 `.env`） |
+| `npm run admin:browser:test`                                       | Playwright 后台写作保护回归（需先启动 `npm run dev`）      |
+| `npm run public:browser:test`                                      | Playwright 公开页面回归（需先启动 `npm run dev`）          |
+| `npm run db:generate` / `npm run db:migrate` / `npm run db:studio` | 生成迁移 / 应用迁移 / 打开 Drizzle Studio                  |
+| `npm run posts:import`                                             | 从本地 Markdown 批量导入文章到数据库                       |
+| `npm run commit:check -- "feat: 说明"`                             | 提交前检查暂存区临时文件与提交信息格式                     |
+| `npm run learn` / `npm run learn:check`                            | 查看 TypeScript 练习册题目 / 自动判分                      |
+
+---
+
+## 📁 项目结构
 
 ```text
-/admin              登录
+/ 仓库根目录
+├── public/               静态资源（首屏背景图/视频、favicon）
+├── docs/                 维护指南、动态发布方案、部署指南、学习路线
+├── practice/             TypeScript 练习册与测试套件（_ 开头的临时脚本不进 git）
+├── scripts/              一次性运维脚本（建库、导入旧文章、提交信息检查）
+├── drizzle/              SQL 迁移文件（必须提交，线上靠它建表）
+├── src/
+│   ├── assets/           参与构建的图片、SVG 图标与本地代码字体（fonts/）
+│   ├── components/       可复用 UI 组件
+│   ├── content/          静态内容集合：友链 / 说说 / 项目（⚠️ 无 posts/，文章在数据库）
+│   ├── db/               表结构（schema.ts）、仓库函数、Neon HTTP 驱动与字段映射
+│   ├── i18n/             中英文界面文案（types.ts + lang/zh.ts + lang/en.ts）
+│   ├── layouts/          基础页面布局与文章布局
+│   ├── lib/              服务端核心：认证、公开文章读取、缓存、Markdown 渲染、订阅源
+│   ├── pages/            文件即路由（含 /api/*、/admin/* 与全部公开页）
+│   ├── scripts/          浏览器端轻量脚本（如主题切换）
+│   ├── styles/           全局样式与唯一设计 Token（theme.css）
+│   ├── types/            站点配置类型定义
+│   └── utils/            纯函数工具（分页、排序、搜索结果整理、JSON-LD 序列化等）
+├── astro.config.ts       Astro 与 Netlify 适配器、字体、Sitemap 配置
+├── astro-paper.config.ts 站点元信息、分页数、功能开关、Giscus 评论配置
+├── drizzle.config.ts     drizzle-kit 迁移配置
+├── netlify.toml          Netlify 构建命令与 Node 版本锁定
+└── package.json          依赖与脚本入口
+```
+
+---
+
+## 🗄️ 动态发布与数据库
+
+表结构定义在 `src/db/schema.ts`（仅一张 `posts` 表，并用数据库约束保证“已发布必有发布时间”、`slug` 唯一）。
+
+### 缓存与容错策略
+
+为兼顾实时更新与响应速度，公开文章页、列表、订阅源和动态站点地图共用 `src/lib/publicCache.ts`：
+
+- **浏览器缓存**：`Cache-Control: public, max-age=0, must-revalidate`
+- **Netlify CDN 缓存**：`Netlify-CDN-Cache-Control: public, s-maxage=30, must-revalidate`
+- **正文渲染缓存**：`src/lib/postMarkdown.ts` 按正文 SHA-256 缓存编译结果（上限 64 篇 / 8 MB），但不缓存公开状态，已下线文章不会借旧缓存复活
+- **故障保护**：数据库或渲染异常返回 `503` + `Cache-Control: no-store` + `Retry-After: 30`，同时记录服务端错误日志，绝不将故障缓存为空站点或 `404`
+
+发布、修改、下线或删除文章后，**最多约 30 秒**前台即会同步生效。
+
+### 需要注意的两个代价
+
+1. **运行时依赖数据库连接**：未命中 CDN 缓存的公开阅读页与后台接口都会访问 Neon，因此本地 `.env` 与 Netlify 环境变量均需配置 `DATABASE_URL`。
+2. **文章内容脱离 Git 历史**：修改或删除正文后无法直接 `git revert`，需依靠数据库快照/备份。
+
+### 测试体系
+
+```bash
+npm test   # 依次运行 10 组离线测试，任意一组失败立即中止
+```
+
+覆盖范围：`db:test`、`api:test`、`auth:test`、`feed:test`、`friends:test`、`notes:test`、`projects:test`、`dynamic:data:test`、`dynamic:discovery:test`、`pagination:test`。全部测试无需联网或 `.env`。
+
+如需连同本地运行的真实 HTTP 路由一起验收（需先启动 `npm run dev`）：
+
+```bash
+# 验收 /api/public-search、/sitemap-posts.xml、/rss.xml、/atom.xml
+node practice/tests/dynamic-discovery.ts http://localhost:4321
+node practice/tests/feed.ts http://localhost:4321
+
+# 浏览器端回归（拦截全部 API，不写入真实数据；跑完先停 dev 再 build）
+npm run admin:browser:test
+npm run public:browser:test
+```
+
+---
+
+## ✍️ 在线写作后台与 API
+
+### 后台路由与认证机制
+
+```text
+/admin              GitHub 登录页（不缓存、不索引，已从 robots.txt 与 sitemap 排除）
 /admin/posts        文章列表（新建 / 编辑 / 删除）
 /admin/posts/new    写新文章
 /admin/posts/123    编辑第 123 篇
 ```
 
-只有 `.env` 里 `GITHUB_OWNER_ID` 指定的那个账号能登录成功，
-其他 GitHub 账号即使完成了授权也会被拒绝。
+- **单博主无密码登录**：由 [Better Auth](https://better-auth.com/) 无状态模式驱动，登录状态存于加密 JWE Cookie，不建 `users` 表；仅放行与 `GITHUB_OWNER_ID` 一致的 GitHub 账号，`BETTER_AUTH_SECRET` 缺失或不足 32 位会强制拒绝启动。
+- **写作防丢保护**：后台使用整页导航（不接入 `ClientRouter`）；编辑已有文章在加载成功前禁用表单、失败支持重试；存在未保存改动或保存中触发浏览器离开提醒。
 
-### 为什么用 GitHub 登录，不用密码
+### API 接口一览
 
-- **不用记密码**，也就不会忘、不会泄露
-- **数据库里不存任何用户信息**（连 users 表都没有），没有被拖库的风险
-- 登录由 [Better Auth](https://better-auth.com/) 处理 —— 这是
-  [Astro 官方文档推荐](https://docs.astro.build/en/guides/authentication/)的方案，
-  用的是它的**无状态模式**：登录状态存在加密 Cookie 里，服务端验证时不查库
+所有 `/api/*` 由 [Elysia](https://elysiajs.com/) 在 Astro API 路由内统一分发，登录相关接口由 Better Auth 挂载于 `/api/session/*`。
 
-后台页面是**按需渲染**的（`prerender = false`），不接入公开缓存；
-文章阅读页同样按需读库，但通过 Netlify CDN 30 秒缓存兼顾速度与实时性。
+| 方法     | 路径                 | 说明                                           | 需要登录 |
+| -------- | -------------------- | ---------------------------------------------- | -------- |
+| `GET`    | `/api/health`        | 健康检查（确认服务端函数正常运行）             | 否       |
+| `GET`    | `/api/public-search` | 公开文章实时搜索（`?q=关键词&lang=zh`）        | 否       |
+| `*`      | `/api/session/*`     | 登录与会话接口（Better Auth 提供）             | 部分     |
+| `POST`   | `/api/logout`        | 登出并清除会话 Cookie                          | 否       |
+| `GET`    | `/api/me`            | 获取当前登录博主信息                           | 是       |
+| `GET`    | `/api/posts`         | 获取全部文章（含草稿）                         | 是       |
+| `GET`    | `/api/posts/:id`     | 获取单篇文章详情                               | 是       |
+| `POST`   | `/api/posts`         | 新建文章（返回值带兼容字段 `"rebuild": null`） | 是       |
+| `PATCH`  | `/api/posts/:id`     | 局部更新文章                                   | 是       |
+| `DELETE` | `/api/posts/:id`     | 删除文章                                       | 是       |
+| `POST`   | `/api/rebuild`       | 旧版兼容接口：显式请求一次 Netlify Build Hook  | 是       |
 
-后台使用整页导航，不接入公开页面的 `ClientRouter`。否则往返列表与编辑页后，
-已执行的模块脚本不会重新初始化，表格可能一直显示「加载中」，保存按钮也可能失效。
-
-编辑已有文章时，读取成功前表单和保存按钮保持禁用；读取失败后可以重试。
-有未保存修改或保存请求尚未完成时，刷新、返回列表和关闭页面会触发浏览器的离开提醒。
-保存失败仍保留提醒；请求期间继续编辑的内容，也不会被误当成已经保存。
-离开提醒不等于自动备份，请仍然及时保存，尤其不要依赖手机强制关闭应用时一定能弹出提醒。
-
-**后台浏览器回归**（独立运行，不包含在 `npm test` 中）：
-
-```bash
-# 一个终端启动本地服务
-npm run dev
-# 另一个终端运行浏览器回归
-npm run admin:browser:test
-# 公开页面回归：菜单跨断点、主题色、文章元数据和返回顶部
-npm run public:browser:test
-```
-
-测试需要可用的 Playwright Chromium 或本机 Microsoft Edge；只访问本地站点，
-全部后台接口都被测试数据拦截，不会保存真实文章或请求生产重建。
-覆盖页面往返、读取失败重试、未保存离开以及保存中继续编辑等行为。
-公开页面回归同样拦截全部 API，需要文章列表至少有一篇可见文章。
-回归结束后先停止开发服务，再执行 `npm run build`，避免争用 `.astro/`。
-
-## 🔌 API
-
-用 [Elysia](https://elysiajs.com/) 写，跑在 Astro 的 API 路由里
-（`src/pages/api/[...path].ts` 接住所有 `/api/*`）。
-**不是独立服务** —— 一个仓库、一次部署、没有跨域问题。
-
-登录相关的接口在 `/api/session/*`，由 Better Auth 提供
-（见 `src/pages/api/session/[...path].ts`）。
-
-```bash
-npm run api:test       # 跑 API 测试（用内存数据库，62 项断言）
-```
-
-### 接口一览
-
-| 方法     | 路径                 | 说明                                          | 需要登录 |
-| -------- | -------------------- | --------------------------------------------- | -------- |
-| `GET`    | `/api/health`        | 健康检查，用来确认服务端能跑                  | 否       |
-| `GET`    | `/api/public-search` | 公开文章实时搜索（`?q=关键词&lang=zh`）       | 否       |
-| `*`      | `/api/session/*`     | 登录相关（Better Auth 提供）                  | 部分     |
-| `POST`   | `/api/logout`        | 登出，清除登录状态                            | 否       |
-| `GET`    | `/api/me`            | 当前登录用户                                  | 是       |
-| `GET`    | `/api/posts`         | 全部文章（含草稿）                            | 是       |
-| `GET`    | `/api/posts/:id`     | 单篇文章                                      | 是       |
-| `POST`   | `/api/posts`         | 新建                                          | 是       |
-| `PATCH`  | `/api/posts/:id`     | 修改（只改传了的字段）                        | 是       |
-| `DELETE` | `/api/posts/:id`     | 删除                                          | 是       |
-| `POST`   | `/api/rebuild`       | 旧版兼容接口：显式请求一次 Netlify Build Hook | 是       |
-
-文章页面已改为动态读取，写操作的返回值仍保留兼容字段 `"rebuild": null`，
-不再自动触发整站部署：
-
-```json
-{ "post": { "...": "..." }, "rebuild": null }
-```
-
-### 错误格式
-
-所有接口出错时返回同样的形状，前端只写一次处理逻辑：
+所有接口错误统一返回：
 
 ```json
 { "error": "给用户看的中文说明", "code": "MACHINE_READABLE_CODE" }
 ```
 
-常用状态码：`400` 请求体不合法 · `401` 未登录 ·
-`404` 找不到 · `409` slug 已被占用 · `422` 字段格式不对
+常见状态码：`400` 请求体不合法 · `401` 未登录 · `404` 找不到 · `409` slug 冲突 · `422` 字段校验不通过 · `500` 服务端内部错误（写入 Functions 日志）。
 
-### 环境变量
+### 环境变量清单
 
-完整说明见 `.env.example`，这里只列清单：
+完整说明与示例见 `.env.example` 和 [部署指南](docs/DEPLOYMENT.md)：
 
-| 变量                     | 用途                                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`           | 数据库连接串（用 Neon 控制台里 Pooled 那条，带 `-pooler`；理由见 [部署指南](docs/DEPLOYMENT.md)） |
-| `BETTER_AUTH_SECRET`     | 登录状态加密用的密钥                                                                              |
-| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID                                                                     |
-| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的密钥                                                                           |
-| `GITHUB_OWNER_ID`        | 只允许这个 GitHub 用户登录                                                                        |
-| `NETLIFY_BUILD_HOOK_URL` | 可选：仅旧版 `POST /api/rebuild` 兼容接口使用，日常写文章不需要配                                 |
+| 变量                     | 用途                                                            | 配置位置                        |
+| ------------------------ | --------------------------------------------------------------- | ------------------------------- |
+| `DATABASE_URL`           | Neon PostgreSQL 连接串（使用带 `-pooler` 的 Pooled 地址）       | 本地 `.env`、Netlify（CI 可选） |
+| `BETTER_AUTH_SECRET`     | 会话 JWE 加密密钥（至少 32 字符，缺失将拒绝启动）               | 本地 `.env`、Netlify            |
+| `GITHUB_CLIENT_ID`       | GitHub OAuth App 的 Client ID（本地与线上各建一个）             | 本地 `.env`、Netlify            |
+| `GITHUB_CLIENT_SECRET`   | GitHub OAuth App 的 Client Secret                               | 本地 `.env`、Netlify            |
+| `GITHUB_OWNER_ID`        | 唯一允许登录后台的 GitHub 数字 ID                               | 本地 `.env`、Netlify            |
+| `NETLIFY_BUILD_HOOK_URL` | 可选：仅旧版 `POST /api/rebuild` 兼容接口使用，日常写作无需配置 | 仅 Netlify（勿填进本地 `.env`） |
 
-⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 和 `NETLIFY_BUILD_HOOK_URL`
-泄露都会出事（前两个能冒充你登录，最后一个谁拿到都能触发构建）。
-不要提交到 git（`.env` 已在 `.gitignore` 里）。
+> ⚠️ `BETTER_AUTH_SECRET`、`GITHUB_CLIENT_SECRET` 与 `NETLIFY_BUILD_HOOK_URL` 属于高敏凭据，切勿提交到仓库；在 GitHub Actions 里配了 secret 不会自动同步到 Netlify，两处需分别维护。
+
+---
+
+## 🎨 视觉与导航约定
+
+保留粉紫强调色与全屏动漫海报，海报负责个性，正文通过字号、留白与内容层级保持克制。参考站分工：
+
+- [Elysia 中文网](https://elysia.nodejs.cn/)：品牌色、轻量氛围与明确主动作。
+- [fqzlr 博客](https://blog.fqzlr.top/)：海报首屏、友链横向卡片与个人空间表达。
+
+核心约定：
+
+- **首页顺序**：全屏海报 → 文章区（最多两篇精选 + 最近文章）→ 四项轻量内容导航 → 动图区；首屏「开始阅读」跳到文章区，「全部文章」紧挨最近文章，动图不隔断阅读路径。
+- **卡片与排版**：普通文章与项目容器采用主题背景、细描边与 `rounded-box` 圆角，不单独叠阴影或品牌色；容器含多个链接时，悬停与键盘焦点反馈只作用在对应链接上；文章卡片把标题与日期归组、摘要独立、标签细线分隔靠底对齐。
+- **标题与页脚**：公共页面标题保持纯色（不加文字光晕），长标题与摘要允许换行；页脚与正文对齐 `content-shell` 基线，窄屏居中堆叠、宽屏左右排布。
+- **友链卡片**：实色横向卡片 + 圆角方形头像 + 轻量标签，整卡单一链接，头像加载失败回退显示站名首字。
+- **固定入口分工**：「关于我」指向 `/profile`，`/about` 保留为「本站与致谢」；RSS 入口先到 `/rss` 说明页，原始订阅源为 `/rss.xml` 与 `/atom.xml`。修改入口时须同步页眉、首屏、面包屑与中英文文案。
+
+---
+
+## 🧩 可选模块（怎么删）
+
+每个功能都按自包含原则组织，删除时照下表操作即可。文章页返回顶部按钮统一由 `Layout.astro` 渲染，`showBackButton` 控制文章页开关。
+
+| 功能                     | 相关文件                                                                                                                                                                 | 怎么删                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 文章目录                 | `src/pages/posts/[...slug]/_components/TableOfContents.astro`                                                                                                            | 删这个文件，再删文章页里的 `import TableOfContents` 和 `<TableOfContents />` 那一行                                    |
+| 数学公式                 | `src/styles/katex.css`<br>`src/lib/markdownConfig.ts` 里的 `remarkMath` / `rehypeKatex`                                                                                  | 删 `katex.css` 和 `global.css` 里 import 它那行；删共享 Markdown 配置里两个插件；卸载 `remark-math rehype-katex katex` |
+| 图表 Mermaid             | `astro.config.ts` 的 `mermaid()` 集成<br>`src/lib/markdownConfig.ts` 的 `remarkMermaid`                                                                                  | 删集成与 `remarkMermaid` 插件；卸载 `astro-mermaid`                                                                    |
+| RSS / Atom 订阅          | `src/lib/feed.ts`<br>`src/utils/createPostFeed.ts`<br>`src/pages/rss.xml.ts`<br>`src/pages/atom.xml.ts`                                                                  | 照 `src/lib/feed.ts` 文件头步骤移除                                                                                    |
+| 订阅页 `/rss`            | `src/pages/rss/index.astro`                                                                                                                                              | 照该文件文件头写的 4 步做                                                                                              |
+| 友链页                   | `src/pages/friends.astro`<br>`src/pages/friends/_components/FriendCard.astro`<br>`src/utils/getFriends.ts`<br>`src/content/friends/`                                     | 照 `getFriends.ts` 文件头写的 6 步做；卡片组件一并删除                                                                 |
+| 说说 `/notes`            | `src/pages/notes.astro`<br>`src/utils/getNotes.ts`<br>`src/content/notes/`                                                                                               | 照 `getNotes.ts` 文件头写的 6 步做                                                                                     |
+| 项目 `/projects`         | `src/pages/projects.astro`<br>`src/utils/getProjects.ts`<br>`src/content/projects/`                                                                                      | 照 `getProjects.ts` 文件头写的 6 步做（不影响 `profile.astro` 独立数据）                                               |
+| 近况页 `/now`            | `src/pages/now.astro`                                                                                                                                                    | 删这个文件，再从 `Header.astro` 的 `moreItems` 里删掉对应项                                                            |
+| 代码块复制               | `src/pages/posts/[...slug]/_components/CopyCodeButton.astro`                                                                                                             | 删这个文件，再删文章页里的 `<CopyCodeButton />` 那一行                                                                 |
+| 氛围层（网格 + 光晕）    | `src/styles/atmosphere.css`                                                                                                                                              | 删文件、`global.css` 的 `@import` 与 `Layout.astro` 的 `.atmosphere` 容器                                              |
+| 列表页极光射线           | `src/components/PageGlow.astro`<br>`src/styles/page-glow.css`                                                                                                            | 删这两个文件、`Main.astro` 的引用和 `global.css` 的 `@import`                                                          |
+| 首屏 Hero（全屏海报）    | `src/components/Hero.astro`<br>`src/styles/hero.css`<br>`public/hero-bg.jpg` / `.mp4` / `.webm`                                                                          | 照 `Hero.astro` 文件头写的 4 步做（删完回到纯列表首页）                                                                |
+| 页眉玻璃导航             | `src/styles/nav.css`                                                                                                                                                     | 照 `nav.css` 文件头写的 3 步做（删后退回不透明吸顶导航）                                                               |
+| 品牌标识                 | `src/components/BrandMark.astro`                                                                                                                                         | 删文件，把 Header / Footer 里的 `<BrandMark />` 换回纯文字                                                             |
+| 回到顶部按钮             | `src/components/BackToTop.astro`<br>`src/styles/back-to-top.css`                                                                                                         | 照 `BackToTop.astro` 文件头写的 3 步做                                                                                 |
+| 评论区（Giscus）         | `src/pages/posts/[...slug]/_components/GiscusComments.astro`<br>`astro-paper.config.ts` 的 `comments`                                                                    | 删组件、文章页引用和配置中的 `comments` 段                                                                             |
+| 实时文章搜索             | `src/pages/search.astro`<br>`src/pages/api/public-search.ts`<br>`src/utils/publicSearch.ts`<br>`astro-paper.config.ts` 的 `features.search`                              | 改成 `search: false`，页面自动跳 404；彻底删除照 `search.astro` 文件头操作                                             |
+| 归档页                   | `src/pages/archives/`                                                                                                                                                    | `features.showArchives` 改成 `false`                                                                                   |
+| 动态 OG 图               | `src/pages/og.png.ts`<br>`src/pages/posts/[...slug]/index.png.ts`                                                                                                        | `features.dynamicOgImage` 改成 `false`，再删这两个文件                                                                 |
+| 主题切换                 | `src/scripts/theme.ts`                                                                                                                                                   | `features.lightAndDarkMode` 改成 `false`                                                                               |
+| 分享按钮                 | `astro-paper.config.ts` 的 `shareLinks`                                                                                                                                  | 把数组清空：`shareLinks: []`                                                                                           |
+| 编辑本页链接             | `astro-paper.config.ts` 的 `features.editPost`                                                                                                                           | 改成 `{ enabled: false }`                                                                                              |
+| 在线写作后台             | `src/pages/admin/`<br>`src/utils/adminApi.ts`                                                                                                                            | 删这两个，再删 `src/pages/api/`（连接口也不要的话）                                                                    |
+| 后台浏览器回归           | `practice/tests/admin-browser.ts`                                                                                                                                        | 删文件、`package.json` 的 `admin:browser:test` 与文档说明                                                              |
+| 文章结构化数据安全序列化 | `src/utils/serializeJsonLd.ts`                                                                                                                                           | 先删 `PostLayout.astro` 的 JSON-LD script 和 import，再删本文件及对应回归测试                                          |
+| 公开页面浏览器回归       | `practice/tests/public-browser.ts`                                                                                                                                       | 删文件、`package.json` 的 `public:browser:test` 与文档说明                                                             |
+| 动态文章发布与缓存       | `src/lib/publicPosts.ts`<br>`src/lib/publicCache.ts`<br>`src/lib/postMarkdown.ts`<br>`src/lib/markdownConfig.ts`<br>`src/lib/postSchema.ts`<br>`src/db/loaders/posts.ts` | 将阅读页面切回静态内容集合后再按各文件头步骤移除                                                                       |
+| 动态分页与列表           | `src/pages/posts/index.astro`<br>`src/pages/posts/page/[page].astro`<br>`src/pages/posts/_components/PostList.astro`<br>`src/utils/paginatePosts.ts`                     | 删以上文件和 `practice/tests/pagination.ts`                                                                            |
+| 动态文章站点地图         | `src/pages/sitemap-posts.xml.ts`<br>`astro.config.ts` 的 `customSitemaps`                                                                                                | 从 `astro.config.ts` 移除 `customSitemaps`，再删本文件                                                                 |
+| 旧版手动重建兼容接口     | `src/lib/rebuild.ts`<br>`.env` 的 `NETLIFY_BUILD_HOOK_URL`                                                                                                               | 照 `src/lib/rebuild.ts` 文件头写的 3 步做                                                                              |
+| 本地代码字体             | `src/assets/fonts/`、`astro.config.ts`                                                                                                                                   | 先替换字体配置，再删除字体目录（详情见目录内 README）                                                                  |
+| 日常维护指南             | `docs/MAINTENANCE.md`                                                                                                                                                    | 删文件及本表登记、下方学习资料链接                                                                                     |
+| 动态发布方案与验证       | `docs/DYNAMIC-PUBLISHING.md`                                                                                                                                             | 删文件及本表登记、下方学习资料链接                                                                                     |
+| 练习册                   | `practice/`                                                                                                                                                              | 删整个目录，再删 `package.json` 里 `learn` / `learn:check` / `learn:answers` 三个脚本                                  |
+| 学习路线                 | `docs/LEARNING-ROADMAP.md`                                                                                                                                               | 只删这个文件（⚠️ 勿整删 `docs/`，里面还有部署与维护文档）                                                              |
+
+---
+
+## 📚 文档与学习资料
+
+- [日常维护指南](docs/MAINTENANCE.md) —— 改文字、改样式、发布文章与验证上线
+- [动态发布方案与验证](docs/DYNAMIC-PUBLISHING.md) —— 动态文章架构设计、隔离原型与验收边界
+- [部署指南](docs/DEPLOYMENT.md) —— 环境变量、Neon 连接串与函数区域选择
+- [学习路线：TypeScript → Astro](docs/LEARNING-ROADMAP.md) —— 每个知识点对应仓库里的具体文件
+- [项目约定与踩坑记录](AGENTS.md) —— 编码规矩、设计系统守则与实测排错手记
+- [TypeScript 练习册](practice/README.md) —— 8 节课，支持 `npm run learn:check` 自动判分
