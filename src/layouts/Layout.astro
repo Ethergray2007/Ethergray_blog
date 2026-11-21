@@ -96,16 +96,10 @@ const atomHref = getAssetPath("atom.xml");
 
     <meta name="generator" content={Astro.generator} />
 
-    <Font
-      cssVariable="--font-google-sans-code"
-      preload={[
-        {
-          subset: "latin",
-          weight: 400,
-          style: "normal",
-        },
-      ]}
-    />
+    {
+      /* 等宽字体仅用于代码块和数字，正文走系统无衬线栈，不做首屏 preload 避免争抢带宽。 */
+    }
+    <Font cssVariable="--font-google-sans-code" />
 
     <title>{title}</title>
 

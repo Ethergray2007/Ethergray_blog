@@ -7,7 +7,6 @@ import {
 } from "astro/config";
 import netlify from "@astrojs/netlify";
 import tailwindcss from "@tailwindcss/vite";
-import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import mermaid from "astro-mermaid";
 import { markdownConfig } from "./src/lib/markdownConfig";
@@ -119,7 +118,6 @@ export default defineConfig({
     mermaid({
       autoTheme: true, // 跟着站点的深色/浅色模式走
     }),
-    mdx(),
     sitemap({
       customSitemaps: [new URL("sitemap-posts.xml", config.site.url).href],
       filter: page =>

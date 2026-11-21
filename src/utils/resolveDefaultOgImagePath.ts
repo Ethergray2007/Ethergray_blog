@@ -1,27 +1,33 @@
+/**
+ * 解析全站默认 OG 分享图路径
+ * ============================================================
+ * 【为什么不再使用 import.meta.glob("/public/*") 检查文件是否存在】
+ * Vite 会把 glob 匹配到的 public/ 下所有大文件（含 hero-bg.mp4 / .webm /
+ * hero-bg.jpg / default-og.jpg，合计约 1.45 MB）再拷贝进 dist/_astro/
+ * 并生成多余的 SSR chunk，造成构建产物双份冗余。
+ *
+ * 改为直接依据配置决定：
+ *   - 填了 site.ogImage（单层文件名）→ 指向 public/ 下对应静态路径
+ *   - 留空且开启 dynamicOgImage     → 回退到生成的 /og.png
+ * ============================================================
+ */
 import type { ResolvedAstroPaperConfig } from "@/types/config";
 import { getAssetPath } from "./withBase";
 
-const publicFiles = import.meta.glob("/public/*", { eager: false });
-
-function existsInPublic(filename: string): boolean {
-  return `/public/${filename}` in publicFiles;
-}
-
-/**
- * Resolves the absolute OG image path used for pages/posts.
- *
- * Security note: `site.ogImage` must be a single filename under `public/` to avoid
- * path traversal or referencing arbitrary files.
- *
- * Behavior:
- * - When `features.dynamicOgImage` is enabled, prefers `public/{site.ogImage}` when present,
- *   otherwise falls back to the generated `/og.png`.
- * - When disabled, requires `public/{site.ogImage}` to exist.
- */
 export function resolveDefaultOgImagePath(
   config: ResolvedAstroPaperConfig
 ): string {
-  const filename = config.site.ogImage;
+  const filename = config.site.ogImage.trim();
+
+  if (!filename) {
+    if (config.features.dynamicOgImage) {
+      return getAssetPath("og.png");
+    }
+    throw new Error(
+      "缺少默认分享图：请配置 site.ogImage，或开启 features.dynamicOgImage 回退到 /og.png。"
+    );
+  }
+
   if (
     filename.includes("..") ||
     filename.includes("/") ||
@@ -29,18 +35,6 @@ export function resolveDefaultOgImagePath(
   ) {
     throw new Error(
       `site.ogImage must be a single filename in public/ (e.g. "default-og.jpg"), got "${filename}"`
-    );
-  }
-
-  if (config.features.dynamicOgImage) {
-    return existsInPublic(filename)
-      ? getAssetPath(filename)
-      : getAssetPath("og.png");
-  }
-
-  if (!existsInPublic(filename)) {
-    throw new Error(
-      `AstroPaper: missing public/${filename}. Add that file, or set site.ogImage to an existing file under public/, or enable features.dynamicOgImage to fall back to /og.png.`
     );
   }
 

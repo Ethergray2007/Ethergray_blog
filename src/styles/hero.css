@@ -6,7 +6,7 @@
  * 想删掉这个首屏？
  *   1. 删掉 Hero.astro
  *   2. 删掉 index.astro 里的 import 和 <Hero /> 那一行
- *   3. 删掉这个文件，以及 global.css 里的 @import "./hero.css"
+ *   3. 删掉这个文件（由 Hero.astro 按需加载）
  *   4. 删掉 public/hero-bg.jpg / hero-bg.mp4 / hero-bg.webm
  *
  * ============================================================

@@ -7,7 +7,7 @@
  * 想删掉这个首屏（回到"纯列表首页"）？
  *   1. 删掉这个文件
  *   2. 删掉 index.astro 里的 import 和 <Hero /> 那一行
- *   3. 删掉 src/styles/hero.css 和 global.css 里的 @import
+ *   3. 删掉 src/styles/hero.css（已由本组件按需加载，不再依赖 global.css）
  *   4. 删掉 public/hero-bg.* 三个文件
  *
  * ------------------------------------------------------------
@@ -46,6 +46,7 @@
  * ============================================================
  */
 import { getRelativeLocaleUrl } from "astro:i18n";
+import "@/styles/hero.css";
 
 import config from "@/config";
 import { useTranslations } from "@/i18n";

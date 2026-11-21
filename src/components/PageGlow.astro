@@ -7,7 +7,7 @@
  * 想删掉这个效果？
  *   1. 删掉这个文件
  *   2. 删掉 Main.astro 里的 import 和 <PageGlow /> 那一行
- *   3. 删掉 src/styles/page-glow.css 和 global.css 里的 @import
+ *   3. 删掉 src/styles/page-glow.css（已由本组件按需加载，不再依赖 global.css）
  *
  * ------------------------------------------------------------
  * 【它是什么，为什么需要】
@@ -43,6 +43,7 @@
  * 参考站也是这么做的，所以它才能压在内容后面还不影响性能。
  * ============================================================
  */
+import "@/styles/page-glow.css";
 ---
 
 <div class="page-glow" aria-hidden="true">

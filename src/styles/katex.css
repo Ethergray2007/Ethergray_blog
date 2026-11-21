@@ -10,8 +10,8 @@
  *   删这个文件 + astro.config.ts 里的两个插件 + 两个依赖。
  *
  * 想删掉数学公式？
- *   1. 删掉这个文件，以及 global.css 里 import 它的那一行
- *   2. 删掉 astro.config.ts 里的 remarkMath 和 rehypeKatex
+ *   1. 删掉这个文件，以及文章页（src/pages/posts/[...slug]/index.astro）里 import 它的那一行
+ *   2. 删掉 src/lib/markdownConfig.ts 里的 remarkMath 和 rehypeKatex
  *   3. 卸载依赖：npm uninstall remark-math rehype-katex katex
  *   4. 删掉 README 的「可选模块」表里那一行
  * ============================================================
